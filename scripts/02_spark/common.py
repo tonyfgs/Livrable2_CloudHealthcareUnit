@@ -4,8 +4,9 @@
 # Rôle d'Apache Spark dans la stack : couche TRAITEMENT (ETL/ELT) - lecture
 # des sources (PostgreSQL S1 via JDBC, CSV du data lake MinIO), nettoyage,
 # transformation, écriture des tables Gold/Silver dans le data lake (MinIO)
-# au format Parquet partitionné/bucketé. Le catalogue (Hive Metastore) est
-# alimenté par Spark (saveAsTable + enableHiveSupport).
+# au format Parquet partitionné. Le catalogue (Hive Metastore) est
+# alimenté SÉPARÉMENT par le DAG Airflow (MSCK REPAIR TABLE via beeline) :
+# Spark 3.5.1 embarque un client Hive 2.3 incompatible du Hive Metastore 4.x.
 #
 # Toute la stack tourne dans Docker (voir scripts/docker-compose.yml) :
 # aucune installation sur le poste hôte.
@@ -45,14 +46,22 @@ SILVER = f"{LAKE_ROOT}/silver"
 
 
 def get_spark(app_name: str) -> SparkSession:
-    """Session Spark configurée pour MinIO (S3A) + Hive Metastore."""
+    """Session Spark configurée pour MinIO (S3A).
+
+    Le catalogue est IN-MEMORY (pas de Hive Metastore côté Spark) : Spark 3.5.1
+    embarque un client Hive 2.3 dont le protocole Thrift est incompatible du
+    Hive Metastore 4.x du cluster (« Invalid method name: get_table »).
+    Architecture retenue : Spark écrit les fichiers Parquet partitionnés
+    directement sur le lake (save_gold -> saveAsTable avec option
+    path, sans metastore) ; le Hive Metastore est rafraîchi SÉPARÉMENT par le
+    DAG (MSCK REPAIR TABLE via beeline, tâche msck_repair_metastore), puis
+    Trino/Superset lisent via le catalogue.
+    """
     return (
         SparkSession.builder
         .appName(app_name)
         .config("spark.sql.warehouse.dir", WAREHOUSE_DIR)
-        # Hive Metastore : Spark écrit les définitions de tables (métadonnées)
-        .config("hive.metastore.uris", HIVE_METASTORE_URI)
-        .config("spark.sql.catalogImplementation", "hive")
+        .config("spark.sql.catalogImplementation", "in-memory")
         # S3A : accès au data lake MinIO
         .config("spark.hadoop.fs.s3a.endpoint", MINIO_ENDPOINT)
         .config("spark.hadoop.fs.s3a.access.key", MINIO_ACCESS_KEY)
@@ -65,16 +74,20 @@ def get_spark(app_name: str) -> SparkSession:
         # Parquet : compression + statistiques pour le pruning Trino
         .config("spark.sql.parquet.compression.codec", "zstd")
         .config("spark.sql.parquet.writeLegacyFormat", "false")
-        # Bucketing Hive (jointures sans shuffle complet)
-        .config("spark.sql.sources.bucketing.enabled", "true")
-        .config("spark.sql.sources.bucketing.maxBuckets", "1000")
         # Performance
         .config("spark.sql.adaptive.enabled", "true")
         .config("spark.sql.adaptive.coalescePartitions.enabled", "true")
         .config("spark.sql.files.maxRecordsPerFile", "5000000")
-        .enableHiveSupport()
         .getOrCreate()
     )
+
+
+def read_lake(spark: SparkSession, table: str):
+    """Lit une table du lake directement en Parquet, SANS le Hive Metastore.
+    'gold.f_mesures' -> s3a://lake/gold/f_mesures. Les colonnes de partition
+    (annee=.../sexe=...) sont découvertes automatiquement (hive_partitioning)."""
+    path = f"{LAKE_ROOT}/{table.replace('.', '/')}"
+    return spark.read.parquet(path)
 
 
 def read_postgres(spark: SparkSession, table: str):
@@ -142,9 +155,11 @@ def dept_of(code_commune_col):
     c = F.trim(code_commune_col)
     return (
         F.when(c.isNull() | (c == ""), F.lit(None).cast("string"))
-        .when(F.left(c, 2) == "97", F.left(c, 3))
-        .when(F.left(c, 2) == "20", F.lit("2A"))
-        .otherwise(F.left(c, 2))
+        # F.substring (pos/len en int) et pas F.left : depuis pyspark 3.5,
+        # F.left exige une Column pour len (NOT_COLUMN_OR_STR sinon)
+        .when(F.substring(c, 1, 2) == "97", F.substring(c, 1, 3))
+        .when(F.substring(c, 1, 2) == "20", F.lit("2A"))
+        .otherwise(F.substring(c, 1, 2))
     )
 
 
@@ -157,28 +172,35 @@ def sexe_normalise(sexe_col):
     )
 
 
-def save_gold(df, table: str, path: str, partition_cols=None, bucket_col=None, num_buckets=32, sort_cols=None):
+def save_gold(df, table: str, path: str, partition_cols=None):
     """Écrit une table Gold/Silver : EXTERNAL (chemin explicite sur le lake),
-    Parquet, partitionnée et/ou bucketée, triée sur les clés de jointure.
+    Parquet, partitionnée, triée sur les clés de jointure (min/max intra-fichier).
 
-    - table        : nom qualifié 'gold.f_mesures' (créée dans le Hive Metastore)
+    - table        : nom qualifié 'gold.f_mesures' (catalogue IN-MEMORY Spark :
+    #                   la définition n'est PAS poussée dans le Hive Metastore,
+    #                   qui est rafraîchi séparément par MSCK REPAIR côté DAG)
     - path         : chemin S3A, ex. 's3a://lake/gold/f_mesures'
-    - partition_cols : liste de colonnes de partition (pruning)
-    - bucket_col   : colonne de bucketing Hive (co-localisation des jointures)
-    - sort_cols    : colonnes de tri intra-partition/bucket
+    - partition_cols : liste de colonnes de partition (pruning côté Trino)
+
+    PAS de bucketing (bucketBy) : Spark n'écrit que les buckets non vides et
+    Trino 484 rejette alors la table bucketée ("number of files does not match
+    the declared bucket count"). Le tri intra-fichier est conservé via
+    sortWithinPartitions sur les clés de jointure (quand elles existent).
     """
-    # DROP préalable : un saveAsTable overwrite conserve la définition
-    # (bucketing inclus) d'une table existante et échoue si elle diffère.
-    # Table EXTERNE : le DROP ne supprime que les métadonnées, et le
-    # mode overwrite vide le répertoire cible (pas de partitions obsolètes).
-    df.sparkSession.sql(f"DROP TABLE IF EXISTS {table}")
+    # Pas de DROP TABLE : le catalogue est in-memory (pas de metastore Hive,
+    # incompatible Hive 4.x) ; le mode overwrite vide le répertoire cible
+    # (pas de partitions obsolètes). Le catalogue in-memory ne crée pas les
+    # schémas tout seul : CREATE DATABASE IF NOT EXISTS avant saveAsTable.
+    spark = df.sparkSession
+    if "." in table:
+        spark.sql(f"CREATE DATABASE IF NOT EXISTS {table.split('.')[0]}")
+    # Tri intra-partition sur les clés de jointure -> statistiques min/max par
+    # fichier Parquet -> pruning intra-fichier côté Trino (sans bucketing)
+    if {"id_etablissement", "id_patient"} <= set(df.columns):
+        df = df.sortWithinPartitions("id_etablissement", "id_patient")
     writer = df.write.mode("overwrite").format("parquet")
     if partition_cols:
         writer = writer.partitionBy(*partition_cols)
-    if bucket_col:
-        writer = writer.bucketBy(num_buckets, bucket_col)
-    if sort_cols:
-        writer = writer.sortBy(*sort_cols)
     # option("path") + saveAsTable => table EXTERNE (les données restent dans
     # le lake même après DROP TABLE ; conforme au DDL 01_schema_gold_hive.sql)
     writer.option("path", path).saveAsTable(table)

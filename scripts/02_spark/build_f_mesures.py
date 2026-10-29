@@ -23,7 +23,7 @@ import sys
 
 sys.path.insert(0, "/opt/spark/jobs")
 from pyspark.sql import functions as F
-from common import get_spark, GOLD, save_gold  # noqa: E402
+from common import get_spark, GOLD, save_gold, read_lake  # noqa: E402
 
 spark = get_spark("chu-l2-build-f-mesures")
 
@@ -34,13 +34,13 @@ KEYS = ["annee_mois", "id_etablissement", "id_patient",
 # 1. Quatre sources de mesures, agrégées à la clé de grain
 # ---------------------------------------------------------------------------
 consult = (
-    spark.table("silver.f_consultation_detail")
+    read_lake(spark, "silver.f_consultation_detail")
     .groupBy(*KEYS)
     .agg(F.count(F.lit(1)).alias("nbre_consultation"))
 )
 
 hosp = (
-    spark.table("gold.f_hospitalisation")
+    read_lake(spark, "gold.f_hospitalisation")
     .groupBy(*KEYS)
     .agg(F.count(F.lit(1)).alias("nbre_hospitalisation"))
 )
@@ -49,13 +49,11 @@ hosp = (
 # 2015-2023). Les décès antérieurs (1882-2014) restent disponibles dans
 # f_deces_agg (couche Gold). Sentinelle 'AAAA-00' = agrégat annuel.
 # region : rattachée via d_localisation (les décès n'ont pas d'établissement).
+# f_deces_agg porte déjà sa région (coalesce INCONNUE en amont) : pas de
+# re-jointure avec d_localisation, qui créerait une colonne region ambiguë
 deces = (
-    spark.table("gold.f_deces_agg")
+    read_lake(spark, "gold.f_deces_agg")
     .where(F.col("annee") >= 2015)
-    .join(
-        spark.table("gold.d_localisation").select("id_localisation", "region"),
-        on="id_localisation", how="left",
-    )
     .groupBy(
         F.concat(F.col("annee").cast("string"), F.lit("-00")).alias("annee_mois"),
         F.lit(-1).cast("long").alias("id_etablissement"),
@@ -74,7 +72,7 @@ deces = (
 # id_localisation = 'INCONNU'. Moyenne pondérée par les répondants des finess
 # juridiques de la région.
 sat = (
-    spark.table("gold.f_satisfaction")
+    read_lake(spark, "gold.f_satisfaction")
     .where(F.col("score_satisfaction").isNotNull())
     .groupBy(
         F.concat(F.col("annee"), F.lit("-00")).alias("annee_mois"),
@@ -127,25 +125,20 @@ f_mesures = (
 )
 
 # ---------------------------------------------------------------------------
-# 3. Écriture : PARTITIONED BY (annee, sexe, tranche_age) + bucketing 32 sur
-#    id_etablissement + tri (id_etablissement, id_patient).
-#    -> pruning temporel/démographique + jointures map-side (bucketing).
+# 3. Écriture : PARTITIONED BY (annee, sexe, tranche_age) + tri intra-partition
+#    (id_etablissement, id_patient) -> pruning temporel/démographique par
+#    partition + pruning intra-fichier (min/max Parquet) côté Trino.
 # ---------------------------------------------------------------------------
 save_gold(f_mesures, "gold.f_mesures", f"{GOLD}/f_mesures",
-          partition_cols=["annee", "sexe", "tranche_age"],
-          bucket_col="id_etablissement", num_buckets=32,
-          sort_cols=["id_etablissement", "id_patient"])
+          partition_cols=["annee", "sexe", "tranche_age"])
 
-spark.sql("MSCK REPAIR TABLE gold.f_mesures")
-spark.sql("ANALYZE TABLE gold.f_mesures COMPUTE STATISTICS")
 
 print("f_mesures :")
-spark.sql("""
-    SELECT COUNT(*) AS lignes,
-           SUM(nbre_consultation) AS total_consultations,
-           SUM(nbre_hospitalisation) AS total_hospitalisations,
-           SUM(nbre_deces) AS total_deces
-    FROM gold.f_mesures
-""").show()
+read_lake(spark, "gold.f_mesures").agg(
+    F.count("*").alias("lignes"),
+    F.sum("nbre_consultation").alias("total_consultations"),
+    F.sum("nbre_hospitalisation").alias("total_hospitalisations"),
+    F.sum("nbre_deces").alias("total_deces"),
+).show()
 
 spark.stop()

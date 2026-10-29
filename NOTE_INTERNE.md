@@ -28,7 +28,9 @@ scripts/docker-compose.yml
 └── Benchmark/DQ  bench-duckdb (DuckDB, conteneur « tooling », reste ouvert)
 ```
 
-Deux images sont **construites localement** (build automatique au `up`) :
+Quatre images sont **construites localement** (build automatique au `up`) :
+- `chu-minio:RELEASE.2025-10-15T17-29-55Z` (`config/minio/Dockerfile` : compile le serveur MinIO depuis github.com — les pulls `minio/*` étant bloqués, voir §6.1)
+- `chu-spark:3.5.1-s3a` (`config/spark/Dockerfile` : image officielle Spark 3.5.1 + connecteur S3A (hadoop-aws + AWS SDK v2) + **Python 3.12 embarqué** (python-build-standalone) pour matcher le driver Airflow (Python 3.12) — sinon `PYTHON_VERSION_MISMATCH` côté worker Python 3.8)
 - `chu-superset:4.1.1` (`scripts/06_superset/Dockerfile` : image officielle + `psycopg2-binary`)
 - `chu-airflow:2.9.3` (`scripts/03_airflow/Dockerfile` : image officielle + client Docker CLI + provider Spark 3.0.0)
 
@@ -38,7 +40,7 @@ Deux images sont **construites localement** (build automatique au `up`) :
 
 ```bash
 cd "Livrable 2/scripts"
-docker compose up -d          # build les 2 images custom puis démarre les 17 services
+docker compose up -d          # build les 4 images custom puis démarre les 17 services
 ```
 
 Temps de démarrage : compter **2-3 minutes** au premier lancement
@@ -58,19 +60,18 @@ docker compose down           # arrêt (les volumes nommés conservent les donn�
 docker compose down -v        # arrêt + purge des volumes ( repart de zéro)
 ```
 
-> **Piège (constaté sur la machine de développement)** : `docker pull
-> minio/minio` était refusé par le daemon (« pull access denied ») sur un
-> poste. `docker compose up -d` échoue alors en bloc (compose pull toutes les
-> images avant de démarrer). Contournement : démarrer service par service,
-> MinIO excepté, puis les services qui en dépendent avec `--no-deps` :
-> ```bash
-> docker compose up -d metastore-db hive-metastore-init hive-metastore hive-hs2 \
->   s1-postgres bench-duckdb spark-master spark-worker airflow-db \
->   airflow-scheduler airflow-webserver superset-db
-> docker compose up -d --no-deps trino superset
-> ```
-> Sur une machine avec un accès Docker Hub normal, un simple
-> `docker compose up -d` suffit.
+> **Piège (résolu) — pulls des repos `minio/*` bloqués** : sur certains
+> daemons/proxys (dont celui du poste de développement), `docker pull
+> minio/minio`, `quay.io/minio/minio` et `bitnami/minio` sont refusés
+> (« pull access denied ... repository does not exist »), et `dl.min.io` ne
+> sert plus les binaires en direct (HTTP 410). `docker compose up -d` aurait
+> donc échoué en bloc au pull. **Solution livrée** : le service `minio` est
+> construit **from source** (`config/minio/Dockerfile` compile le serveur
+> MinIO officiel depuis `github.com/minio/minio`, tag
+> `RELEASE.2025-10-15T17-29-55Z`) et `minio-init` utilise
+> `amazon/aws-cli` (pull OK) au lieu de `minio/mc`. Résultat : un simple
+> `docker compose up -d` suffit, **aucun pull d'image "minio" n'est tenté**.
+> Premier build : compter ~5-10 min (compilation Go).
 
 ---
 
@@ -78,16 +79,16 @@ docker compose down -v        # arrêt + purge des volumes ( repart de zéro)
 
 | Service | Image | Rôle | Ports (hôte) | Healthcheck |
 |---|---|---|---|---|
-| `minio` | `minio/minio:latest` | Data lake S3 (zones raw/silver/gold/warehouse) | 9000 (API S3), 9001 (console) | `mc ready local` |
-| `minio-init` | `minio/mc:latest` | One-shot : crée le bucket `lake`, copie `../DATA Projet` vers `lake/raw/` | — | `depends_on: minio healthy` |
+| `minio` | `chu-minio:RELEASE.2025-10-15T17-29-55Z` (build local from source, `config/minio/Dockerfile`) | Data lake S3 (zones raw/silver/gold/warehouse) | 9000 (API S3), 9001 (console) | `wget /minio/health/live` |
+| `minio-init` | `amazon/aws-cli:latest` | One-shot : `aws s3 mb s3://lake` + copie `../DATA Projet` vers `lake/raw/` | — | `depends_on: minio healthy` |
 | `metastore-db` | `postgres:15` | SGBD du catalogue Hive (métadonnées) | — (interne) | `pg_isready` |
 | `hive-metastore-init` | `apache/hive:4.2.1` | One-shot : `schematool -initSchema` (PostgreSQL) | — | `depends_on: metastore-db healthy` |
-| `hive-metastore` | `apache/hive:4.2.1` | Hive Metastore (Thrift) — catalogue des tables externes | 9083 | — |
+| `hive-metastore` | `apache/hive:4.2.1` (+ `ext-jars/` S3A copié dans `/opt/hive/lib` au boot) | Hive Metastore (Thrift) — catalogue des tables externes ; S3A requis pour le write-back des stats `ANALYZE` (voir §6.15) | 9083 | — |
 | `hive-hs2` | `apache/hive:4.2.1` | HiveServer2 (beeline/JDBC) — interface du DAG `lakehouse_init` pour le DDL | 10000 | TCP 10000 |
 | `s1-postgres` | `postgres:15` | Source S1 (dump ChuSimulation, restauré au 1er boot via `init.sh`) | 5432 | `pg_isready` |
 | `bench-duckdb` | build `04_benchmark/Dockerfile.duckdb` | PoC/benchmark DuckDB + contrôles qualité (DQ) | — | (conteneur outillage, `sleep infinity`) |
-| `spark-master` | `apache/spark:3.5.1` | Master Spark standalone (soumission Airflow) | 7077, 8085 (UI) | — |
-| `spark-worker` | `apache/spark:3.5.1` | Worker Spark (2 cœurs, 4 Go) | 8086 (UI) | — |
+| `spark-master` | `chu-spark:3.5.1-s3a` (build local, `config/spark/Dockerfile`) | Master Spark standalone (soumission Airflow) + S3A + Python 3.12 embarqué | 7077, 8085 (UI) | — |
+| `spark-worker` | `chu-spark:3.5.1-s3a` (build local) | Worker Spark (2 cœurs, 4 Go) | 8086 (UI) | — |
 | `trino` | `trinodb/trino:latest` (484) | Moteur de requêtage distribué (connecteur Hive → MinIO) | 8080 | — |
 | `superset-db` | `postgres:15` | Métadonnées Superset | — (interne) | `pg_isready` |
 | `superset` | `chu-superset:4.1.1` (build local) | Dashboards (8 charts, 1 par besoin métier) | 8088 | `/health` (via `curl`) |
@@ -109,11 +110,21 @@ Airflow `admin/admin` · PostgreSQL internes : `hive/hive`, `chu/chu`,
 3. Déclencher **`lakehouse_init`** (one-shot, manuel) :
    DDL Hive (schéma silver/gold, tables externes) → vues métier →
    vérification Trino (volumes, `ANALYZE`, pruning) → connexion Trino dans
-   Superset (API REST).
+   Superset (API REST). **Testé : 4/4 tâches SUCCESS.**
 4. Déclencher **`lakehouse_daily`** (quotidien 02:00, déclenchement manuel
    possible) : `SparkSubmitOperator` — `load_dimensions` → `load_faits_detail`
-   ∥ `build_f_deces_agg` → `build_f_mesures` (+ `build_agregats`) → contrôles
-   qualité (DQ dans `chu-bench-duckdb`) → disponibilité Trino pour Superset.
+   ∥ `build_f_deces_agg` → `build_f_mesures` (+ `build_agregats`) →
+   `MSCK REPAIR` (découverte des partitions) → contrôles qualité (DQ dans
+   `chu-bench-duckdb`, autonome) → disponibilité Trino pour Superset.
+   **Testé : 8/8 tâches SUCCESS**, volumes vérifiés dans Trino (§5.4).
+
+Les deux DAGs se testent aussi en CLI (sans l'UI) :
+
+```bash
+docker exec chu-airflow-scheduler airflow dags test lakehouse_init  2026-11-19
+docker exec chu-airflow-scheduler airflow dags test lakehouse_daily 2026-11-19
+# log : chercher "Marking task as SUCCESS" (8 tâches pour daily) et "state: success"
+```
 5. Ouvrir **Superset** : http://localhost:8088 (admin/admin) → connexion
    `Trino CHU` (créée par `lakehouse_init`, URI `trino://trino@trino:8080/hive`)
    → 8 tableaux de bord (requêtes prêtes dans `scripts/06_superset/charts.sql`).
@@ -136,9 +147,15 @@ Airflow `admin/admin` · PostgreSQL internes : `hive/hive`, `chu/chu`,
 - Fichiers : `scripts/05_qualite/results/` — 7 CSV (`dq_completude.csv`,
   `dq_validite.csv`, `dq_doublons.csv`, `dq_doublons_faits.csv`,
   `dq_referentiel.csv`, `dq_temporel.csv`, `dq_volumes.csv`).
-- Rejouer les contrôles seuls : `cd scripts/04_benchmark && ./run-duckdb.sh`
-  (le script choisit automatiquement le réseau `chu-l2_chu-net` si `chu-s1-postgres`
-  tourne, sinon un réseau jetable).
+- Rejouer les contrôles seuls (la DQ tourne sinon automatiquement dans le DAG
+  `lakehouse_daily`, tâche `dq_checks`) :
+  ```bash
+  docker exec chu-bench-duckdb sh -c 'cd /opt/l2work && duckdb /tmp/dq.duckdb < /opt/l2work/dq/dq_checks.sql'
+  # résultats : scripts/05_qualite/results/ (monté dans le conteneur)
+  ```
+  Le script est **autonome** : `INSTALL httpfs` + endpoint MinIO en dur, lecture
+  directe des Parquet du lake (`s3://lake/...`), staging embarqué
+  (`05_qualite/staging/` monté en `:ro`).
 
 ### 5.3 Commandes de vérification, service par service
 
@@ -154,7 +171,7 @@ docker exec chu-s1-postgres    psql -U chu -d chu_s1 -tAc 'SELECT COUNT(*) FROM 
 # Hive Metastore (Thrift 9083) — via Trino (qui joint le metastore)
 docker exec chu-trino trino --execute 'SHOW CATALOGS'                 # attendu : hive, system
 docker exec chu-trino trino --execute 'SHOW SCHEMAS FROM hive'        # attendu : default, gold, silver, ...
-docker exec chu-trino trino --execute 'SHOW TABLES FROM hive.gold'    # 10 tables (4 faits + 4 dims + vues)
+docker exec chu-trino trino --execute 'SHOW TABLES FROM hive.gold'    # 12 tables (6 dims + 6 faits/agrégats) + 8 vues métier
 
 # HiveServer2 (beeline 10000)
 docker exec -e TERM=dumb chu-hive-hs2 beeline -u jdbc:hive2://localhost:10000/gold -e 'SHOW TABLES'
@@ -178,30 +195,57 @@ docker exec chu-airflow-scheduler airflow dags list               # lakehouse_in
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8090/health   # 200
 
 # MinIO (data lake)
-docker exec chu-minio-init mc ls chu/lake/raw/ --recursive | head  # sources copiées
-docker exec chu-minio-init mc ls chu/lake/gold/  --recursive | head # tables Gold écrites par Spark
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:9000/minio/health/live   # 200
+docker compose run --rm --entrypoint aws minio-init \
+  --endpoint-url http://minio:9000 s3 ls s3://lake/raw/ --recursive | head   # sources copiées
+docker compose run --rm --entrypoint aws minio-init \
+  --endpoint-url http://minio:9000 s3 ls s3://lake/gold/ --recursive | head  # tables Gold (Spark)
 ```
 
-### 5.4 Volumes attendus (schéma en étoile, couche Gold/Silver)
+### 5.4 Volumes attendus (schéma en étoile, couche Gold/Silver) — vérifiés dans Trino après `lakehouse_daily`
 
 | Table | Lignes attendues |
 |---|---|
-| `gold.f_mesures` | 1 030 402 |
+| `gold.d_temps` | 5 844 |
+| `gold.d_patient` | 100 000 |
+| `gold.d_etablissement` | 416 665 |
+| `gold.d_localisation` | 102 (101 départements + Inconnu) |
+| `gold.d_diagnostic` | 15 490 |
+| `gold.d_professionnel` | 1 048 575 |
 | `silver.f_consultation_detail` | 1 027 157 |
+| `gold.f_mesures` | 1 030 402 |
 | `gold.f_consult_diag_mois` | 979 797 |
 | `gold.f_consult_prof_mois` | 1 001 453 |
 | `gold.f_deces_agg` | 69 008 |
 | `gold.f_satisfaction` | 1 960 |
 | `gold.f_hospitalisation` | 2 479 |
 
+Requête de contrôle (depuis le conteneur Trino) :
+
+```bash
+docker exec chu-trino trino --server http://localhost:8080 --catalog hive --schema gold \
+  --output-format CSV --execute "
+  SELECT 'd_temps', COUNT(*) FROM d_temps UNION ALL SELECT 'd_patient', COUNT(*) FROM d_patient
+  UNION ALL SELECT 'd_etablissement', COUNT(*) FROM d_etablissement UNION ALL SELECT 'd_localisation', COUNT(*) FROM d_localisation
+  UNION ALL SELECT 'd_diagnostic', COUNT(*) FROM d_diagnostic UNION ALL SELECT 'd_professionnel', COUNT(*) FROM d_professionnel
+  UNION ALL SELECT 'f_consultation_detail', COUNT(*) FROM silver.f_consultation_detail
+  UNION ALL SELECT 'f_mesures', COUNT(*) FROM f_mesures UNION ALL SELECT 'f_consult_diag_mois', COUNT(*) FROM f_consult_diag_mois
+  UNION ALL SELECT 'f_consult_prof_mois', COUNT(*) FROM f_consult_prof_mois UNION ALL SELECT 'f_deces_agg', COUNT(*) FROM f_deces_agg
+  UNION ALL SELECT 'f_satisfaction', COUNT(*) FROM f_satisfaction UNION ALL SELECT 'f_hospitalisation', COUNT(*) FROM f_hospitalisation"
+```
+
 ---
 
 ## 6. Pièges connus et contournements (tous testés)
 
-1. **MinIO — pull bloqué sur la machine de dev** : voir §2 (démarrage avec
-   `--no-deps`). Sans MinIO, le DDL Hive échoue à l'appel S3
-   (`Failed to create external path s3a://lake/warehouse/gold.db`) : normal,
-   MinIO est requis pour `lakehouse_init`.
+1. **MinIO — pulls des repos `minio/*` bloqués** (docker.io/minio,
+   quay.io/minio, bitnami/minio : « pull access denied ... repository does
+   not exist » ; dl.min.io ne sert plus les binaires : HTTP 410) : résolu par
+   un **build from source** (`config/minio/Dockerfile`, tag
+   `RELEASE.2025-10-15T17-29-55Z` cloné depuis github.com/minio/minio) et
+   `amazon/aws-cli` pour `minio-init` — voir §2. Sans MinIO up, le DDL Hive
+   échoue à l'appel S3 (`Failed to create external path s3a://lake/...`) :
+   normal, MinIO est requis pour `lakehouse_init`.
 2. **Trino 484 — propriétés refusées** : l'ancien filesystem S3A legacy
    (`hive.s3.*`, `hive.allow-drop-table`, `hive.parquet.batch-read-optimization.enabled`,
    `time-zone` dans le catalogue...) est supprimé. `config/trino/catalog/hive.properties`
@@ -267,6 +311,52 @@ docker exec chu-minio-init mc ls chu/lake/gold/  --recursive | head # tables Gol
     ne PAS hardcoder `java-17-openjdk-amd64`, absent sur une machine arm64).
     Vérifié : `spark-submit --version` OK dans `chu-airflow-scheduler`
     (Spark 4.2.1 / OpenJDK 17.0.21).
+15. **Metastore sans connecteur S3A** : `ANALYZE` (Trino) écrit les statistiques
+    de partitions dans le metastore, qui liste alors les fichiers du lake via
+    S3A (`updatePartitionStatsFast` → `Warehouse.getFileStatusesForLocation`)
+    → `ClassNotFoundException: org.apache.hadoop.fs.s3a.S3AFileSystem` si les
+    jars `hadoop-aws` + AWS SDK v2 sont absents. Fix : `config/hive/ext-jars/`
+    monté sur `/tmp/ext-jars` **aussi** dans `chu-hive-metastore` (copié dans
+    `/opt/hive/lib` au boot par le dynamic jar loader de l'image), comme déjà
+    le cas pour `chu-hive-hs2`. Symptôme si absent : `ANALYZE` = `FAILED
+    (HIVE_METASTORE_ERROR)` dans les logs Trino.
+16. **Noms de partitions avec caractères invalides** : `MSCK REPAIR TABLE`
+    échoue sur `region=Provence-Alpes-Côte d%27Azur` (« invalid characters in
+    the name » — espaces/accents/apostrophe interdits dans les chemins de
+    partitions Hive). Fix : `d_localisation` et `f_satisfaction` sont
+    partitionnées par **`code_region`** (ASCII, ex. `93`), le nom de région
+    restant une colonne data. Ne jamais partitionner sur un libellé texte
+    accentué.
+17. **Hook Spark Airflow** : l'URI de connexion doit avoir la partie host
+    **URL-encodée** — `AIRFLOW_CONN_SPARK_DEFAULT=spark://spark%3A%2F%2Fspark-master%3A7077`
+    (le hook reconstruit `master = host:port`). Et le driver Airflow tourne en
+    Python 3.12 alors que l'image Spark embarque Python 3.8 →
+    `PYTHON_VERSION_MISMATCH` : l'image custom `chu-spark:3.5.1-s3a`
+    embarque un **Python 3.12** (python-build-standalone, asset selon
+    `TARGETARCH`) en `/opt/python3.12`, exposé via `PYSPARK_PYTHON` et
+    `spark.pyspark.python` dans la conf du DAG. Ne PAS télécharger de binaire
+    x86_64 sur une machine arm64 (Apple Silicon).
+18. **Cache du metastore côté Trino** : après un `MSCK REPAIR` ou un
+    rechargement Spark, Trino peut garder les anciennes métadonnées en cache.
+    `config/trino/catalog/hive.properties` fixe `hive.metastore-cache-ttl=0s`
+    (+ `hive.metastore-refresh-interval=1m`). Après édition d'un fichier de
+    config monté en bind : **recréer le conteneur** (`docker compose up -d
+    --force-recreate <svc>` ou `docker restart chu-trino`) — un bind mount ne
+    suffit pas si le conteneur a déjà démarré.
+19. **Clés raw normalisées** : `minio-init` copie `../DATA Projet` vers
+    `s3://lake/raw/` (arborescence d'origine) puis **normalise** les chemins
+    lus par les jobs Spark (`raw/deces/deces.csv`, `raw/etablissement/etablissement_sante.csv`,
+    `raw/hospitalisation/Hospitalisations.csv`, `raw/satisfaction/ESATIS_2019.csv`,
+    `raw/satisfaction/ESATIS_2020.csv`, `raw/referentiels/...`) par copie
+    server-side S3, et embarque les référentiels du dépôt
+    (`config/data/referentiels/` monté en `:ro`). Les jobs Spark lisent
+    exclusivement ces clés normalisées (`02_spark/common.py::read_raw_csv`).
+20. **DQ autonome** : `05_qualite/dq_checks.sql` s'exécute dans
+    `chu-bench-duckdb` avec `INSTALL httpfs` + endpoint MinIO en dur, lit les
+    Parquet du lake (`s3://lake/{silver,gold}/.../**/*.parquet`) et embarque
+    son staging (`05_qualite/staging/` monté en `:ro`) — plus de dépendance à
+    un workspace externe (`L2WORK`). 7 CSV régénérés dans
+    `05_qualite/results/` à chaque run du DAG daily.
 
 ---
 

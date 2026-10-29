@@ -14,14 +14,14 @@ import sys
 
 sys.path.insert(0, "/opt/spark/jobs")
 from pyspark.sql import functions as F
-from common import get_spark, GOLD, save_gold  # noqa: E402
+from common import get_spark, GOLD, save_gold, read_lake  # noqa: E402
 
 spark = get_spark("chu-l2-build-agregats")
 
-f_consultation_detail = spark.table("silver.f_consultation_detail")
+f_consultation_detail = read_lake(spark, "silver.f_consultation_detail")
 
 # ---------------------------------------------------------------------------
-# f_consult_diag_mois : PARTITIONED BY (annee), bucketing 8 sur id_diagnostic
+# f_consult_diag_mois : PARTITIONED BY (annee)
 # (jointures fréquentes fait <-> d_diagnostic sur cette clé)
 # ---------------------------------------------------------------------------
 f_consult_diag_mois = (
@@ -34,12 +34,10 @@ f_consult_diag_mois = (
 )
 save_gold(f_consult_diag_mois, "gold.f_consult_diag_mois",
           f"{GOLD}/f_consult_diag_mois",
-          partition_cols=["annee"],
-          bucket_col="id_diagnostic", num_buckets=8,
-          sort_cols=["id_diagnostic"])
+          partition_cols=["annee"])
 
 # ---------------------------------------------------------------------------
-# f_consult_prof_mois : PARTITIONED BY (annee), bucketing 32 sur
+# f_consult_prof_mois : PARTITIONED BY (annee), tri intra-partition sur
 # id_professionnel (jointures fait <-> d_professionnel)
 # ---------------------------------------------------------------------------
 f_consult_prof_mois = (
@@ -51,18 +49,10 @@ f_consult_prof_mois = (
 )
 save_gold(f_consult_prof_mois, "gold.f_consult_prof_mois",
           f"{GOLD}/f_consult_prof_mois",
-          partition_cols=["annee"],
-          bucket_col="id_professionnel", num_buckets=32,
-          sort_cols=["id_professionnel"])
-
-for table in ["f_consult_diag_mois", "f_consult_prof_mois"]:
-    spark.sql(f"MSCK REPAIR TABLE gold.{table}")
-    spark.sql(f"ANALYZE TABLE gold.{table} COMPUTE STATISTICS")
+          partition_cols=["annee"])
 
 print("Agrégats pré-calculés :")
-spark.sql("""
-    SELECT 'f_consult_diag_mois' t, COUNT(*) n FROM gold.f_consult_diag_mois
-    UNION ALL SELECT 'f_consult_prof_mois', COUNT(*) FROM gold.f_consult_prof_mois
-""").show()
+print("gold.f_consult_diag_mois :", read_lake(spark, "gold.f_consult_diag_mois").count(), "lignes")
+print("gold.f_consult_prof_mois :", read_lake(spark, "gold.f_consult_prof_mois").count(), "lignes")
 
 spark.stop()

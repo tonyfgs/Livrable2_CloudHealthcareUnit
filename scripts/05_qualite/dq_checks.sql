@@ -11,19 +11,32 @@
 -- ============================================================
 INSTALL postgres; LOAD postgres;
 ATTACH 'dbname=chu_s1 host=s1-postgres user=chu password=chu' AS s1 (TYPE postgres);
+-- Data lake MinIO (faits intégrés en Parquet pour le contrôle C2) : httpfs
+INSTALL httpfs; LOAD httpfs;
+SET s3_endpoint='minio:9000';
+SET s3_url_style='path';
+SET s3_use_ssl=false;
+SET s3_access_key_id='minioadmin';
+SET s3_secret_access_key='minioadmin';
+-- Limites mémoire/threads : le conteneur tourne dans une VM Docker dont la RAM
+-- est partagée avec Spark/Postgres -> plafond volontaire pour éviter le OOM-kill
+-- (exit 137) constaté avec les défauts (memory_limit = 80% RAM hôte, 8 threads)
+SET memory_limit='2GB';
+SET threads=4;
 CREATE OR REPLACE VIEW src_hosp AS SELECT * FROM read_csv('/data-projet/Hospitalisation/Hospitalisations.csv', header=true, delim=';', nullstr='', all_varchar=true);
 CREATE OR REPLACE VIEW src_etab AS SELECT * FROM read_csv('/data-projet/Etablissement de SANTE/etablissement_sante.csv', header=true, delim=';', nullstr='', all_varchar=true, max_line_size=10000000);
 CREATE OR REPLACE VIEW src_pro AS SELECT * FROM read_csv('staging/professionnel_sante_utf8.csv', header=true, delim=';', nullstr='', all_varchar=true);
 CREATE OR REPLACE VIEW src_act AS SELECT * FROM read_csv('staging/activite_professionnel_sante_utf8.csv', header=true, delim=';', nullstr='', all_varchar=true);
 CREATE OR REPLACE VIEW src_sat19 AS SELECT * FROM read_csv('staging/satisfaction_2019.csv', header=true, delim=';', nullstr='', all_varchar=true);
 CREATE OR REPLACE VIEW src_sat20 AS SELECT * FROM read_csv('staging/satisfaction_2020_clean.csv', header=true, delim=';', nullstr='', all_varchar=true);
-CREATE OR REPLACE VIEW src_deces AS SELECT * FROM read_csv('/data-projet/DECES EN FRANCE/deces.csv', header=true, delim=',', quote='"', nullstr='', types={'sexe':'VARCHAR','date_deces':'VARCHAR','date_naissance':'VARCHAR','code_lieu_deces':'VARCHAR','code_lieu_naissance':'VARCHAR','numero_acte_deces':'VARCHAR'});
--- matérialisation physique intermédiaire : coupe la poussée de cast dans le lecteur CSV
+-- matérialisation physique intermédiaire (scan UNIQUE du CSV de 2 Go) :
+-- coupe la poussée de cast dans le lecteur CSV
 -- (un try_cast poussé dans read_csv provoque une erreur dure, ex. "75,09" -> DOUBLE ou "1983" -> DATE)
 CREATE OR REPLACE TABLE t_hosp AS SELECT * FROM src_hosp;
 CREATE OR REPLACE TABLE t_sat19 AS SELECT * FROM src_sat19;
 CREATE OR REPLACE TABLE t_sat20 AS SELECT * FROM src_sat20;
 CREATE OR REPLACE TABLE t_deces AS SELECT * FROM read_csv('/data-projet/DECES EN FRANCE/deces.csv', header=true, delim=',', quote='"', nullstr='', all_varchar=true);
+CREATE OR REPLACE VIEW src_deces AS SELECT * FROM t_deces;
 -- vues typées sûres : le cast s'applique sur une table DuckDB, jamais dans le lecteur CSV
 CREATE OR REPLACE VIEW v_deces_d AS SELECT *, try_cast(date_deces AS DATE) AS d_deces, try_cast(date_naissance AS DATE) AS d_naissance FROM t_deces;
 CREATE OR REPLACE VIEW v_hosp_d AS SELECT *, try_strptime("Date_Entree",'%d/%m/%Y') AS d_entree FROM t_hosp;
@@ -115,21 +128,21 @@ COPY (
   UNION ALL SELECT 'deces','cle complete (nom,prenom,date_naissance,date_deces,lieu,acte)',COUNT(*),COUNT(*)-COUNT(DISTINCT COALESCE(nom,'')||'|'||COALESCE(prenom,'')||'|'||COALESCE(date_naissance,'')||'|'||COALESCE(date_deces,'')||'|'||COALESCE(code_lieu_deces,'')||'|'||COALESCE(numero_acte_deces,'')),ROUND(100.0*(COUNT(*)-COUNT(DISTINCT COALESCE(nom,'')||'|'||COALESCE(prenom,'')||'|'||COALESCE(date_naissance,'')||'|'||COALESCE(date_deces,'')||'|'||COALESCE(code_lieu_deces,'')||'|'||COALESCE(numero_acte_deces,'')))/COUNT(*),4) FROM src_deces
 ) TO 'dq/results/dq_doublons.csv' (HEADER, DELIMITER ';');
 
--- ============ C2. DOUBLONS SUR LES FAITS INTÉGRÉS (PoC) ============
+-- ============ C2. DOUBLONS SUR LES FAITS INTÉGRÉS (lake Gold/Silver) ============
 -- Le sujet exige le contrôle des doublons sur les données INTÉGRÉES, pas
--- seulement sur les sources. Lecture des exports Parquet partitionnés du
--- PoC (chemin relatif au workspace $L2WORK ; en production, le même contrôle
--- porte sur les tables Gold/Silver du lake via Trino/Hive Metastore).
+-- seulement sur les sources. Lecture directe des Parquet partitionnés écrits
+-- par Spark dans le data lake MinIO (s3://lake, httpfs configuré en tête de
+-- script) : le contrôle porte sur les VRAIES tables de production.
 -- Grains : f_consultation_detail = 1 consultation ; f_hospitalisation = 1
 -- hospitalisation ; f_satisfaction = établissement juridique x année ;
 -- f_mesures = annee_mois x id_etablissement x id_patient x sexe x tranche_age
 -- x id_localisation x region (region dans le grain : la satisfaction est
 -- rattachée à la région, pas à un établissement de site).
 COPY (
-  SELECT 'f_consultation_detail (fait intégré, Silver)' AS table_cible, 'id_consultation (grain 1 consultation)' AS cle, COUNT(*) AS total, COUNT(*)-COUNT(DISTINCT id_consultation) AS doublons, ROUND(100.0*(COUNT(*)-COUNT(DISTINCT id_consultation))/COUNT(*),4) AS pct FROM read_parquet('poc/apres/f_consultation_detail/**/*.parquet', hive_partitioning=true)
-  UNION ALL SELECT 'f_hospitalisation (fait intégré, Gold)', 'id_hospitalisation (grain 1 hospitalisation)', COUNT(*), COUNT(*)-COUNT(DISTINCT id_hospitalisation), ROUND(100.0*(COUNT(*)-COUNT(DISTINCT id_hospitalisation))/COUNT(*),4) FROM read_parquet('poc/apres/f_hospitalisation/**/*.parquet', hive_partitioning=true)
-  UNION ALL SELECT 'f_satisfaction (fait intégré, Gold)', 'annee + finess (grain etab. juridique x annee)', COUNT(*), COUNT(*)-COUNT(DISTINCT annee||'|'||finess), ROUND(100.0*(COUNT(*)-COUNT(DISTINCT annee||'|'||finess))/COUNT(*),4) FROM read_parquet('poc/apres/f_satisfaction/**/*.parquet', hive_partitioning=true)
-  UNION ALL SELECT 'f_mesures (fait consolidé, Gold)', 'annee_mois + id_etablissement + id_patient + sexe + tranche_age + id_localisation + region', COUNT(*), COUNT(*)-COUNT(DISTINCT annee_mois||'|'||id_etablissement||'|'||id_patient||'|'||sexe||'|'||tranche_age||'|'||id_localisation||'|'||region), ROUND(100.0*(COUNT(*)-COUNT(DISTINCT annee_mois||'|'||id_etablissement||'|'||id_patient||'|'||sexe||'|'||tranche_age||'|'||id_localisation||'|'||region))/COUNT(*),4) FROM read_parquet('poc/apres/f_mesures/**/*.parquet', hive_partitioning=true)
+  SELECT 'f_consultation_detail (fait intégré, Silver)' AS table_cible, 'id_consultation (grain 1 consultation)' AS cle, COUNT(*) AS total, COUNT(*)-COUNT(DISTINCT id_consultation) AS doublons, ROUND(100.0*(COUNT(*)-COUNT(DISTINCT id_consultation))/COUNT(*),4) AS pct FROM read_parquet('s3://lake/silver/f_consultation_detail/**/*.parquet', hive_partitioning=true)
+  UNION ALL SELECT 'f_hospitalisation (fait intégré, Gold)', 'id_hospitalisation (grain 1 hospitalisation)', COUNT(*), COUNT(*)-COUNT(DISTINCT id_hospitalisation), ROUND(100.0*(COUNT(*)-COUNT(DISTINCT id_hospitalisation))/COUNT(*),4) FROM read_parquet('s3://lake/gold/f_hospitalisation/**/*.parquet', hive_partitioning=true)
+  UNION ALL SELECT 'f_satisfaction (fait intégré, Gold)', 'annee + finess (grain etab. juridique x annee)', COUNT(*), COUNT(*)-COUNT(DISTINCT annee||'|'||finess), ROUND(100.0*(COUNT(*)-COUNT(DISTINCT annee||'|'||finess))/COUNT(*),4) FROM read_parquet('s3://lake/gold/f_satisfaction/**/*.parquet', hive_partitioning=true)
+  UNION ALL SELECT 'f_mesures (fait consolidé, Gold)', 'annee_mois + id_etablissement + id_patient + sexe + tranche_age + id_localisation + region', COUNT(*), COUNT(*)-COUNT(DISTINCT annee_mois||'|'||id_etablissement||'|'||id_patient||'|'||sexe||'|'||tranche_age||'|'||id_localisation||'|'||region), ROUND(100.0*(COUNT(*)-COUNT(DISTINCT annee_mois||'|'||id_etablissement||'|'||id_patient||'|'||sexe||'|'||tranche_age||'|'||id_localisation||'|'||region))/COUNT(*),4) FROM read_parquet('s3://lake/gold/f_mesures/**/*.parquet', hive_partitioning=true)
 ) TO 'dq/results/dq_doublons_faits.csv' (HEADER, DELIMITER ';');
 
 -- ============ D. COHERENCE REFERENTIELLE ============

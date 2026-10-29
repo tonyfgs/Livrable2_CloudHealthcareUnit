@@ -45,12 +45,12 @@ SPARK_CONN = os.environ.get("SPARK_CONN_ID", "spark_default")
 SPARK_MASTER = os.environ.get("SPARK_MASTER", "spark://spark-master:7077")
 JOBS = "/opt/spark/jobs"
 
-# Packages nécessaires aux jobs : driver JDBC PostgreSQL (source S1) et
-# connecteur Hadoop S3A (data lake MinIO). Hadoop 3.3 (Spark 3.5).
-SPARK_PACKAGES = (
-    "org.postgresql:postgresql:42.7.3,"
-    "org.apache.hadoop:hadoop-aws:3.3.4"
-)
+# Les jars S3A/JDBC ne sont PAS passés en --packages : le driver streamerait
+# le bundle AWS SDK (280 Mo) vers les workers et la soumission échouerait.
+# Ils sont embarqués dans les images : chu-spark:3.5.1-s3a ($SPARK_HOME/jars,
+# voir config/spark/Dockerfile) et chu-airflow:2.9.3 (pyspark/jars, voir
+# 03_airflow/Dockerfile) — hadoop-aws 3.3.4 + aws-java-sdk-bundle 1.12.262
+# + postgresql 42.7.3.
 
 # Variables d'environnement communes à tous les jobs Spark (cf. 02_spark/common.py)
 SPARK_ENV = {
@@ -84,10 +84,17 @@ def spark_job(task_id: str, application: str) -> SparkSubmitOperator:
             "spark.hadoop.fs.s3a.path.style.access": "true",
             "spark.hadoop.fs.s3a.connection.ssl.enabled": "false",
             "spark.hadoop.fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem",
-            # Hive Metastore côté workers
-            "spark.hive.metastore.uris": "thrift://hive-metastore:9083",
+            # Le driver (conteneur Airflow, Python 3.12) propage cette conf aux
+            # executors : sans elle, les workers lanceraient leur python3 (3.8)
+            # -> PYTHON_VERSION_MISMATCH. L'image chu-spark embarque Python 3.12.
+            "spark.pyspark.python": "/opt/python3.12/bin/python3.12",
+            # côté DRIVER (conteneur Airflow) : son propre python3 (3.12)
+            "spark.pyspark.driver.python": "python3",
+            # Pas de spark.hive.metastore.uris ici : les jobs écrivent des
+            # fichiers Parquet dans le lake (catalogue in-memory, voir
+            # 02_spark/common.py) ; c'est la tâche msck_repair_metastore qui
+            # enregistre les partitions dans le Hive Metastore via beeline.
         },
-        packages=SPARK_PACKAGES,
         env_vars=SPARK_ENV,
         verbose=True,
     )
@@ -116,6 +123,28 @@ with DAG(
     build_f_deces_agg = spark_job("build_f_deces_agg", "build_f_deces_agg.py")
     build_f_mesures = spark_job("build_f_mesures", "build_f_mesures.py")
     build_agregats = spark_job("build_agregats", "build_agregats.py")
+
+    # -------------------------------------------------------------------------
+    # 5b. Rafraîchissement du Hive Metastore après les écritures Spark.
+    # Spark 3.5.1 écrit les Parquet directement sur le lake (catalogue
+    # in-memory : son client Hive 2.3 est incompatible du metastore Hive 4.x),
+    # donc les partitions sont découvertes ici, côté Hive, via MSCK REPAIR.
+    # -------------------------------------------------------------------------
+    msck_repair = BashOperator(
+        task_id="msck_repair_metastore",
+        bash_command=(
+            "for t in d_temps d_patient d_etablissement d_localisation "
+            "d_diagnostic d_professionnel f_mesures f_hospitalisation "
+            "f_deces_agg f_satisfaction f_consult_diag_mois f_consult_prof_mois; do "
+            "docker exec -e TERM=dumb chu-hive-hs2 beeline "
+            "-u jdbc:hive2://localhost:10000/gold "
+            "-e \"MSCK REPAIR TABLE gold.$t\" >/dev/null 2>&1 || true; done; "
+            "docker exec -e TERM=dumb chu-hive-hs2 beeline "
+            "-u jdbc:hive2://localhost:10000/silver "
+            "-e 'MSCK REPAIR TABLE silver.f_consultation_detail' >/dev/null 2>&1 || true; "
+            "echo 'MSCK REPAIR OK (metastore rafraîchi)'"
+        ),
+    )
 
     # -------------------------------------------------------------------------
     # 6. Contrôles qualité (6 familles : complétude, validité, doublons,
@@ -157,4 +186,4 @@ with DAG(
     load_dimensions >> build_f_deces_agg
     [load_faits_detail, build_f_deces_agg] >> build_f_mesures
     load_faits_detail >> build_agregats
-    [build_f_mesures, build_agregats] >> dq_checks >> dispo_trino_superset
+    [build_f_mesures, build_agregats] >> msck_repair >> dq_checks >> dispo_trino_superset

@@ -29,6 +29,23 @@ ENV JAVA_HOME=/usr/lib/jvm/default-java
 # apache-airflow-core / apache-airflow 3.x et cassent l'image 2.9.3).
 # `python -m pip` (et non `pip`) : l'image officielle installe un wrapper
 # `pip` qui refuse de s'exécuter en root.
+# pyspark==3.5.1 : le spark-submit embarqué par pyspark DOIT matcher la
+# version du cluster Spark standalone (services spark-master/spark-worker,
+# image apache/spark:3.5.1). L'image officielle embarque pyspark 4.x :
+# sans ce pin, le driver et le master ne parlent pas le même protocole RPC
+# (InvalidClassException serialVersionUID -> « All masters are unresponsive »).
 USER root
-RUN python -m pip install --no-cache-dir apache-airflow-providers-apache-spark==3.0.0
+RUN python -m pip install --no-cache-dir apache-airflow-providers-apache-spark==3.0.0 pyspark==3.5.1
+
+# Jars S3A/JDBC aussi dans le pyspark embarqué (driver du spark-submit lancé
+# par SparkSubmitOperator) : mêmes versions que l'image chu-spark:3.5.1-s3a
+# (hadoop-aws 3.3.4 = Hadoop embarqué par Spark 3.5.1, AWS SDK v1 bundle).
+# Sans eux, --packages streamerait 280 Mo de AWS SDK driver->worker (échec).
+ENV PYSPARK_JARS=/home/airflow/.local/lib/python3.12/site-packages/pyspark/jars
+ADD https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar ${PYSPARK_JARS}/
+ADD https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar ${PYSPARK_JARS}/
+ADD https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.3/postgresql-42.7.3.jar ${PYSPARK_JARS}/
+# ADD depuis une URL distante pose les droits 0600 (root) : le user airflow
+# (driver spark-submit) ne pourrait pas lire les jars -> ClassNotFoundException
+RUN chmod 644 ${PYSPARK_JARS}/hadoop-aws-3.3.4.jar ${PYSPARK_JARS}/aws-java-sdk-bundle-1.12.262.jar ${PYSPARK_JARS}/postgresql-42.7.3.jar
 USER airflow

@@ -24,24 +24,29 @@
 --                      pour 69 008 lignes (small-files problem) ; annee seul
 --                      donne 133 partitions (~519 lignes). Le tri intra-partition
 --                      compense.
---   f_satisfaction     PARTITIONED BY (annee, region) : grain juridique x année,
---                      la région est la colonne la plus filtrante (besoin métier).
+--   f_satisfaction     PARTITIONED BY (annee, code_region) : grain juridique x
+--                      année ; code_region (et non region) car les noms de
+--                      régions contiennent espaces/accents/apostrophes, que
+--                      Hive refuse dans les noms de répertoires de partitions.
 --   d_temps            PARTITIONED BY (annee)    (grain jour, 2015-2030,
 --                      couvre le périmètre 2015-2021 de la grille + marge).
 --   d_patient          PARTITIONED BY (sexe, tranche_age_ref) : partitionnement
 --                      démographique (grille : sexe + tranche d'âge sur la
 --                      dimension patient).
---   d_localisation     PARTITIONED BY (region)   (grain département, 101 + Inconnu).
+--   d_localisation     PARTITIONED BY (code_region) (grain département, 101 +
+--                      Inconnu ; code_region car les noms de régions contiennent
+--                      des caractères invalides dans les chemins de partitions).
 --   d_etablissement, d_diagnostic, d_professionnel : pas de partitionnement
---                      (tables de taille moyenne) -> bucketing seul.
+--                      (tables de taille moyenne, une seule "partition" racine).
 --
--- Justification du bucketing (Hive/Spark UNIQUEMENT - le bucketing n'existe pas
--- en PostgreSQL) : CLUSTERED BY (cle de jointure) INTO N BUCKETS
---   * co-localise les lignes partageant la même clé de jointure dans le même
---     fichier -> jointures map-side / merge join sans shuffle complet ;
---   * pré-tri intra-bucket -> agrégations et ORDER BY + LIMIT efficaces ;
---   * nombre de buckets = multiple de la cardinalité de la clé (32 pour les
---     faits/dimensions volumineux, 8 pour les petites dimensions).
+-- PAS de bucketing (CLUSTERED BY ... INTO n BUCKETS) dans ce schéma, volontairement :
+-- Spark n'écrit un fichier par bucket NON VIDE (avec AQE, une petite partition
+-- produit p. ex. 2 fichiers pour 32 buckets déclarés), et Trino 484 refuse alors
+-- de lire la table ("Hive table is corrupt ... number of files does not match the
+-- declared bucket count"), même avec hive.validate-bucketing=false. Le schéma
+-- retenu est donc : PARTITIONNEMENT Hive (pruning par partition côté Trino) +
+-- tri intra-fichier sur les clés de jointure (pruning intra-fichier via les
+-- statistiques min/max Parquet) — combinaison supportée nativement et robuste.
 -- ============================================================================
 
 CREATE DATABASE IF NOT EXISTS silver
@@ -59,7 +64,7 @@ USE gold;
 -- d_temps : grain = jour, couverture 2015-2030 (les faits couvrent 2015-2023,
 -- les décès 1882-2020 ; la dimension est volontairement prolongée pour les
 -- besoins de planification). Clé de substitution : id_temps = AAAAMMJJ.
-CREATE EXTERNAL TABLE IF NOT EXISTS d_temps (
+CREATE EXTERNAL TABLE IF NOT EXISTS gold.d_temps (
   id_temps      INT,          -- AAAAMMJJ (clé de substitution)
   date_jour     DATE,
   mois          INT,
@@ -77,9 +82,8 @@ LOCATION 's3a://lake/gold/d_temps';
 -- L'attribut Age de S1 n'est PAS retenu (incohérent avec la date de naissance,
 -- cf. rapport qualité : 46 % de cohérence seulement) : la tranche d'âge est
 -- recalculée à la date de l'événement dans les faits.
-CREATE EXTERNAL TABLE IF NOT EXISTS d_patient (
+CREATE EXTERNAL TABLE IF NOT EXISTS gold.d_patient (
   id_patient      BIGINT,     -- clé de substitution (identique à S1, clé naturelle)
-  sexe            STRING,     -- M / F / I
   date_naissance  DATE,
   age_ref         INT,        -- âge à la date de référence (indicatif, non utilisé)
   code_postal     STRING,
@@ -88,14 +92,13 @@ CREATE EXTERNAL TABLE IF NOT EXISTS d_patient (
   -- sexe=.../tranche_age_ref=...), pas stockées dans les fichiers
 )
 PARTITIONED BY (sexe STRING, tranche_age_ref STRING)
-CLUSTERED BY (id_patient) INTO 32 BUCKETS
 STORED AS PARQUET
 LOCATION 's3a://lake/gold/d_patient';
 
 -- d_etablissement : référentiel FINESS (416 665 sites), clé de substitution
 -- surrogate id_etablissement. id_localisation = département (clé de
 -- d_localisation), region dénormalisée pour les filtres directs.
-CREATE EXTERNAL TABLE IF NOT EXISTS d_etablissement (
+CREATE EXTERNAL TABLE IF NOT EXISTS gold.d_etablissement (
   id_etablissement                BIGINT,   -- clé de substitution (surrogate)
   identifiant_organisation        STRING,   -- clé naturelle FINESS (site)
   finess_etablissement_juridique  STRING,
@@ -105,37 +108,37 @@ CREATE EXTERNAL TABLE IF NOT EXISTS d_etablissement (
   id_localisation                 STRING,   -- département ('01'..'976', 'INCONNU')
   region                          STRING    -- dénormalisée depuis d_localisation
 )
-CLUSTERED BY (id_etablissement) INTO 32 BUCKETS
 STORED AS PARQUET
 LOCATION 's3a://lake/gold/d_etablissement';
 
 -- d_localisation : 101 départements (référentiel geo.api.gouv.fr) + membre
--- 'Inconnu' (clé -1 / 'INCONNU'), grain = département, partitionnée par région.
-CREATE EXTERNAL TABLE IF NOT EXISTS d_localisation (
+-- 'Inconnu' (clé -1 / 'INCONNU'), grain = département, partitionnée par
+-- code_region (les noms de régions contiennent des caractères invalides
+-- dans les noms de répertoires de partitions Hive).
+CREATE EXTERNAL TABLE IF NOT EXISTS gold.d_localisation (
   id_localisation   STRING,   -- code département ('01'..'2B', '971'..'976', 'INCONNU')
   code_departement  STRING,
   nom_departement   STRING,
-  code_region       STRING
-  -- 'region' (nom de région, 18 régions) = colonne de partition :
-  -- fournie par le chemin Hive (region=...), pas stockée dans les fichiers
+  region            STRING    -- nom de région (18 régions + 'Inconnue'), colonne data
+  -- 'code_region' = colonne de partition : fournie par le chemin Hive
+  -- (code_region=...), pas stockée dans les fichiers
 )
-PARTITIONED BY (region STRING)
+PARTITIONED BY (code_region STRING)
 STORED AS PARQUET
 LOCATION 's3a://lake/gold/d_localisation';
 
 -- d_diagnostic : depuis S1 PostgreSQL.Diagnostic (15 490 diagnostics CIM-10).
-CREATE EXTERNAL TABLE IF NOT EXISTS d_diagnostic (
+CREATE EXTERNAL TABLE IF NOT EXISTS gold.d_diagnostic (
   id_diagnostic      BIGINT,  -- clé de substitution (surrogate)
   code_diag          STRING,  -- code CIM-10 (clé naturelle)
   libelle_diagnostic STRING
 )
-CLUSTERED BY (id_diagnostic) INTO 8 BUCKETS
 STORED AS PARQUET
 LOCATION 's3a://lake/gold/d_diagnostic';
 
 -- d_professionnel : depuis S1 PostgreSQL.Professionnel_de_sante (1 048 575).
 -- Clé naturelle = identifiant (pas de surrogate nécessaire : clé stable et unique).
-CREATE EXTERNAL TABLE IF NOT EXISTS d_professionnel (
+CREATE EXTERNAL TABLE IF NOT EXISTS gold.d_professionnel (
   identifiant               STRING,  -- clé naturelle (clé de substitution = clé naturelle)
   civilite                  STRING,
   nom                       STRING,
@@ -144,7 +147,6 @@ CREATE EXTERNAL TABLE IF NOT EXISTS d_professionnel (
   categorie_professionnelle STRING,
   code_specialite           STRING
 )
-CLUSTERED BY (identifiant) INTO 32 BUCKETS
 STORED AS PARQUET
 LOCATION 's3a://lake/gold/d_professionnel';
 
@@ -168,7 +170,7 @@ LOCATION 's3a://lake/gold/d_professionnel';
 -- un fan-out (31 doublons, corrigé, cf. rapport qualité). Pour les consultations
 -- et hospitalisations, region est dénormalisée depuis l'établissement (filtre
 -- direct sans jointure).
-CREATE EXTERNAL TABLE IF NOT EXISTS f_mesures (
+CREATE EXTERNAL TABLE IF NOT EXISTS gold.f_mesures (
   annee_mois          STRING,   -- 'AAAA-MM' (mensuel) ou 'AAAA-00' (annuel)
   id_temps            INT,      -- AAAAMMJJ du 1er jour du mois (NULL si annuel)
   id_etablissement    BIGINT,   -- -1 = non rattaché (membre Inconnu)
@@ -181,7 +183,6 @@ CREATE EXTERNAL TABLE IF NOT EXISTS f_mesures (
   region              STRING    -- dénormalisée depuis d_localisation
 )
 PARTITIONED BY (annee INT, sexe STRING, tranche_age STRING)
-CLUSTERED BY (id_etablissement) INTO 32 BUCKETS
 STORED AS PARQUET
 LOCATION 's3a://lake/gold/f_mesures';
 
@@ -204,7 +205,6 @@ CREATE EXTERNAL TABLE IF NOT EXISTS silver.f_consultation_detail (
   region            STRING
 )
 PARTITIONED BY (annee INT)
-CLUSTERED BY (id_patient) INTO 32 BUCKETS
 STORED AS PARQUET
 LOCATION 's3a://lake/silver/f_consultation_detail';
 
@@ -223,7 +223,6 @@ CREATE EXTERNAL TABLE IF NOT EXISTS gold.f_hospitalisation (
   duree_jours        INT
 )
 PARTITIONED BY (annee INT)
-CLUSTERED BY (id_etablissement) INTO 8 BUCKETS
 STORED AS PARQUET
 LOCATION 's3a://lake/gold/f_hospitalisation';
 
@@ -250,13 +249,15 @@ LOCATION 's3a://lake/gold/f_deces_agg';
 -- (colonne region normalisée depuis le fichier ESATIS, cf. rapport qualité).
 CREATE EXTERNAL TABLE IF NOT EXISTS gold.f_satisfaction (
   finess             STRING,  -- finess juridique ESATIS
+  region             STRING,  -- région normalisée (18 régions + INCONNUE), colonne data
   score_satisfaction DOUBLE,  -- score moyen ajusté ESATIS, pondéré (0-100)
   nb_repondants      BIGINT,  -- somme des répondants des sites agrégés
   nb_sites           INT     -- nombre de sites ESATIS agrégés (lignes source)
-  -- 'annee' et 'region' (région normalisée, 18 régions + INCONNUE) =
-  -- colonnes de partition (chemins Hive annee=.../region=...)
+  -- 'annee' et 'code_region' = colonnes de partition (chemins Hive
+  -- annee=.../code_region=...) ; code_region et pas region car les noms de
+  -- régions contiennent des caractères invalides dans les chemins Hive
 )
-PARTITIONED BY (annee STRING, region STRING)
+PARTITIONED BY (annee STRING, code_region STRING)
 STORED AS PARQUET
 LOCATION 's3a://lake/gold/f_satisfaction';
 
@@ -272,7 +273,6 @@ CREATE EXTERNAL TABLE IF NOT EXISTS gold.f_consult_diag_mois (
   nbre_consultation  BIGINT
 )
 PARTITIONED BY (annee INT)
-CLUSTERED BY (id_diagnostic) INTO 8 BUCKETS
 STORED AS PARQUET
 LOCATION 's3a://lake/gold/f_consult_diag_mois';
 
@@ -283,7 +283,6 @@ CREATE EXTERNAL TABLE IF NOT EXISTS gold.f_consult_prof_mois (
   nbre_consultation  BIGINT
 )
 PARTITIONED BY (annee INT)
-CLUSTERED BY (id_professionnel) INTO 32 BUCKETS
 STORED AS PARQUET
 LOCATION 's3a://lake/gold/f_consult_prof_mois';
 

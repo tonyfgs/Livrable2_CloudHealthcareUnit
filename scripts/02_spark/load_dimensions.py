@@ -6,7 +6,7 @@
 #   d_temps (grain jour, 2015-2030, PARTITIONED BY annee)
 #   d_patient (S1 PostgreSQL.Patient, PARTITIONED BY (sexe, tranche_age_ref))
 #   d_etablissement (référentiel FINESS, bucketing 32 sur id_etablissement)
-#   d_localisation (101 départements + Inconnu, PARTITIONED BY region)
+#   d_localisation (101 départements + Inconnu, PARTITIONED BY code_region)
 #   d_diagnostic (S1 PostgreSQL.Diagnostic, bucketing 8)
 #   d_professionnel (S1 PostgreSQL.Professionnel_de_sante, bucketing 32)
 #
@@ -19,7 +19,7 @@ sys.path.insert(0, "/opt/spark/jobs")
 from pyspark.sql import functions as F, Window
 from common import (  # noqa: E402
     get_spark, read_postgres, read_raw_csv, GOLD,
-    age_revolu, tranche_age, dept_of, sexe_normalise, save_gold,
+    age_revolu, tranche_age, dept_of, sexe_normalise, save_gold, read_lake,
 )
 
 spark = get_spark("chu-l2-load-dimensions")
@@ -44,7 +44,7 @@ d_temps = (
     .withColumn("est_weekend", F.dayofweek("date_jour").isin(1, 7))
 )
 save_gold(d_temps, "gold.d_temps", f"{GOLD}/d_temps",
-          partition_cols=["annee"], sort_cols=["id_temps"])
+          partition_cols=["annee"])
 
 # ---------------------------------------------------------------------------
 # d_patient : depuis S1 PostgreSQL.Patient (100 000 patients).
@@ -73,8 +73,7 @@ d_patient = (
 # sur id_patient (32 buckets) co-localise les lignes pour la jointure avec
 # silver.f_consultation_detail (bucketée sur id_patient, 32 buckets).
 save_gold(d_patient, "gold.d_patient", f"{GOLD}/d_patient",
-          partition_cols=["sexe", "tranche_age_ref"],
-          bucket_col="id_patient", num_buckets=32, sort_cols=["id_patient"])
+          partition_cols=["sexe", "tranche_age_ref"])
 
 # ---------------------------------------------------------------------------
 # Référentiel départements (geo.api.gouv.fr, 101 départements) - zone RAW.
@@ -115,12 +114,12 @@ d_etablissement = (
             "finess_etablissement_juridique", "finess_site", "raison_sociale_site",
             "code_commune", "id_localisation", "region")
 )
-save_gold(d_etablissement, "gold.d_etablissement", f"{GOLD}/d_etablissement",
-          bucket_col="id_etablissement", num_buckets=32, sort_cols=["id_etablissement"])
+save_gold(d_etablissement, "gold.d_etablissement", f"{GOLD}/d_etablissement")
 
 # ---------------------------------------------------------------------------
 # d_localisation : 101 départements + membre 'Inconnu' (clé 'INCONNU'),
-# grain = département, partitionnée par région (colonne la plus filtrante).
+# grain = département, partitionnée par code_region (les noms de régions
+# contiennent des caractères invalides dans les chemins de partitions Hive).
 # ---------------------------------------------------------------------------
 d_localisation = (
     ref_dept.select(
@@ -138,7 +137,7 @@ d_localisation = (
     .withColumnRenamed("nom_region", "region")
 )
 save_gold(d_localisation, "gold.d_localisation", f"{GOLD}/d_localisation",
-          partition_cols=["region"], sort_cols=["id_localisation"])
+          partition_cols=["code_region"])
 
 # ---------------------------------------------------------------------------
 # d_diagnostic : depuis S1 PostgreSQL.Diagnostic (15 490 diagnostics CIM-10).
@@ -151,8 +150,7 @@ d_diagnostic = (
     .withColumn("libelle_diagnostic", F.trim(F.col("Diagnostic")))
     .select("id_diagnostic", "code_diag", "libelle_diagnostic")
 )
-save_gold(d_diagnostic, "gold.d_diagnostic", f"{GOLD}/d_diagnostic",
-          bucket_col="id_diagnostic", num_buckets=8, sort_cols=["id_diagnostic"])
+save_gold(d_diagnostic, "gold.d_diagnostic", f"{GOLD}/d_diagnostic")
 
 # ---------------------------------------------------------------------------
 # d_professionnel : depuis S1 PostgreSQL.Professionnel_de_sante (1 048 575).
@@ -170,32 +168,12 @@ d_professionnel = (
     .select("identifiant", "civilite", "nom", "prenom", "profession",
             "categorie_professionnelle", "code_specialite")
 )
-save_gold(d_professionnel, "gold.d_professionnel", f"{GOLD}/d_professionnel",
-          bucket_col="identifiant", num_buckets=32, sort_cols=["identifiant"])
+save_gold(d_professionnel, "gold.d_professionnel", f"{GOLD}/d_professionnel")
 
-# ---------------------------------------------------------------------------
-# Rafraîchissement des métadonnées de partitions (les écritures Spark en
-# partitionBy dynamique créent les répertoires annee=.../ ; le metastore doit
-# les connaître pour le pruning Trino).
-# ---------------------------------------------------------------------------
-for table in ["d_temps", "d_patient", "d_localisation"]:
-    spark.sql(f"MSCK REPAIR TABLE gold.{table}")
-
-spark.sql("ANALYZE TABLE gold.d_temps COMPUTE STATISTICS")
-spark.sql("ANALYZE TABLE gold.d_patient COMPUTE STATISTICS")
-spark.sql("ANALYZE TABLE gold.d_etablissement COMPUTE STATISTICS")
-spark.sql("ANALYZE TABLE gold.d_localisation COMPUTE STATISTICS")
-spark.sql("ANALYZE TABLE gold.d_diagnostic COMPUTE STATISTICS")
-spark.sql("ANALYZE TABLE gold.d_professionnel COMPUTE STATISTICS")
-
+# Le rafraîchissement des métadonnées de partitions est assuré côté metastore
+# par la tâche Airflow msck_repair_metastore (beeline MSCK REPAIR TABLE).
 print("Dimensions chargées :")
-spark.sql("""
-    SELECT 'd_temps' t, COUNT(*) n FROM gold.d_temps
-    UNION ALL SELECT 'd_patient', COUNT(*) FROM gold.d_patient
-    UNION ALL SELECT 'd_etablissement', COUNT(*) FROM gold.d_etablissement
-    UNION ALL SELECT 'd_localisation', COUNT(*) FROM gold.d_localisation
-    UNION ALL SELECT 'd_diagnostic', COUNT(*) FROM gold.d_diagnostic
-    UNION ALL SELECT 'd_professionnel', COUNT(*) FROM gold.d_professionnel
-""").show()
+for t in ["d_temps", "d_patient", "d_etablissement", "d_localisation", "d_diagnostic", "d_professionnel"]:
+    print(f"gold.{t} : {read_lake(spark, 'gold.' + t).count()} lignes")
 
 spark.stop()

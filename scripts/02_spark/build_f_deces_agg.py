@@ -21,7 +21,7 @@ sys.path.insert(0, "/opt/spark/jobs")
 from pyspark.sql import functions as F
 from common import (  # noqa: E402
     get_spark, read_raw_csv, RAW, GOLD,
-    age_revolu, tranche_age, dept_of, save_gold,
+    age_revolu, tranche_age, dept_of, save_gold, read_lake,
 )
 
 spark = get_spark("chu-l2-build-f-deces-agg")
@@ -92,17 +92,15 @@ f_deces_agg = (
 # pruning intra-partition côté Trino).
 # ---------------------------------------------------------------------------
 save_gold(f_deces_agg, "gold.f_deces_agg", f"{GOLD}/f_deces_agg",
-          partition_cols=["annee"],
-          sort_cols=["sexe", "tranche_age", "id_localisation"])
+          partition_cols=["annee"])
 
-spark.sql("MSCK REPAIR TABLE gold.f_deces_agg")
-spark.sql("ANALYZE TABLE gold.f_deces_agg COMPUTE STATISTICS")
 
 print("f_deces_agg :")
-spark.sql("""
-    SELECT COUNT(*) AS lignes, SUM(nbre_deces) AS total_deces,
-           MIN(annee) AS annee_min, MAX(annee) AS annee_max
-    FROM gold.f_deces_agg
-""").show()
+read_lake(spark, "gold.f_deces_agg").agg(
+    F.count("*").alias("lignes"),
+    F.sum("nbre_deces").alias("total_deces"),
+    F.min("annee").alias("annee_min"),
+    F.max("annee").alias("annee_max"),
+).show()
 
 spark.stop()

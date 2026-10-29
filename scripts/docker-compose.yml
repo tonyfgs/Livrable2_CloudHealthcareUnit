@@ -48,7 +48,13 @@ services:
   # STOCKAGE : data lake MinIO (S3)
   # --------------------------------------------------------------------------
   minio:
-    image: minio/minio:latest
+    # Image construite FROM SOURCE (config/minio/Dockerfile) : les pulls des
+    # repos minio/* (docker.io/minio, quay.io/minio, bitnami/minio) sont
+    # refusés par certains daemons ("pull access denied"), et dl.min.io ne
+    # sert plus les binaires (HTTP 410). On compile le serveur MinIO officiel
+    # depuis github.com/minio/minio — aucun pull d'image "minio" nécessaire.
+    build: ./config/minio
+    image: chu-minio:RELEASE.2025-10-15T17-29-55Z
     container_name: chu-minio
     command: server /data --console-address ":9001"
     environment:
@@ -61,25 +67,46 @@ services:
       - minio-data:/data
     networks: [chu-net]
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9000/minio/health/live || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 12
 
   minio-init:
-    image: minio/mc:latest
+    # amazon/aws-cli (pull OK) à la place de minio/mc (pull bloqué) :
+    # mêmes opérations S3 (création bucket + copie raw) via l'API AWS standard
+    image: amazon/aws-cli:latest
     container_name: chu-minio-init
     depends_on:
       minio:
         condition: service_healthy
     entrypoint: ["/bin/sh", "-c"]
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_DEFAULT_REGION: us-east-1
+    # 1) copie fidèle de la zone d'atterrissage (noms de dossiers FR avec
+    #    espaces conservés) dans raw/ ;
+    # 2) référentiels livrés avec le projet (geo.api.gouv.fr + ESATIS 2020
+    #    converti en CSV, voir config/data/referentiels/) -> raw/referentiels/ ;
+    # 3) normalisation des chemins lus par Spark (clés minuscules sans espace,
+    #    copies serveur S3 donc sans transit réseau par le conteneur).
     command:
-      - mc alias set chu http://minio:9000 minioadmin minioadmin
-        && mc mb --ignore-existing chu/lake
-        && mc cp --recursive /data/ chu/lake/raw/
+      - >-
+        aws --endpoint-url http://minio:9000 s3 mb s3://lake || true
+        && aws --endpoint-url http://minio:9000 s3 cp /data/ s3://lake/raw/ --recursive
+        && aws --endpoint-url http://minio:9000 s3 cp /referentiels/ s3://lake/raw/referentiels/ --recursive
+        && aws --endpoint-url http://minio:9000 s3 cp "s3://lake/raw/DECES EN FRANCE/deces.csv" "s3://lake/raw/deces/deces.csv"
+        && aws --endpoint-url http://minio:9000 s3 cp "s3://lake/raw/Etablissement de SANTE/etablissement_sante.csv" "s3://lake/raw/etablissement/etablissement_sante.csv"
+        && aws --endpoint-url http://minio:9000 s3 cp "s3://lake/raw/Etablissement de SANTE/activite_professionnel_sante.csv" "s3://lake/raw/referentiels/activite_professionnel_sante.csv"
+        && aws --endpoint-url http://minio:9000 s3 cp "s3://lake/raw/Hospitalisation/Hospitalisations.csv" "s3://lake/raw/hospitalisation/Hospitalisations.csv"
+        && aws --endpoint-url http://minio:9000 s3 cp "s3://lake/raw/referentiels/ESATIS_2019.csv" "s3://lake/raw/satisfaction/ESATIS_2019.csv"
+        && aws --endpoint-url http://minio:9000 s3 cp "s3://lake/raw/referentiels/ESATIS_2020.csv" "s3://lake/raw/satisfaction/ESATIS_2020.csv"
     volumes:
       # Zone d'atterrissage des sources brutes (lecture seule)
       - "../../DATA Projet:/data:ro"
+      # Référentiels embarqués dans le livrable (voir config/data/referentiels/)
+      - ./config/data/referentiels:/referentiels:ro
     networks: [chu-net]
     restart: "no"
 
@@ -146,10 +173,15 @@ services:
       - ./config/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
       # Driver JDBC PostgreSQL (métadonnées stockées dans metastore-db)
       - ./config/hive/postgresql-42.7.3.jar:/opt/hive/lib/postgresql-42.7.3.jar:ro
+      # Connecteur S3A : hadoop-aws + AWS SDK v2 (absents de l'image). Nécessaire
+      # au metastore lui-même : le write-back des statistiques (ANALYZE Trino ->
+      # updatePartitionStatsFast) liste les fichiers du lake via S3A. L'entrypoint
+      # de l'image copie les jars montés sur /tmp/ext-jars vers /opt/hive/lib.
+      - ./config/hive/ext-jars:/tmp/ext-jars:ro
       # Scripts DDL/vues montés pour le DAG lakehouse_init (beeline via docker exec)
       - .:/opt/scripts:ro
-    # Le metastore ne stocke que des MÉTADONNÉES (les données Parquet restent
-    # dans MinIO) : il n'a jamais besoin d'accéder au S3.
+    # Le metastore stocke les MÉTADONNÉES (les données Parquet restent dans MinIO),
+    # mais il doit pouvoir lister le S3 pour les stats (voir ext-jars ci-dessus).
     command: ["hive", "--service", "metastore"]
     ports:
       - "9083:9083"   # Thrift (Spark, Trino)
@@ -228,12 +260,12 @@ services:
     volumes:
       # Sources brutes (montage fixe /data-projet, même convention que run-duckdb.sh)
       - "../../DATA Projet:/data-projet:ro"
-      # Script DQ + résultats (écriture) + staging du workspace PoC
+      # Script DQ + résultats (écriture) + staging embarqué dans le livrable
+      # (05_qualite/staging : CSV dérivés UTF-8 + référentiels, voir dq_checks.sql)
       - ./05_qualite:/opt/l2work/dq:ro
       - ./05_qualite/results:/opt/l2work/dq/results
-      - ${L2WORK:-/tmp/l2work}/staging:/opt/l2work/staging:ro
-      # PoC complet (faits Parquet partitionnés) pour les contrôles DQ sur faits
-      - ${L2WORK:-/tmp/l2work}/poc:/opt/l2work/poc:ro
+      - ./05_qualite/staging:/opt/l2work/staging:ro
+      # Résultats du harnais de benchmark (écriture, voir 04_benchmark)
       - ./04_benchmark/results:/opt/l2work/poc/results
     # Le conteneur reste disponible pour le benchmark (harness) et les
     # contrôles qualité exécutés par Airflow (docker exec chu-bench-duckdb)
@@ -246,7 +278,10 @@ services:
   # Image officielle apache/spark (l'org bitnami n'est pas publiquement
   # accessible depuis tous les environnements : manifest unknown).
   spark-master:
-    image: apache/spark:3.5.1
+    # image custom = apache/spark:3.5.1 + jars S3A (hadoop-aws 3.3.4 + AWS SDK
+    # v1) et JDBC PostgreSQL dans $SPARK_HOME/jars (voir config/spark/Dockerfile)
+    build: ./config/spark
+    image: chu-spark:3.5.1-s3a
     container_name: chu-spark-master
     environment:
       SPARK_MASTER_HOST: spark-master
@@ -261,7 +296,8 @@ services:
     networks: [chu-net]
 
   spark-worker:
-    image: apache/spark:3.5.1
+    build: ./config/spark
+    image: chu-spark:3.5.1-s3a
     container_name: chu-spark-worker
     environment:
       SPARK_MASTER_URL: spark://spark-master:7077
@@ -287,10 +323,17 @@ services:
         condition: service_started
       minio:
         condition: service_healthy
+    environment:
+      # Plafond JVM explicite (sinon le launcher prend ~80 % de la RAM de la
+      # VM Docker -> OOM-killer pendant les jobs Spark, exit 137)
+      JAVA_OPTS: "-Xmx1500m"
     volumes:
+      - ./config/trino/config.properties:/etc/trino/config.properties:ro
       - ./config/trino/catalog:/etc/trino/catalog:ro
       # Scripts montés pour le DAG lakehouse_init (trino-cli via docker exec)
       - .:/opt/scripts:ro
+    # Limite cgroup : avec ce plafond, le tas JVM par defaut resterait sage
+    mem_limit: 2g
     ports:
       - "8080:8080"
     networks: [chu-net]
@@ -415,7 +458,7 @@ services:
       # Provider Spark (SparkSubmitOperator) installé au BUILD de l'image
       # chu-airflow (03_airflow/Dockerfile) : pas de pip au démarrage
       # Connexion Spark standalone pour SparkSubmitOperator
-      AIRFLOW_CONN_SPARK_DEFAULT: spark://spark-master:7077
+      AIRFLOW_CONN_SPARK_DEFAULT: spark://spark%3A%2F%2Fspark-master%3A7077  # host URL-encodé : le hook Spark reconstruit master=host (sans schéma), donc on met l URL complète dans host
       SPARK_CONN_ID: spark_default
       SPARK_MASTER: spark://spark-master:7077
     volumes:
@@ -444,7 +487,7 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__WEBSERVER__SECRET_KEY: "chu-l2-webserver-secret"
       AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
-      AIRFLOW_CONN_SPARK_DEFAULT: spark://spark-master:7077
+      AIRFLOW_CONN_SPARK_DEFAULT: spark://spark%3A%2F%2Fspark-master%3A7077  # host URL-encodé : le hook Spark reconstruit master=host (sans schéma), donc on met l URL complète dans host
       SPARK_CONN_ID: spark_default
       SPARK_MASTER: spark://spark-master:7077
     volumes:

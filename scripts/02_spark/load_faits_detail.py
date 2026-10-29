@@ -17,7 +17,7 @@ sys.path.insert(0, "/opt/spark/jobs")
 from pyspark.sql import functions as F
 from common import (  # noqa: E402
     get_spark, read_postgres, read_raw_csv, GOLD, SILVER,
-    age_revolu, tranche_age, sexe_normalise, save_gold,
+    age_revolu, tranche_age, sexe_normalise, save_gold, read_lake,
 )
 
 spark = get_spark("chu-l2-load-faits-detail")
@@ -70,11 +70,11 @@ f_consultation_detail = (
     c2
     .withColumn("age_event", age_revolu(F.col("date_event"), F.col("date_naissance")))
     .withColumn("tranche_age", tranche_age(F.col("age_event")))
-    .join(spark.table("gold.d_diagnostic").select("code_diag", "id_diagnostic"),
+    .join(read_lake(spark, "gold.d_diagnostic").select("code_diag", "id_diagnostic"),
           on="code_diag")
     .join(activite, c2["id_professionnel"] == activite["identifiant"], "left")
     .join(
-        spark.table("gold.d_etablissement")
+        read_lake(spark, "gold.d_etablissement")
         .select("identifiant_organisation", "id_etablissement",
                 "id_localisation", "region")
         .where(F.col("identifiant_organisation").isNotNull()),
@@ -90,9 +90,7 @@ f_consultation_detail = (
 )
 save_gold(f_consultation_detail, "silver.f_consultation_detail",
           f"{SILVER}/f_consultation_detail",
-          partition_cols=["annee"],
-          bucket_col="id_patient", num_buckets=32,
-          sort_cols=["id_patient", "id_temps"])
+          partition_cols=["annee"])
 
 # ---------------------------------------------------------------------------
 # gold.f_hospitalisation (grain = 1 hospitalisation, source S2 CSV)
@@ -117,10 +115,10 @@ f_hospitalisation = (
     .withColumn("annee", F.year(F.col("d_entree")).cast("int"))
     .withColumn("age_event", age_revolu(F.col("d_entree"), F.col("date_naissance")))
     .withColumn("tranche_age", tranche_age(F.col("age_event")))
-    .join(spark.table("gold.d_diagnostic").select("code_diag", "id_diagnostic"),
+    .join(read_lake(spark, "gold.d_diagnostic").select("code_diag", "id_diagnostic"),
           hosp["code_diagnostic"] == F.col("code_diag"))
     .join(
-        spark.table("gold.d_etablissement")
+        read_lake(spark, "gold.d_etablissement")
         .select("identifiant_organisation", "id_etablissement",
                 "id_localisation", "region")
         .where(F.col("identifiant_organisation").isNotNull()),
@@ -138,9 +136,7 @@ f_hospitalisation = (
 )
 save_gold(f_hospitalisation, "gold.f_hospitalisation",
           f"{GOLD}/f_hospitalisation",
-          partition_cols=["annee"],
-          bucket_col="id_etablissement", num_buckets=8,
-          sort_cols=["id_etablissement", "id_patient"])
+          partition_cols=["annee"])
 
 # ---------------------------------------------------------------------------
 # gold.f_satisfaction (grain = établissement JURIDIQUE x année, source ESATIS)
@@ -200,6 +196,15 @@ for annee, fichier in [("2019", "satisfaction/ESATIS_2019.csv"),
     )
     sat = s if sat is None else sat.unionByName(s)
 
+# code_region associé à chaque région normalisée (référentiel départements) :
+# utilisé comme colonne de partition (les noms de régions contiennent des
+# caractères invalides dans les chemins de partitions Hive).
+ref_region = (
+    read_raw_csv(spark, "referentiels/referentiel_departements.csv")
+    .select(F.col("nom_region").alias("region"), F.col("code_region"))
+    .distinct()
+)
+
 f_satisfaction = (
     sat.join(region_map, on="region_brute", how="left")
     .withColumn("region", F.coalesce(F.col("region_norm"), F.lit("INCONNUE")))
@@ -213,26 +218,21 @@ f_satisfaction = (
         F.sum("nb_repondants").alias("nb_repondants"),
         F.count(F.lit(1)).alias("nb_sites"),
     )
-    .select("annee", "finess", "region", "score_satisfaction",
+    .join(ref_region, on="region", how="left")
+    .withColumn("code_region", F.coalesce(F.col("code_region"), F.lit("99")))
+    .select("annee", "finess", "region", "code_region", "score_satisfaction",
             "nb_repondants", "nb_sites")
 )
 save_gold(f_satisfaction, "gold.f_satisfaction",
           f"{GOLD}/f_satisfaction",
-          partition_cols=["annee", "region"], sort_cols=["finess"])
+          partition_cols=["annee", "code_region"])
 
 # ---------------------------------------------------------------------------
 # Rafraîchissement métadonnées + statistiques
 # ---------------------------------------------------------------------------
-for table in ["f_consultation_detail", "f_hospitalisation", "f_satisfaction"]:
-    schema = "silver" if table == "f_consultation_detail" else "gold"
-    spark.sql(f"MSCK REPAIR TABLE {schema}.{table}")
-    spark.sql(f"ANALYZE TABLE {schema}.{table} COMPUTE STATISTICS")
-
 print("Faits de détail chargés :")
-spark.sql("""
-    SELECT 'f_consultation_detail' t, COUNT(*) n FROM silver.f_consultation_detail
-    UNION ALL SELECT 'f_hospitalisation', COUNT(*) FROM gold.f_hospitalisation
-    UNION ALL SELECT 'f_satisfaction', COUNT(*) FROM gold.f_satisfaction
-""").show()
+print("silver.f_consultation_detail :", read_lake(spark, "silver.f_consultation_detail").count(), "lignes")
+print("gold.f_hospitalisation :", read_lake(spark, "gold.f_hospitalisation").count(), "lignes")
+print("gold.f_satisfaction :", read_lake(spark, "gold.f_satisfaction").count(), "lignes")
 
 spark.stop()

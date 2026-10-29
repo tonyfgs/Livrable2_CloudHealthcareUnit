@@ -9,9 +9,12 @@ Spark, Trino, Airflow, Superset...) sur le poste hôte.
 scripts/
 ├── docker-compose.yml            # stack complète (toutes les couches)
 ├── config/
-│   ├── hive-site.xml             # Hive Metastore (catalogue)
-│   ├── trino/catalog/hive.properties   # Trino : connecteur Hive + MinIO
-│   ├── spark/spark-defaults.conf # Spark : S3A + Hive Metastore
+│   ├── hive-site.xml             # Hive Metastore + HS2 (S3A vers MinIO)
+│   ├── hive/                     # driver JDBC PostgreSQL + ext-jars/ (S3A : hadoop-aws + AWS SDK v2)
+│   ├── minio/Dockerfile          # MinIO compilé from source (pulls minio/* bloqués)
+│   ├── data/referentiels/        # référentiels embarqués, copiés dans lake/raw/ par minio-init
+│   ├── trino/catalog/hive.properties   # Trino : connecteur Hive + S3 natif + MinIO
+│   ├── spark/                    # Dockerfile (image chu-spark : S3A + Python 3.12 embarqué) + spark-defaults.conf
 │   ├── superset/superset_config.py     # Superset : connexion Trino, cache off
 │   └── s1-postgres/init.sh       # restauration du dump S1 (pg_restore)
 ├── 01_ddl/
@@ -41,8 +44,9 @@ scripts/
 │   ├── Dockerfile.duckdb         # image du conteneur benchmark/DQ
 │   └── README.md
 ├── 05_qualite/
-│   ├── dq_checks.sql             # 6 familles de contrôles qualité
-│   └── results/                  # dq_*.csv (6 rapports)
+│   ├── dq_checks.sql             # 6 familles de contrôles qualité (autonome : lit le lake via httpfs)
+│   ├── staging/                  # CSV staging embarqués (montés dans chu-bench-duckdb)
+│   └── results/                  # dq_*.csv (7 rapports, régénérés par le DAG daily)
 └── 06_superset/
     ├── charts.sql                # 8 requêtes dashboard (SQL Lab)
     └── README.md                 # connexion Trino + création des charts
@@ -74,23 +78,23 @@ Voir `04_benchmark/README.md` : DuckDB tourne dans un conteneur jetable
 (service `s1-postgres`). Les résultats (CSV + SVG) sont déjà dans
 `04_benchmark/results/`.
 
-### C. Contrôles qualité seuls (workspace PoC)
+### C. Contrôles qualité seuls
+
+La DQ s'exécute automatiquement dans le DAG `lakehouse_daily` (tâche
+`dq_checks`, conteneur `chu-bench-duckdb`, autonome : httpfs + MinIO + staging
+embarqué). Pour la rejouer seule :
 
 ```bash
-export L2WORK=${L2WORK:-/tmp/l2work}   # workspace contenant staging/
-mkdir -p "$L2WORK/dq/results"
-# depuis la racine de "Livrable 2" (les sources brutes sont montées
-# au point fixe /data-projet par le runner, variable DATA_PROJET) :
-sh scripts/04_benchmark/run-duckdb.sh "$L2WORK/dq/l2.duckdb" < scripts/05_qualite/dq_checks.sql
-cp "$L2WORK"/dq/results/dq_*.csv scripts/05_qualite/results/
+docker exec chu-bench-duckdb sh -c 'cd /opt/l2work && duckdb /tmp/dq.duckdb < /opt/l2work/dq/dq_checks.sql'
+# résultats écrits dans scripts/05_qualite/results/ (7 CSV)
 ```
 
 ## Couches de la stack (positionnement)
 
 | Couche | Composant | Rôle dans le livrable |
 |---|---|---|
-| Ingestion | `minio-init` (mc) | copie des sources brutes vers `s3a://lake/raw/` |
-| Stockage | **MinIO** | data lake (Parquet partitionné/bucketé, zones raw/silver/gold) |
+| Ingestion | `minio-init` (AWS CLI) | copie des sources brutes vers `s3://lake/raw/` (clés normalisées) + référentiels embarqués (`config/data/referentiels/`) |
+| Stockage | **MinIO** (build from source, `config/minio/Dockerfile`) | data lake (Parquet partitionné + tri intra-partition, zones raw/silver/gold) |
 | Catalogue | **Hive Metastore** (+ PostgreSQL) | métadonnées des tables externes, statistiques, partitions |
 | Traitement | **Apache Spark** | ETL/ELT : S1 (JDBC) + CSV -> Gold/Silver (02_spark/) |
 | Orchestration | **Apache Airflow** | DAGs `lakehouse_init` / `lakehouse_daily` (03_airflow/) |
