@@ -445,6 +445,14 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
     auto. Runbook from-scratch : `down -v && up -d`, attendre les healthy, unpause
     `lakehouse_init` -> Trigger -> attendre 5/5 SUCCESS, puis unpause
     `lakehouse_daily` -> Trigger -> attendre 8/8 SUCCESS (~10 min, jobs Spark).
-    `airflow dags trigger` en CLI fonctionne aussi DAG en pause. Ne jamais
-    lancer init et daily en parallèle, et en cas de tâche rouge : Clear (pas de
-    re-run de l'init en même temps que le daily).
+    IMPORTANT : dans Airflow 2.9.3, `DagRun.next_dagruns_to_examine` filtre
+    `DagModel.is_paused == false()` pour TOUS les états y compris QUEUED et
+    RUNNING -> (a) un run déclenché (CLI ou UI) sur un DAG EN PAUSE reste
+    bloqué en `queued` indéfiniment : il faut d'abord UNPAUSE le DAG
+    (`airflow dags unpause <dag>` ou le toggle UI) PUIS trigger ; (b) mettre
+    un DAG en pause TANT QU'UN RUN EST EN COURS fige ce run (tâches bloquées
+    en `scheduled`, run en `running` qui n'avance plus) : ne re-pauser qu'une
+    fois le run terminé. Le DAG daily a `catchup=False` + `max_active_runs=1`
+    -> un seul run à la fois, aucun backfill multiple. Ne jamais lancer init
+    et daily en parallèle, et en cas de tâche rouge : Clear (pas de re-run de
+    l'init en même temps que le daily).

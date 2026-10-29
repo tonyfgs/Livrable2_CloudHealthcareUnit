@@ -546,7 +546,12 @@ cd scripts && docker compose up -d
 # (AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true) : aucun backfill auto ne peut
 # écraser l'init. Ordre strict dans l'UI :
 #   1. unpause lakehouse_init  -> ▶ Trigger  -> attendre 5/5 SUCCESS (~3-5 min)
-#   2. unpause lakehouse_daily -> ▶ Trigger  -> attendre 8/8 SUCCESS (~10 min)
+#   2. unpause lakehouse_daily -> le scheduler lance automatiquement le run
+#      (catchup=False, max_active_runs=1 ; le bouton ▶ marche aussi mais file
+#      derrière) -> attendre 8/8 SUCCESS (~10 min)
+#   A NE PAS FAIRE : mettre un DAG en pause tant qu'un run est en cours
+#   (Airflow 2.9.3 ne schedule plus les runs d'un DAG en pause : le run
+#   resterait figé en 'running' avec ses tâches bloquées en 'scheduled').
 # Vérification : docker exec chu-trino trino --server http://localhost:8080 \
 #   --catalog hive --schema gold --execute "SELECT count(*) FROM f_mesures"  # 1030402
 # Superset : http://localhost:8088 -> connexion Trino -> 8 charts (06_superset/charts.sql)
