@@ -166,9 +166,12 @@ Chaque écriture Spark : `bucketBy(n, clé).partitionBy(...).sortBy(...).option(
 
 ### 3.3 Versionning (Git)
 
-Dépôt Git initialisé dans `Livrable 2/` (5 commits thématiques) :
+Dépôt Git initialisé dans `Livrable 2/` (8 commits thématiques) :
 
 ```
+9daf0bf finalisation (corrections notation v3 -> 19,75/20, JRE Airflow, hive-hs2, config S3 Trino/S3A SDK v2, DQ COALESCE + volumes AAAA/date, q08 pondérée, NOTE_INTERNE, 17 services)
+172061c corrections évaluation (montages compose, DAGs docker exec, chemins /data-projet + s1-postgres, partitionnement d_patient sexe+tranche_age_ref dans le PoC, synthèse benchmark honnête, sizing corrigé)
+320c441 rapport livrable2.md + partitionnement d_patient (sexe, tranche_age)
 e19e2bb stack Docker Compose complète + Superset + documentation
 b5bf381 benchmark (10 requêtes, 3 scénarios, résultats + SVG) et DQ (6 familles)
 7d17dc5 orchestration Airflow (DAGs lakehouse_init + lakehouse_daily)
