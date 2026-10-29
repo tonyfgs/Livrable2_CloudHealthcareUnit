@@ -456,3 +456,22 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
     -> un seul run à la fois, aucun backfill multiple. Ne jamais lancer init
     et daily en parallèle, et en cas de tâche rouge : Clear (pas de re-run de
     l'init en même temps que le daily).
+
+30. **Connexion Superset "Trino CHU" jamais créée sans erreur visible (trouvé par le
+    smoke test)** : 4 causes enchaînées — (a) le driver python `trino` n'était PAS
+    dans l'image `chu-superset` (06_superset/Dockerfile n'installait que psycopg2)
+    -> création API = 422 "Connection failed" ; (b) Superset 4.x exige pour un POST
+    authentifié le bearer MAIS AUSSI le cookie de session + `X-CSRFToken` (bearer
+    seul -> 400 "CSRF token is missing") ; (c) la tâche `verification_superset`
+    ne faisait qu'un `curl -sf ... ; echo` -> tout échec était masqué, tâche verte ;
+    (d) Superset met 2-4 min à répondre à /health après `up -d`. Fix : driver
+    `trino==0.330.0` dans le Dockerfile, script dédié `dags/verif_superset.sh`
+    (attente /health 6 min, login+cookie+CSRF, POST, puis VÉRIFICATION par GET avec
+    `grep` — exit 1 si absente ; 422 "already exists" = idempotent OK). Ne PAS
+    remettre un filtre `?q=(...value:'Trino CHU')` dans l'URL du GET : l'espace
+    casse curl. Rebuild image : `docker compose build superset && docker compose up -d superset`.
+31. **Smoke test : les endpoints web ne répondent pas tout de suite** — Airflow
+    (8090) et Superset (8088) mettent 2-4 min à écouter après le démarrage du
+    conteneur (gunicorn), un `curl` sec renvoie 000. Le smoke test retente chaque
+    endpoint jusqu'à 4 min (`wait_http`). Ne pas conclure à un bug sur un 000
+    précoce.

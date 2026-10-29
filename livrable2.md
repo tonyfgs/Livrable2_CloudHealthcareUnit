@@ -157,6 +157,8 @@ Côté **Trino** (`02_schema_gold_trino.sql`) : pas de DDL dupliqué — Trino l
 
 ### 3.2 DML — chargement (Apache Spark, `scripts/02_spark/`)
 
+> Justification du DML en PySpark et non en SQL : le sujet impose Apache Spark comme moteur de traitement et des tables **externes Hive/Parquet** sur le lake — Hive 4 ne supporte pas de DML distribué (INSERT) ciblé proprement vers des emplacements S3A externes depuis beeline de manière fiable sur stack fraîche. Le chargement est donc écrit en PySpark (SparkSubmitOperator), versionné dans `scripts/02_spark/`. Les scripts **SQL** de chargement (DML `INSERT`/`COPY`) sont livrés et exécutés dans le PoC DuckDB : `scripts/04_benchmark/00_init.sql` → `02a_faits_detail.sql` → `02b_deces_agg.sql` → `02c_f_mesures.sql` → `02d_agregats.sql` (mêmes règles de transformation, mêmes résultats métier vérifiés §6).
+
 | Script | Rôle | Règles de transformation appliquées (issues de la DQ, §5) |
 |---|---|---|
 | `common.py` | Session Spark (S3A MinIO + Hive Metastore), helpers | `tranche_age` (0-14/15-29/30-44/45-59/60-74/75+), `dept_of` (règle INSEE : 2 car., 3 car. pour 97x, `2A` pour la Corse), `sexe_normalise` (male/female → M/F), âge révolu `floor(months_between/12)` |
@@ -231,7 +233,7 @@ La chaîne d'intégration a été exécutée de bout en bout **en PoC** (scripts
 
 ## 5. Rapport de qualité des données
 
-Script : `scripts/05_qualite/dq_checks.sql` (6 familles de contrôles, résultats CSV dans `scripts/05_qualite/results/`). Les contrôles sont exécutés **avant** intégration ; les règles de traitement en découlent (tableau §5.6).
+Script : `scripts/05_qualite/dq_checks.sql` (8 familles de contrôles, résultats CSV dans `scripts/05_qualite/results/`). Les contrôles A/B/D portent sur les **sources** (avant intégration) ; les règles de traitement en découlent (tableau §5.6). Les contrôles **C2/C3/D2 portent sur les données INTÉGRÉES** (Parquet Gold/Silver du lake lus en direct via httpfs), comme l'exige le sujet : doublons sur faits (`dq_doublons_faits.csv`), **complétude par attribut sur les faits intégrés** (`dq_completude_faits.csv`) et **intégrité référentielle faits → dimensions** (`dq_integrite_fk.csv`, compense l'absence de FK déclaratives sur tables externes, §2.3).
 
 ### 5.1 Complétude (`dq_completude.csv`)
 
@@ -274,7 +276,7 @@ Script : `scripts/05_qualite/dq_checks.sql` (6 familles de contrôles, résultat
 | satisfaction_2019 | finess (grain brut) | 166 | 14,41 | **Grain juridique = finess** (le grain brut finess + finess_geo est un grain SITE) : agrégation au grain juridique, moyenne pondérée par les répondants (2 295 → 1 960 lignes) |
 | deces | clé complète (nom, prénom, dates, lieu, acte) | 174 794 | 0,6967 | Conservés (décès homonymes possibles) mais **quantifiés** ; pas de dédoublonnage (risque de faux positifs sur 25 M de lignes). Clé construite avec `COALESCE(champ,'')` : sans COALESCE, une clé contenant un champ NULL est exclue du `COUNT(DISTINCT)` en DuckDB (`NULL || 'x' = NULL`) et gonfle artificiellement le compte (211 833 = 0,8444 % avant correction) |
 
-**Doublons sur les faits intégrés** (`dq_doublons_faits.csv`) — le sujet exige le contrôle des doublons sur les données **intégrées**, pas seulement sur les sources. Lecture des exports Parquet partitionnés du PoC (en production : tables Gold/Silver du lake via Trino/Hive Metastore) :
+**Doublons sur les faits intégrés** (`dq_doublons_faits.csv`) — le sujet exige le contrôle des doublons sur les données **intégrées**, pas seulement sur les sources. Lecture directe des Parquet partitionnés écrits par Spark dans le data lake MinIO (`s3://lake/gold/...`, `s3://lake/silver/...`, httpfs) — contrôle sur les VRAIES tables de production :
 
 | Fait intégré | Grain contrôlé | Doublons | % |
 |---|---|---|---|
@@ -566,4 +568,5 @@ Ports exposés sur l'hôte : Superset **8088**, Trino **8080**, Airflow **8090**
 - Sujet : `../sujet.md` (Livrable 2, p. « Livrables attendus »)
 - Livrable 1 : `../Livrable 1/L1-rapport-cloud-health-unit.md` (modèle logique, 4 mesures, 8 besoins)
 - Résultats benchmark : `scripts/04_benchmark/results/` (CSV + SVG + résultats métier)
-- Rapport qualité : `scripts/05_qualite/results/` (7 CSV)
+- Rapport qualité : `scripts/05_qualite/results/` (9 CSV : 7 familles sources + complétude faits intégrés + intégrité FK faits→dimensions)
+- Smoke test from scratch automatisé : `scripts/07_smoke_test/smoke_from_scratch.sh` (down -v → up -d → init 5/5 → daily 8/8 → volumes Trino exacts → endpoints → lake → Superset ; log 100% PASS versionné dans `07_smoke_test/results/`)

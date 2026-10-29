@@ -48,6 +48,7 @@ scripts/
 │   ├── staging/                  # CSV staging embarqués (montés dans chu-bench-duckdb)
 │   └── results/                  # dq_*.csv (7 rapports, régénérés par le DAG daily)
 └── 06_superset/
+    ├── 07_smoke_test/                     # smoke test from scratch automatisé (smoke_from_scratch.sh + results/)
     ├── charts.sql                # 8 requêtes dashboard (SQL Lab)
     └── README.md                 # connexion Trino + création des charts
 ```

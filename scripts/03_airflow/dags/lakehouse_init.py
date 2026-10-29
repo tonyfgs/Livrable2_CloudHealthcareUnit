@@ -214,25 +214,13 @@ with DAG(
     )
 
     # -------------------------------------------------------------------------
-    # 4. Superset : la connexion Trino est déclarée dans superset_config.py
-    #    (TRINO_CHU_URI, voir scripts/config/superset/superset_config.py) ;
-    #    cette tâche vérifie que l'API répond (health) et tente de créer la
-    #    connexion Trino via l'API REST (login admin/admin par défaut).
+    # 4. Superset : cree la connexion Trino via l'API REST (voir
+    #    dags/verif_superset.sh : attente /health, cookie+CSRF, driver trino
+    #    dans l'image, et ECHEC REEL si la connexion n'est pas creee).
     # -------------------------------------------------------------------------
     verif_superset = BashOperator(
         task_id="verification_superset",
-        bash_command=(
-            "curl -sf http://superset:8088/health && echo ' <- health OK' && "
-            "TOKEN=$(curl -sf -X POST http://superset:8088/api/v1/security/login "
-            "-H 'Content-Type: application/json' "
-            "-d '{\"username\":\"admin\",\"password\":\"admin\",\"provider\":\"db\",\"refresh\":true}' "
-            "| python3 -c 'import sys,json;print(json.load(sys.stdin)[\"access_token\"])') && "
-            "curl -sf -X POST http://superset:8088/api/v1/database/ "
-            "-H \"Authorization: Bearer $TOKEN\" -H 'Content-Type: application/json' "
-            "-d '{\"database_name\":\"Trino CHU\",\"sqlalchemy_uri\":\"trino://trino@trino:8080/hive\"}' "
-            "| head -c 300; "
-            "echo ' <- connexion Trino CHU (idempotente si déjà créée : 422 ignoré)'"
-        ),
+        bash_command="bash /opt/airflow/dags/verif_superset.sh",
     )
 
     ddl_hive >> vues_metier >> vues_metier_trino >> verif_trino >> verif_superset
