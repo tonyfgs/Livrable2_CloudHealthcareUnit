@@ -154,6 +154,7 @@ LOCATION 's3a://lake/gold/d_professionnel';
 
 -- f_mesures : FAIT CONSOLIDÉ (couche Gold) - grain :
 --   annee_mois x id_etablissement x id_patient x sexe x tranche_age x id_localisation
+--   x region
 --   - consultations / hospitalisations : grain MENSUEL  (annee_mois = 'AAAA-MM')
 --   - décès / satisfaction            : grain ANNUEL   (annee_mois = 'AAAA-00',
 --     sentinelle 'mois = 00' = agrégat annuel)
@@ -162,7 +163,11 @@ LOCATION 's3a://lake/gold/d_professionnel';
 --   - ils proviennent de la dimension patient mais servent de clés de
 --     partitionnement (pruning démographique) ;
 --   - pour les lignes sans patient (décès, satisfaction) : 'TOUS' / 'TOUTES'.
--- region est dénormalisée depuis d_localisation (filtre direct sans jointure).
+-- region est dans le GRAIN : la satisfaction est rattachée à la région (pas à
+-- un établissement de site) ; sans region dans la clé, la jointure sat créait
+-- un fan-out (31 doublons, corrigé, cf. rapport qualité). Pour les consultations
+-- et hospitalisations, region est dénormalisée depuis l'établissement (filtre
+-- direct sans jointure).
 CREATE EXTERNAL TABLE IF NOT EXISTS f_mesures (
   annee_mois          STRING,   -- 'AAAA-MM' (mensuel) ou 'AAAA-00' (annuel)
   id_temps            INT,      -- AAAAMMJJ du 1er jour du mois (NULL si annuel)
@@ -180,9 +185,11 @@ CLUSTERED BY (id_etablissement) INTO 32 BUCKETS
 STORED AS PARQUET
 LOCATION 's3a://lake/gold/f_mesures';
 
--- f_consultation_detail : couche SILVER, grain = 1 consultation (1 373 594 lignes).
--- Rattachement établissement : Id_prof_sante -> activite -> etablissement
--- (taux de rattachement 57,7 %, cf. rapport qualité).
+-- f_consultation_detail : couche SILVER, grain = 1 consultation (1 027 157 lignes).
+-- Rattachement établissement : Id_prof_sante -> activite (1 organisation par
+-- professionnel : MIN(identifiant_organisation) si multi-établissements, pour
+-- préserver le grain 1 consultation) -> etablissement (taux de rattachement
+-- chaîne complète 63,87 %, cf. rapport qualité).
 CREATE EXTERNAL TABLE IF NOT EXISTS silver.f_consultation_detail (
   id_consultation   BIGINT,
   id_temps          INT,
@@ -235,14 +242,17 @@ PARTITIONED BY (annee INT)
 STORED AS PARQUET
 LOCATION 's3a://lake/gold/f_deces_agg';
 
--- f_satisfaction : grain = établissement JURIDIQUE x année (source ESATIS).
+-- f_satisfaction : grain = établissement JURIDIQUE x année (source ESATIS :
+-- 2 295 lignes source agrégées en 1 960 finess juridiques, moyenne pondérée
+-- par les répondants, cf. 02a_faits_detail.sql / load_faits_detail.py).
 -- Le finess ESATIS est un finess juridique (correspond à plusieurs sites FINESS) :
 -- pas de clé d'établissement de site -> la mesure est rattachée à la région
 -- (colonne region normalisée depuis le fichier ESATIS, cf. rapport qualité).
 CREATE EXTERNAL TABLE IF NOT EXISTS gold.f_satisfaction (
   finess             STRING,  -- finess juridique ESATIS
-  score_satisfaction DOUBLE,  -- score_all_rea_ajust (virgule décimale normalisée)
-  nb_repondants      INT
+  score_satisfaction DOUBLE,  -- score moyen ajusté ESATIS, pondéré (0-100)
+  nb_repondants      BIGINT,  -- somme des répondants des sites agrégés
+  nb_sites           INT     -- nombre de sites ESATIS agrégés (lignes source)
   -- 'annee' et 'region' (région normalisée, 18 régions + INCONNUE) =
   -- colonnes de partition (chemins Hive annee=.../region=...)
 )

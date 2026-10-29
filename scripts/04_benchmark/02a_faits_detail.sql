@@ -9,8 +9,14 @@ ATTACH 'dbname=chu_s1 host=s1-postgres user=chu password=chu' AS s1 (TYPE postgr
 
 -- ---------- f_consultation_detail (grain = 1 consultation, couche Silver) ----------
 -- Rattachement établissement : Consultation.Id_prof_sante -> activite (identifiant, identifiant_organisation)
---   -> etablissement.identifiant_organisation. Taux de rattachement mesuré en DQ : 71,87 % des
---   consultations ont un professionnel présent dans le fichier d'activité ; les autres -> id_etablissement = -1.
+--   -> etablissement.identifiant_organisation.
+--   Un professionnel exerce souvent dans PLUSIEURS établissements (fichier d'activité 1-N) :
+--   la jointure est ramenée à UNE organisation par professionnel (MIN(identifiant_organisation))
+--   pour préserver le grain "1 consultation" (un fan-out 1-N dupliquerait les consultations :
+--   +346 437 lignes, +33,7 %, mesuré en v1 et corrigé).
+--   Taux mesurés en DQ : 71,87 % des consultations ont leur professionnel dans le fichier
+--   d'activité ; 63,87 % sont rattachées à un établissement (chaîne complète) ; les autres
+--   -> id_etablissement = -1 (membre Inconnu).
 CREATE OR REPLACE TABLE f_consultation_detail AS
 WITH c2 AS (
   SELECT c."Num_consultation" AS id_consultation,
@@ -39,7 +45,10 @@ SELECT c2.id_consultation, c2.id_temps, c2.annee_mois, c2.annee,
        COALESCE(e.region, 'INCONNUE') AS region
 FROM c2
 JOIN d_diagnostic dg ON c2.code_diag = dg.code_diag
-LEFT JOIN (SELECT DISTINCT identifiant, identifiant_organisation FROM src_act WHERE NULLIF(TRIM(identifiant),'') IS NOT NULL) a
+LEFT JOIN (SELECT identifiant, MIN(identifiant_organisation) AS identifiant_organisation
+           FROM src_act
+           WHERE NULLIF(TRIM(identifiant),'') IS NOT NULL
+           GROUP BY identifiant) a
        ON c2.id_professionnel = a.identifiant
 LEFT JOIN d_etablissement e ON a.identifiant_organisation = e.identifiant_organisation;
 
@@ -79,22 +88,39 @@ LEFT JOIN d_etablissement e ON h2.identifiant_organisation = e.identifiant_organ
 -- ---------- f_satisfaction (grain = établissement juridique x année, source ESATIS) ----------
 -- Le score brut utilise la virgule décimale dans les deux millésimes (mesuré en DQ).
 -- Grain juridique, PAS site : le finess ESATIS est un finess d'établissement juridique, qui
--- correspond à plusieurs sites dans le référentiel FINESS (jointure 1-N non désirée, mesurée).
+-- correspond à plusieurs sites dans le fichier source (2 295 lignes -> 1 960 finess juridiques
+-- distincts, mesuré en DQ : le grain brut du fichier est (finess, finess_geo) = grain SITE).
 -- Le rattachement site est impossible (finess_geo -> finess_site = 0 % en DQ) : la mesure est
--- donc stockée au grain (annee, finess juridique, region), sans clé d'établissement de site.
+-- donc agrégée au grain (annee, finess juridique), sans clé d'établissement de site :
+--   - score_satisfaction = moyenne PONDÉRÉE par le nombre de répondants
+--     (SUM(score * nb_repondants) / SUM(nb_repondants))
+--   - nb_repondants = somme des répondants des sites agrégés
+--   - nb_sites = nombre de lignes source agrégées (sites ESATIS du même finess juridique)
+--   - region = région de l'établissement juridique ; 6 finess juridiques apparaissent avec
+--     2 régions dans la source (1 966 couples annee/finess/region pour 1 960 finess) :
+--     la région retenue est MIN(region) et la pondération mélange les sites (documenté).
 -- La région provient de la colonne `region` du fichier ESATIS, normalisée par mapping.
 CREATE OR REPLACE TABLE f_satisfaction AS
-SELECT s.annee,
-       TRIM(s.finess) AS finess,
-       COALESCE(m.region_norm,'INCONNUE') AS region,
-       try_cast(replace(s.score_all_rea_ajust,',','.') AS DOUBLE) AS score_satisfaction,
-       TRY_CAST(s.nb_rep_score_all_rea_ajust AS INTEGER) AS nb_repondants
+SELECT annee,
+       finess,
+       MIN(region) AS region,
+       SUM(score_satisfaction * nb_repondants) / NULLIF(SUM(nb_repondants),0) AS score_satisfaction,
+       SUM(nb_repondants) AS nb_repondants,
+       COUNT(*) AS nb_sites
 FROM (
-  SELECT '2019' AS annee, finess, region, score_all_rea_ajust, nb_rep_score_all_rea_ajust FROM t_sat19
-  UNION ALL
-  SELECT '2020' AS annee, finess, region, score_all_rea_ajust, nb_rep_score_all_rea_ajust FROM t_sat20
-) s
-LEFT JOIN ref_region_map m ON TRIM(s.region) = m.region_brute;
+  SELECT s.annee,
+         s.finess,
+         COALESCE(m.region_norm,'INCONNUE') AS region,
+         try_cast(replace(s.score_all_rea_ajust,',','.') AS DOUBLE) AS score_satisfaction,
+         TRY_CAST(s.nb_rep_score_all_rea_ajust AS INTEGER) AS nb_repondants
+  FROM (
+    SELECT '2019' AS annee, TRIM(finess) AS finess, region, score_all_rea_ajust, nb_rep_score_all_rea_ajust FROM t_sat19
+    UNION ALL
+    SELECT '2020' AS annee, TRIM(finess) AS finess, region, score_all_rea_ajust, nb_rep_score_all_rea_ajust FROM t_sat20
+  ) s
+  LEFT JOIN ref_region_map m ON TRIM(s.region) = m.region_brute
+)
+GROUP BY annee, finess;
 
 CHECKPOINT;
 

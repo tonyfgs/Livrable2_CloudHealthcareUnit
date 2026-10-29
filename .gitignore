@@ -7,3 +7,5 @@ scripts/04_benchmark/avant/
 scripts/04_benchmark/apres/
 scripts/04_benchmark/results/_*
 .DS_Store
+__pycache__/
+*.pyc

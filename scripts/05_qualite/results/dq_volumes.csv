@@ -10,6 +10,8 @@ S1.PostgreSQL (dump DATA2023);Mutuelle;254;
 S1.PostgreSQL (dump DATA2023);Prescription;1003845;
 S1.PostgreSQL (dump DATA2023);Medicaments;15455;
 S1.PostgreSQL (dump DATA2023);Laboratoire;677;
+S1.PostgreSQL (dump DATA2023);AAAA;82216;
+S1.PostgreSQL (dump DATA2023);date;82216;
 S2.Hospitalisations.csv;Hospitalisations.csv;2479;2015-06-21 00:00:00 -> 2021-06-19 00:00:00
 S3/ESATIS;satisfaction_2019.csv;1152;2019
 S3/ESATIS;satisfaction_2020.csv;1143;2020

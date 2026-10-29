@@ -7,4 +7,4 @@ etablissement (toutes cles);identifiant_organisation;416665;0;0.0
 satisfaction_2019;finess (grain brut);1152;166;14.4097
 satisfaction_2019;finess + finess_geo (grain reel);1152;0;0.0
 satisfaction_2020;finess + finess_geo (grain reel);1143;0;0.0
-deces;cle complete (nom,prenom,date_naissance,date_deces,lieu,acte);25088208;211833;0.8444
+deces;cle complete (nom,prenom,date_naissance,date_deces,lieu,acte);25088208;174794;0.6967

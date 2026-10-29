@@ -4,12 +4,12 @@ Deux harnais complémentaires :
 
 | Harnais | Où | Rôle |
 |---|---|---|
-| `run_bench.sh` / `run_bench_ml.sh` + `synthese.js` | hôte (DuckDB) | **PoC exécuté** : évalue l'apport du partitionnement + bucketing + tri sur les 10 requêtes, scénarios `avant` / `apres` / `apres_ml` (pruning façon metastore), 5 répétitions, médianes + volumes lus |
+| `run_bench.sh` / `run_bench_ml.sh` + `synthese.js` | conteneur `chu-bench-duckdb` (DuckDB + node) | **PoC exécuté** : évalue l'apport du partitionnement + bucketing + tri sur les 10 requêtes, scénarios `avant` / `apres` / `apres_ml` (pruning façon metastore), 5 répétitions, médianes + volumes lus |
 | `harness_trino.sh` | stack Docker Compose | **Validation plateforme** : rejoue les 10 requêtes contre Trino (Hive Metastore + MinIO) après déploiement, avec `EXPLAIN ANALYZE` sur q01/q10 |
 
 ## Résultats du PoC (exécuté)
 
-- `results/bench_results.csv` : 10 requêtes x 3 scénarios x 5 runs (ms + volume lu)
+- `results/bench_results.csv` : 450 lignes = 3 campagnes x 10 requêtes x 3 scénarios x 5 runs (ms + volume lu)
 - `results/bench_synthese.csv` : médianes, accélérations, ratio de volume
 - `results/graph_temps_median.svg` : temps médian avant / après / après+metastore
 - `results/graph_volume_lu.svg` : volume de données lu (Mo)
@@ -18,9 +18,11 @@ Deux harnais complémentaires :
 
 ## Rejouer le PoC (hôte)
 
-Le PoC s'exécute **100 % dans Docker** (aucune installation sur le poste) :
-DuckDB tourne dans un conteneur `postgres:15` jetable (voir `run-duckdb.sh`),
-la source S1 est le conteneur PostgreSQL `chu-s1-postgres` (service `s1-postgres`).
+Le PoC s'exécute **100 % dans Docker** (aucune installation ni téléchargement
+sur le poste) : DuckDB et node tournent dans l'image du projet
+`chu-bench-duckdb` (voir `run-duckdb.sh` / `run-node.sh`, construits
+automatiquement via `docker compose build bench-duckdb`), la source S1 est le
+conteneur PostgreSQL `chu-s1-postgres` (service `s1-postgres`).
 Les sources brutes sont lues au point de montage fixe `/data-projet` (bind du
 dossier `DATA Projet`, variable `DATA_PROJET` de `run-duckdb.sh` — même
 convention dans le service `bench-duckdb` du docker-compose).
@@ -31,13 +33,15 @@ convention dans le service `bench-duckdb` du docker-compose).
 export L2WORK=/tmp/l2work                 # surchargeable
 mkdir -p $L2WORK
 ln -s "$(pwd)/scripts/04_benchmark" $L2WORK/poc   # ce répertoire = poc/
+cp "$(pwd)/scripts/04_benchmark/run-duckdb.sh" "$(pwd)/scripts/04_benchmark/run-node.sh" $L2WORK/
+chmod +x $L2WORK/run-duckdb.sh $L2WORK/run-node.sh
 # staging/ : CSV dérivés des sources brutes, lus en relatif depuis $L2WORK :
 #   - satisfaction_2019.csv       <- "DATA Projet/Satisfaction/2019/resultats-esatis48h-mco-open-data-2019.csv" (conversion UTF-8)
 #   - satisfaction_2020_clean.csv <- "DATA Projet/Satisfaction/2020/resultats-esatis48h-mco-open-data-2020.xlsx" (extraction Excel -> CSV)
 #   - professionnel_sante_utf8.csv <- "DATA Projet/Etablissement de SANTE/professionnel_sante.csv" (ISO-8859-1 -> UTF-8, ex. iconv -f ISO-8859-1 -t UTF-8)
 #   - activite_professionnel_sante_utf8.csv <- "DATA Projet/Etablissement de SANTE/activite_professionnel_sante.csv" (déjà UTF-8)
 #   - referentiel_departements.csv <- geo.api.gouv.fr (101 départements)
-# Le binaire DuckDB est téléchargé automatiquement par run-duckdb.sh.
+# L'image chu-bench-duckdb embarque DuckDB + node (aucun téléchargement sur le poste).
 ```
 
 ### 2. Conteneur source S1 (PostgreSQL ChuSimulation)
@@ -61,6 +65,7 @@ docker run -d --name chu-s1-postgres --network chu-net \
 
 ```bash
 cd $L2WORK
+mkdir -p poc/avant poc/apres poc/results   # répertoires d'export (DuckDB ne les crée pas)
 ./run-duckdb.sh poc/warehouse.duckdb < poc/00_init.sql        # sources + matérialisation
 ./run-duckdb.sh poc/warehouse.duckdb < poc/01_dims.sql         # 6 dimensions
 ./run-duckdb.sh poc/warehouse.duckdb < poc/02a_faits_detail.sql # faits détail + satisfaction
@@ -77,11 +82,11 @@ cd $L2WORK
 ./poc/run_bench.sh avant        # scénario AVANT  (Parquet plat, 1 fichier/table)
 ./poc/run_bench.sh apres        # scénario APRES  (partitionné + bucketé + trié)
 ./poc/run_bench_ml.sh           # scénario APRES_ML (pruning façon Hive Metastore)
-node poc/synthese.js            # synthèse CSV + 3 graphiques SVG
+./run-node.sh poc/synthese.js   # synthèse CSV + 3 graphiques SVG (node en conteneur)
 ```
 
 Le scénario `apres_ml` simule le pruning de partitions d'un vrai metastore
-(Hive/Trino) par liste explicite de fichiers (générée par `node poc/gen_listes.js`) :
+(Hive/Trino) par liste explicite de fichiers (générée par `./run-node.sh poc/gen_listes.js`) :
 DuckDB local n'a pas de metastore, le glob `**/*.parquet` pénaliserait sinon
 le scénario "après" (~0,38 ms de listing par fichier).
 

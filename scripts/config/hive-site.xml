@@ -57,6 +57,39 @@
     <value>s3a://lake/warehouse</value>
   </property>
 
+  <!-- Connecteur S3A (Hadoop) vers le data lake MinIO.
+       Les jars hadoop-aws + AWS SDK v2 (2.24.6) sont déposés dans /opt/hive/lib au
+       démarrage du conteneur via le "dynamic jar loader" de l'image
+       (volume ./config/hive/ext-jars monté sur /tmp/ext-jars). -->
+  <property>
+    <name>fs.s3a.impl</name>
+    <value>org.apache.hadoop.fs.s3a.S3AFileSystem</value>
+  </property>
+  <property>
+    <name>fs.s3a.endpoint</name>
+    <value>http://minio:9000</value>
+  </property>
+  <property>
+    <name>fs.s3a.access.key</name>
+    <value>minioadmin</value>
+  </property>
+  <property>
+    <name>fs.s3a.secret.key</name>
+    <value>minioadmin</value>
+  </property>
+  <property>
+    <name>fs.s3a.path.style.access</name>
+    <value>true</value>
+  </property>
+  <property>
+    <name>fs.s3a.connection.ssl.enabled</name>
+    <value>false</value>
+  </property>
+  <property>
+    <name>fs.s3a.aws.credentials.provider</name>
+    <value>org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider</value>
+  </property>
+
   <!-- Sécurité désactivée (environnement local de démonstration) -->
   <property>
     <name>hive.security.authorization.enabled</name>

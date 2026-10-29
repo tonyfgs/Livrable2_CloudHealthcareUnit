@@ -4,13 +4,17 @@
 # Équivalent PySpark du script PoC 02c_f_mesures.sql (DuckDB).
 #
 # Grain : annee_mois x id_etablissement x id_patient x sexe x tranche_age
-#         x id_localisation
+#         x id_localisation x region
 #   - consultations / hospitalisations : grain MENSUEL (annee_mois = 'AAAA-MM')
 #   - décès / satisfaction            : grain ANNUEL  (sentinelle 'AAAA-00')
+#   - region dans le grain : la satisfaction est rattachée à la RÉGION (pas
+#     à un établissement de site, cf. load_faits_detail.py) ; sans region dans
+#     la clé de jointure, la jointure sat (1 ligne par région x année) créait
+#     un fan-out (31 doublons, mesuré en DQ C2 et corrigé).
 # 4 mesures : nbre_consultation, nbre_hospitalisation, total_satisfaction,
 #             nbre_deces.
 # sexe / tranche_age / annee = colonnes de partition (pruning démographique
-# et temporel) ; region dénormalisée depuis d_localisation (filtre direct).
+# et temporel) ; region dans le grain (filtre direct, dénormalisée).
 #
 # Lancement : spark-submit --master local[*] 02_spark/build_f_mesures.py
 # (dépend de load_faits_detail.py, build_f_deces_agg.py, load_dimensions.py)
@@ -24,7 +28,7 @@ from common import get_spark, GOLD, save_gold  # noqa: E402
 spark = get_spark("chu-l2-build-f-mesures")
 
 KEYS = ["annee_mois", "id_etablissement", "id_patient",
-        "sexe", "tranche_age", "id_localisation"]
+        "sexe", "tranche_age", "id_localisation", "region"]
 
 # ---------------------------------------------------------------------------
 # 1. Quatre sources de mesures, agrégées à la clé de grain
@@ -44,21 +48,31 @@ hosp = (
 # Périmètre d'analyse du projet : 2015-2023 (les autres faits couvrent
 # 2015-2023). Les décès antérieurs (1882-2014) restent disponibles dans
 # f_deces_agg (couche Gold). Sentinelle 'AAAA-00' = agrégat annuel.
+# region : rattachée via d_localisation (les décès n'ont pas d'établissement).
 deces = (
     spark.table("gold.f_deces_agg")
     .where(F.col("annee") >= 2015)
+    .join(
+        spark.table("gold.d_localisation").select("id_localisation", "region"),
+        on="id_localisation", how="left",
+    )
     .groupBy(
         F.concat(F.col("annee").cast("string"), F.lit("-00")).alias("annee_mois"),
         F.lit(-1).cast("long").alias("id_etablissement"),
         F.lit(-1).cast("long").alias("id_patient"),
         "sexe", "tranche_age", "id_localisation",
     )
-    .agg(F.sum("nbre_deces").alias("nbre_deces"))
+    .agg(
+        F.sum("nbre_deces").alias("nbre_deces"),
+        F.min("region").alias("region"),
+    )
+    .withColumn("region", F.coalesce(F.col("region"), F.lit("INCONNUE")))
 )
 
 # Satisfaction : grain juridique x année -> rattachée à la région (pas de clé
 # établissement de site), sexe/tranche_age = sentinelles 'TOUS'/'TOUTES',
-# id_localisation = 'INCONNU'.
+# id_localisation = 'INCONNU'. Moyenne pondérée par les répondants des finess
+# juridiques de la région.
 sat = (
     spark.table("gold.f_satisfaction")
     .where(F.col("score_satisfaction").isNotNull())
@@ -71,8 +85,10 @@ sat = (
         F.lit("INCONNU").alias("id_localisation"),
         "region",
     )
-    .agg(F.avg("score_satisfaction").alias("total_satisfaction"))
-    .withColumnRenamed("region", "region_sat")
+    .agg(
+        (F.sum(F.col("score_satisfaction") * F.col("nb_repondants"))
+         / F.sum("nb_repondants")).alias("total_satisfaction")
+    )
 )
 
 # ---------------------------------------------------------------------------
@@ -99,10 +115,6 @@ f_mesures = (
                     F.to_date(F.concat(F.col("annee_mois"), F.lit("-01")), "yyyy-MM-dd"),
                     "yyyyMMdd").cast("int"))
     .withColumn("annee", F.substring("annee_mois", 1, 4).cast("int"))
-    .join(
-        spark.table("gold.d_localisation").select("id_localisation", "region"),
-        on="id_localisation", how="left",
-    )
     .select(
         "annee_mois", "id_temps", "annee",
         "id_etablissement", "id_patient", "sexe", "tranche_age", "id_localisation",
@@ -110,7 +122,7 @@ f_mesures = (
         F.coalesce(F.col("nbre_hospitalisation"), F.lit(0)).alias("nbre_hospitalisation"),
         F.coalesce(F.col("nbre_deces"), F.lit(0)).alias("nbre_deces"),
         F.col("total_satisfaction"),
-        F.coalesce(F.col("region_sat"), F.col("region"), F.lit("INCONNUE")).alias("region"),
+        F.coalesce(F.col("region"), F.lit("INCONNUE")).alias("region"),
     )
 )
 

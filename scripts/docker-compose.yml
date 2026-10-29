@@ -3,16 +3,18 @@
 # ----------------------------------------------------------------------------
 # Stack imposée, positionnée par couche :
 #
-#   INGESTION      lake-ingest        : copie des sources brutes (DATA Projet)
+#   INGESTION      minio-init         : copie des sources brutes (DATA Projet)
 #                                       dans le data lake MinIO (zone raw)
 #   STOCKAGE       minio (+ minio-init): data lake S3 (bucket `lake`,
 #                                       préfixes raw/ silver/ gold/ warehouse/)
 #   CATALOGUE      metastore-db +       : Hive Metastore (métadonnées des tables
-#                   hive-metastore         externes Parquet partitionnées/bucketées)
+#                   hive-metastore +       externes Parquet partitionnées/bucketées)
+#                   hive-hs2             : HiveServer2 (beeline/JDBC, DDL du DAG)
 #   TRAITEMENT     spark-master +       : Apache Spark (ETL/ELT : S1 PostgreSQL
 #                   spark-worker          via JDBC, CSV du lake, écriture Gold)
-#   ORCHESTRATION  airflow-webserver +  : Apache Airflow (DAGs lakehouse_init /
-#                   airflow-scheduler      lakehouse_daily, SparkSubmitOperator)
+#   ORCHESTRATION  airflow-init +       : Apache Airflow (DAGs lakehouse_init /
+#                   airflow-scheduler +    lakehouse_daily, SparkSubmitOperator)
+#                   airflow-webserver
 #   REQUÊTAGE      trino               : Trino (lecture distribuée du lake via
 #                                       le connecteur Hive, pruning partitions)
 #   VISUALISATION  superset (+ superset-db) : Apache Superset (localhost:8088)
@@ -116,13 +118,14 @@ services:
       HIVE_CONF_DIR: /opt/hive/conf
     volumes:
       - ./config/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
-    # Télécharge le driver JDBC PostgreSQL (absent de l'image Hive) puis
-    # initialise le schéma du metastore (idempotent : -initSchema échoue
+      # Driver JDBC PostgreSQL (absent de l'image Hive) : jar versionné dans
+      # le livrable, monté en lecture seule (pas de téléchargement au démarrage)
+      - ./config/hive/postgresql-42.7.3.jar:/opt/hive/lib/postgresql-42.7.3.jar:ro
+    # Initialise le schéma du metastore (idempotent : -initSchema échoue
     # proprement si le schéma existe déjà -> || true)
     entrypoint: ["/bin/bash", "-c"]
     command:
-      - curl -sfL -o /opt/hive/lib/postgresql.jar https://jdbc.postgresql.org/download/postgresql-42.7.3.jar
-        && /opt/hive/bin/schematool -dbType postgres -initSchema || true
+      - /opt/hive/bin/schematool -dbType postgres -initSchema || true
     networks: [chu-net]
     restart: "no"
 
@@ -135,8 +138,14 @@ services:
     environment:
       HIVE_CONF_DIR: /opt/hive/conf
       SERVICE_NAME: metastore
+      # Le schéma est initialisé par hive-metastore-init (one-shot) : IS_RESUME
+      # demande à l'entrypoint de l'image de sauter son propre -initOrUpgradeSchema
+      # (non idempotent sur un schéma déjà initialisé)
+      IS_RESUME: "true"
     volumes:
       - ./config/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
+      # Driver JDBC PostgreSQL (métadonnées stockées dans metastore-db)
+      - ./config/hive/postgresql-42.7.3.jar:/opt/hive/lib/postgresql-42.7.3.jar:ro
       # Scripts DDL/vues montés pour le DAG lakehouse_init (beeline via docker exec)
       - .:/opt/scripts:ro
     # Le metastore ne stocke que des MÉTADONNÉES (les données Parquet restent
@@ -144,8 +153,48 @@ services:
     command: ["hive", "--service", "metastore"]
     ports:
       - "9083:9083"   # Thrift (Spark, Trino)
+    networks: [chu-net]
+
+  # HiveServer2 (HS2, port 10000) : interface JDBC/beeline utilisée par le DAG
+  # lakehouse_init pour exécuter le DDL (01_ddl/*.sql) et créer les vues.
+  # Service DÉDIÉ : l'entrypoint de l'image apache/hive démarre HS2 avec le
+  # classpath Tez correct quand SERVICE_NAME=hiveserver2 (le service
+  # `metastore` ci-dessus n'expose, lui, que le Thrift 9083).
+  hive-hs2:
+    image: apache/hive:4.2.1
+    container_name: chu-hive-hs2
+    depends_on:
+      hive-metastore-init:
+        condition: service_completed_successfully
+      hive-metastore:
+        condition: service_started
+    environment:
+      HIVE_CONF_DIR: /opt/hive/conf
+      SERVICE_NAME: hiveserver2
+      # Schéma déjà initialisé par hive-metastore-init (one-shot) : IS_RESUME
+      # demande à l'entrypoint de sauter son -initOrUpgradeSchema (non
+      # idempotent sur un schéma déjà initialisé)
+      IS_RESUME: "true"
+    volumes:
+      - ./config/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
+      # Driver JDBC PostgreSQL (métadonnées stockées dans metastore-db)
+      - ./config/hive/postgresql-42.7.3.jar:/opt/hive/lib/postgresql-42.7.3.jar:ro
+      # Connecteur S3A : hadoop-aws + AWS SDK v2 2.24.6 (absents de l'image).
+      # L'entrypoint de l'image copie les jars montés sur /tmp/ext-jars vers
+      # /opt/hive/lib au démarrage ("dynamic jar loader" de l'image).
+      - ./config/hive/ext-jars:/tmp/ext-jars:ro
+      # Scripts DDL/vues montés pour le DAG lakehouse_init (beeline via docker exec)
+      - .:/opt/scripts:ro
+    ports:
       - "10000:10000" # Beeline (DAG lakehouse_init : DDL + vues)
     networks: [chu-net]
+    healthcheck:
+      # HS2 met ~60-90s à ouvrir son port Thrift
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/localhost/10000' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
 
   # --------------------------------------------------------------------------
   # SOURCES : S1 PostgreSQL (dump ChuSimulation) + conteneur benchmark DuckDB
@@ -183,6 +232,8 @@ services:
       - ./05_qualite:/opt/l2work/dq:ro
       - ./05_qualite/results:/opt/l2work/dq/results
       - ${L2WORK:-/tmp/l2work}/staging:/opt/l2work/staging:ro
+      # PoC complet (faits Parquet partitionnés) pour les contrôles DQ sur faits
+      - ${L2WORK:-/tmp/l2work}/poc:/opt/l2work/poc:ro
       - ./04_benchmark/results:/opt/l2work/poc/results
     # Le conteneur reste disponible pour le benchmark (harness) et les
     # contrôles qualité exécutés par Airflow (docker exec chu-bench-duckdb)
@@ -192,36 +243,37 @@ services:
   # --------------------------------------------------------------------------
   # TRAITEMENT : Apache Spark (standalone : 1 master + 1 worker)
   # --------------------------------------------------------------------------
+  # Image officielle apache/spark (l'org bitnami n'est pas publiquement
+  # accessible depuis tous les environnements : manifest unknown).
   spark-master:
-    image: bitnami/spark:3.5
+    image: apache/spark:3.5.1
     container_name: chu-spark-master
     environment:
-      SPARK_MODE: master
-      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
-      SPARK_RPC_ENCRYPTION_ENABLED: "no"
-      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
-      SPARK_SSL_ENABLED: "no"
+      SPARK_MASTER_HOST: spark-master
+      SPARK_MASTER_PORT: "7077"
+      SPARK_MASTER_WEBUI_PORT: "8080"
     volumes:
-      - ./config/spark/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+      - ./config/spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
     ports:
       - "7077:7077"   # Spark master (soumission Airflow)
+      - "8085:8080"   # Web UI du master (8080 hôte = Trino)
     networks: [chu-net]
 
   spark-worker:
-    image: bitnami/spark:3.5
+    image: apache/spark:3.5.1
     container_name: chu-spark-worker
     environment:
-      SPARK_MODE: worker
       SPARK_MASTER_URL: spark://spark-master:7077
-      SPARK_WORKER_MEMORY: 4g
       SPARK_WORKER_CORES: "2"
-      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
-      SPARK_RPC_ENCRYPTION_ENABLED: "no"
-      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
-      SPARK_SSL_ENABLED: "no"
+      SPARK_WORKER_MEMORY: 4g
+      SPARK_WORKER_WEBUI_PORT: "8081"
     volumes:
-      - ./config/spark/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+      - ./config/spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
     depends_on: [spark-master]
+    ports:
+      - "8086:8081"   # Web UI du worker (8081 interne)
     networks: [chu-net]
 
   # --------------------------------------------------------------------------
@@ -263,7 +315,12 @@ services:
       retries: 20
 
   superset:
-    image: apache/superset:4.1.1
+    # Image du projet : image officielle + driver psycopg2 (absent de l'image
+    # officielle, requis pour la base de métadonnées PostgreSQL superset-db)
+    build:
+      context: ./06_superset
+      dockerfile: Dockerfile
+    image: chu-superset:4.1.1
     container_name: chu-superset
     depends_on:
       superset-db:
@@ -311,6 +368,29 @@ services:
       timeout: 5s
       retries: 20
 
+  # One-shot : initialise la base Airflow (migrate) + crée l'utilisateur admin.
+  # Pattern officiel Airflow : le scheduler et le webserver en dépendent
+  # (service_completed_successfully) -> plus de course au premier démarrage.
+  airflow-init:
+    image: chu-airflow:2.9.3
+    container_name: chu-airflow-init
+    depends_on:
+      airflow-db:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
+      AIRFLOW__CORE__FERNET_KEY: "UKMzEm3yIuFYHrpoiMOQc3wvXHkqYz8bumjZWmZTjNw="
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    volumes:
+      - airflow-logs:/opt/airflow/logs
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - airflow db migrate
+        && airflow users create --role Admin --username admin --password admin --firstname Admin --lastname CHU --email admin@chu.local || true
+    restart: "no"
+    networks: [chu-net]
+
   airflow-scheduler:
     # Image du projet : image officielle + client Docker CLI (les DAGs pilotent
     # beeline/trino/duckdb via `docker exec`, socket monté ci-dessous)
@@ -320,8 +400,8 @@ services:
     image: chu-airflow:2.9.3
     container_name: chu-airflow-scheduler
     depends_on:
-      airflow-db:
-        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
       spark-master:
         condition: service_started
     environment:
@@ -332,8 +412,8 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__WEBSERVER__SECRET_KEY: "chu-l2-webserver-secret"
       AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
-      # Provider Spark (SparkSubmitOperator) installé au premier démarrage
-      _PIP_ADDITIONAL_REQUIREMENTS: apache-airflow-providers-apache-spark==8.9.0
+      # Provider Spark (SparkSubmitOperator) installé au BUILD de l'image
+      # chu-airflow (03_airflow/Dockerfile) : pas de pip au démarrage
       # Connexion Spark standalone pour SparkSubmitOperator
       AIRFLOW_CONN_SPARK_DEFAULT: spark://spark-master:7077
       SPARK_CONN_ID: spark_default
@@ -352,8 +432,8 @@ services:
     image: chu-airflow:2.9.3
     container_name: chu-airflow-webserver
     depends_on:
-      airflow-db:
-        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
       airflow-scheduler:
         condition: service_started
     environment:
@@ -364,7 +444,6 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__WEBSERVER__SECRET_KEY: "chu-l2-webserver-secret"
       AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
-      _PIP_ADDITIONAL_REQUIREMENTS: apache-airflow-providers-apache-spark==8.9.0
       AIRFLOW_CONN_SPARK_DEFAULT: spark://spark-master:7077
       SPARK_CONN_ID: spark_default
       SPARK_MASTER: spark://spark-master:7077
@@ -373,11 +452,9 @@ services:
       - ./02_spark:/opt/spark/jobs
       - .:/opt/airflow/scripts
       - airflow-logs:/opt/airflow/logs
-    command:
-      - /bin/bash
-      - -c
-      - airflow db migrate && airflow users create --role Admin --username admin --password admin --firstname Admin --lastname CHU --email admin@chu.local || true
-        && airflow webserver --port 8090
+    # La base est initialisée par airflow-init (one-shot) : le webserver démarre
+    # directement (plus de `db migrate` ici -> plus de course au 1er démarrage)
+    command: ["airflow", "webserver", "--port", "8090"]
     ports:
       - "8090:8090"
     networks: [chu-net]

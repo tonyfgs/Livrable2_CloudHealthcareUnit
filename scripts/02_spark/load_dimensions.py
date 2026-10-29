@@ -4,7 +4,7 @@
 # Équivalent PySpark du script PoC 01_dims.sql (DuckDB). Produit les tables
 # du schéma en étoile déclarées dans 01_ddl/01_schema_gold_hive.sql :
 #   d_temps (grain jour, 2015-2030, PARTITIONED BY annee)
-#   d_patient (S1 PostgreSQL.Patient, PARTITIONED BY tranche_age_ref)
+#   d_patient (S1 PostgreSQL.Patient, PARTITIONED BY (sexe, tranche_age_ref))
 #   d_etablissement (référentiel FINESS, bucketing 32 sur id_etablissement)
 #   d_localisation (101 départements + Inconnu, PARTITIONED BY region)
 #   d_diagnostic (S1 PostgreSQL.Diagnostic, bucketing 8)

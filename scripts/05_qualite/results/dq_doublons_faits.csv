@@ -1,0 +1,5 @@
+table_cible;cle;total;doublons;pct
+f_consultation_detail (fait intégré, Silver);id_consultation (grain 1 consultation);1027157;0;0.0
+f_hospitalisation (fait intégré, Gold);id_hospitalisation (grain 1 hospitalisation);2479;0;0.0
+f_satisfaction (fait intégré, Gold);annee + finess (grain etab. juridique x annee);1960;0;0.0
+f_mesures (fait consolidé, Gold);annee_mois + id_etablissement + id_patient + sexe + tranche_age + id_localisation + region;1030402;0;0.0

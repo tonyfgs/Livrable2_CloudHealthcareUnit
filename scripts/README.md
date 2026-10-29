@@ -54,8 +54,10 @@ scripts/
 
 ```bash
 cd scripts
-docker compose up -d          # démarre les 15 services (MinIO, Hive Metastore,
+docker compose up -d          # démarre les 17 services (MinIO, Hive Metastore,
                               # Spark, Trino, Superset, Airflow, S1, benchmark)
+                              # dont 3 one-shot : minio-init, hive-metastore-init,
+                              # airflow-init
 # 1. Ingestion : minio-init copie "DATA Projet" -> s3a://lake/raw/ (one-shot)
 # 2. Airflow (http://localhost:8090, admin/admin) :
 #    - déclencher le DAG lakehouse_init      (DDL + vues + vérifications)
@@ -94,4 +96,4 @@ cp "$L2WORK"/dq/results/dq_*.csv scripts/05_qualite/results/
 | Orchestration | **Apache Airflow** | DAGs `lakehouse_init` / `lakehouse_daily` (03_airflow/) |
 | Requêtage | **Trino** | lecture distribuée du lake, pruning, EXPLAIN ANALYZE |
 | Visualisation | **Apache Superset** (localhost:8088) | 8 dashboards des besoins métier (06_superset/) |
-| Source | **PostgreSQL** (S1) | dump ChuSimulation (10 tables, ~4,2 M lignes) |
+| Source | **PostgreSQL** (S1) | dump ChuSimulation (13 tables, ~3,7 M lignes = 3 674 384 au total : 11 tables métier = 3 509 952 lignes + 2 tables auxiliaires AAAA/date = 82 216 lignes chacune) |

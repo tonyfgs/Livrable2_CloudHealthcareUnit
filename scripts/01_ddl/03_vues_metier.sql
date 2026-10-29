@@ -6,8 +6,9 @@
 -- hospitalisation, décès, satisfaction) dérivés du fait consolidé f_mesures,
 -- plus une vue analytique (taux de consultation mensuel avec moyenne mobile).
 --
--- Exécution Hive :   beeline -u jdbc:hive2://hive-server:10000/gold \
---                      -f scripts/01_ddl/03_vues_metier.sql
+-- Exécution Hive :   docker exec chu-hive-metastore beeline \
+--                      -u jdbc:hive2://localhost:10000/gold \
+--                      -f /opt/scripts/01_ddl/03_vues_metier.sql
 -- Exécution Trino :  trino --server http://localhost:8080 --catalog hive \
 --                      --schema gold -f scripts/01_ddl/03_vues_metier.sql
 -- (Sous Trino, les vues sont stockées dans le schéma gold du catalogue hive ;

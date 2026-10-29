@@ -36,9 +36,9 @@ CHECKPOINT;
 -- ---------- exports ----------
 COPY (SELECT * FROM f_deces_agg) TO 'poc/avant/f_deces_agg.parquet' (FORMAT PARQUET);
 -- APRES : PARTITIONED BY (annee) seul. Justification : un partitionnement par
--- (annee, sexe, tranche_age) produirait 138 x 2 x 6 = 1 656 partitions de ~40 lignes
+-- (annee, sexe, tranche_age) produirait 133 x 2 x 7 = 1 862 partitions de ~37 lignes
 -- (small-files problem) pour 69 008 lignes ; le grain annuel + la colonne annee en
--- partition donnent 138 partitions de ~500 lignes. Le tri par (sexe, tranche_age,
+-- partition donne 133 partitions de ~519 lignes. Le tri par (sexe, tranche_age,
 -- id_localisation) compense l'absence de partitionnement sur ces colonnes.
 COPY (SELECT * FROM f_deces_agg ORDER BY sexe, tranche_age, id_localisation) TO 'poc/apres/f_deces_agg' (FORMAT PARQUET, PARTITION_BY (annee), OVERWRITE_OR_IGNORE 1);
 

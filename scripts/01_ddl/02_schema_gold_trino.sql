@@ -9,19 +9,20 @@
 -- Trino le lit tel quel. Ce fichier vérifie le déploiement et calcule les
 -- statistiques de l'optimiseur (équivalent Trino de ANALYZE TABLE Hive).
 --
--- Configuration du connecteur (docker-compose-trino.yml, volume
--- trino/etc/catalog/hive.properties) :
+-- Configuration du connecteur (docker-compose.yml, volume
+-- config/trino/catalog/hive.properties) :
 --   connector.name=hive
 --   hive.metastore.uri=thrift://hive-metastore:9083
---   hive.s3.endpoint=http://minio:9000
---   hive.s3.aws-access-key=minioadmin
---   hive.s3.aws-secret-key=minioadmin
---   hive.s3.path-style-access=true
---   hive.s3.ssl.enabled=false
+--   fs.s3.enabled=true                   -- filesystem S3 NATIF Trino (depuis
+--                                          Trino 460+, l'ancien S3A legacy
+--                                          hive.s3.* est supprimé)
+--   s3.endpoint=http://minio:9000
+--   s3.aws-access-key=minioadmin
+--   s3.aws-secret-key=minioadmin
+--   s3.path-style-access=true
+--   s3.region=us-east-1
 --   hive.metastore-cache-ttl=1h
 --   hive.parquet.use-column-names=true   -- lit les colonnes par NOM (pas par position)
---   hive.parquet.max-merge-distance=1MB  -- fusionne les petits fichiers à la lecture
---   hive.file-status-cache-expire-time=15m
 --
 -- Exécution : trino-cli --server http://localhost:8080 --catalog hive --schema gold
 --   trino --file scripts/01_ddl/02_schema_gold_trino.sql
@@ -77,9 +78,12 @@ UNION ALL SELECT 'f_consult_diag_mois',  COUNT(*) FROM hive.gold.f_consult_diag_
 UNION ALL SELECT 'f_consult_prof_mois',  COUNT(*) FROM hive.gold.f_consult_prof_mois;
 -- attendu : d_temps 5 844 ; d_patient 100 000 ; d_etablissement 416 665 ;
 --   d_localisation 102 ; d_diagnostic 15 490 ; d_professionnel 1 048 575 ;
---   f_mesures 1 375 686 ; f_consultation_detail 1 373 594 ;
---   f_hospitalisation 2 479 ; f_deces_agg 69 008 ; f_satisfaction 2 295 ;
---   f_consult_diag_mois 1 319 261 ; f_consult_prof_mois 1 001 453
+--   f_mesures 1 030 402 ; f_consultation_detail 1 027 157 ;
+--   f_hospitalisation 2 479 ; f_deces_agg 69 008 ; f_satisfaction 1 960 ;
+--   f_consult_diag_mois 979 797 ; f_consult_prof_mois 1 001 453
+-- (f_mesures : grain 7 colonnes dont region ; 0 doublon sur ce grain.
+--  f_satisfaction : 1 960 finess juridiques, 2 295 lignes source agrégées
+--  en moyenne pondérée par les répondants.)
 
 -- ---------------------------------------------------------------------------
 -- 4. Statistiques pour l'optimiseur Trino (équivalent de ANALYZE TABLE Hive)

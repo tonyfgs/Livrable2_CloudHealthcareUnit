@@ -109,8 +109,28 @@ COPY (
   UNION ALL SELECT 'satisfaction_2019','finess (grain brut)',COUNT(*),COUNT(*)-COUNT(DISTINCT finess),ROUND(100.0*(COUNT(*)-COUNT(DISTINCT finess))/COUNT(*),4) FROM src_sat19
   UNION ALL SELECT 'satisfaction_2019','finess + finess_geo (grain reel)',COUNT(*),COUNT(*)-COUNT(DISTINCT finess||'|'||finess_geo),ROUND(100.0*(COUNT(*)-COUNT(DISTINCT finess||'|'||finess_geo))/COUNT(*),4) FROM src_sat19
   UNION ALL SELECT 'satisfaction_2020','finess + finess_geo (grain reel)',COUNT(*),COUNT(*)-COUNT(DISTINCT finess||'|'||finess_geo),ROUND(100.0*(COUNT(*)-COUNT(DISTINCT finess||'|'||finess_geo))/COUNT(*),4) FROM src_sat20
-  UNION ALL SELECT 'deces','cle complete (nom,prenom,date_naissance,date_deces,lieu,acte)',COUNT(*),COUNT(*)-COUNT(DISTINCT nom||'|'||prenom||'|'||date_naissance||'|'||date_deces||'|'||code_lieu_deces||'|'||numero_acte_deces),ROUND(100.0*(COUNT(*)-COUNT(DISTINCT nom||'|'||prenom||'|'||date_naissance||'|'||date_deces||'|'||code_lieu_deces||'|'||numero_acte_deces))/COUNT(*),4) FROM src_deces
+  -- COALESCE sur chaque champ : en DuckDB, NULL || 'x' = NULL, une clé avec un
+  -- champ NULL serait exclue du COUNT(DISTINCT) et gonflerait artificiellement
+  -- le nombre de doublons (les décès ont des champs facultatifs : acte, lieu).
+  UNION ALL SELECT 'deces','cle complete (nom,prenom,date_naissance,date_deces,lieu,acte)',COUNT(*),COUNT(*)-COUNT(DISTINCT COALESCE(nom,'')||'|'||COALESCE(prenom,'')||'|'||COALESCE(date_naissance,'')||'|'||COALESCE(date_deces,'')||'|'||COALESCE(code_lieu_deces,'')||'|'||COALESCE(numero_acte_deces,'')),ROUND(100.0*(COUNT(*)-COUNT(DISTINCT COALESCE(nom,'')||'|'||COALESCE(prenom,'')||'|'||COALESCE(date_naissance,'')||'|'||COALESCE(date_deces,'')||'|'||COALESCE(code_lieu_deces,'')||'|'||COALESCE(numero_acte_deces,'')))/COUNT(*),4) FROM src_deces
 ) TO 'dq/results/dq_doublons.csv' (HEADER, DELIMITER ';');
+
+-- ============ C2. DOUBLONS SUR LES FAITS INTÉGRÉS (PoC) ============
+-- Le sujet exige le contrôle des doublons sur les données INTÉGRÉES, pas
+-- seulement sur les sources. Lecture des exports Parquet partitionnés du
+-- PoC (chemin relatif au workspace $L2WORK ; en production, le même contrôle
+-- porte sur les tables Gold/Silver du lake via Trino/Hive Metastore).
+-- Grains : f_consultation_detail = 1 consultation ; f_hospitalisation = 1
+-- hospitalisation ; f_satisfaction = établissement juridique x année ;
+-- f_mesures = annee_mois x id_etablissement x id_patient x sexe x tranche_age
+-- x id_localisation x region (region dans le grain : la satisfaction est
+-- rattachée à la région, pas à un établissement de site).
+COPY (
+  SELECT 'f_consultation_detail (fait intégré, Silver)' AS table_cible, 'id_consultation (grain 1 consultation)' AS cle, COUNT(*) AS total, COUNT(*)-COUNT(DISTINCT id_consultation) AS doublons, ROUND(100.0*(COUNT(*)-COUNT(DISTINCT id_consultation))/COUNT(*),4) AS pct FROM read_parquet('poc/apres/f_consultation_detail/**/*.parquet', hive_partitioning=true)
+  UNION ALL SELECT 'f_hospitalisation (fait intégré, Gold)', 'id_hospitalisation (grain 1 hospitalisation)', COUNT(*), COUNT(*)-COUNT(DISTINCT id_hospitalisation), ROUND(100.0*(COUNT(*)-COUNT(DISTINCT id_hospitalisation))/COUNT(*),4) FROM read_parquet('poc/apres/f_hospitalisation/**/*.parquet', hive_partitioning=true)
+  UNION ALL SELECT 'f_satisfaction (fait intégré, Gold)', 'annee + finess (grain etab. juridique x annee)', COUNT(*), COUNT(*)-COUNT(DISTINCT annee||'|'||finess), ROUND(100.0*(COUNT(*)-COUNT(DISTINCT annee||'|'||finess))/COUNT(*),4) FROM read_parquet('poc/apres/f_satisfaction/**/*.parquet', hive_partitioning=true)
+  UNION ALL SELECT 'f_mesures (fait consolidé, Gold)', 'annee_mois + id_etablissement + id_patient + sexe + tranche_age + id_localisation + region', COUNT(*), COUNT(*)-COUNT(DISTINCT annee_mois||'|'||id_etablissement||'|'||id_patient||'|'||sexe||'|'||tranche_age||'|'||id_localisation||'|'||region), ROUND(100.0*(COUNT(*)-COUNT(DISTINCT annee_mois||'|'||id_etablissement||'|'||id_patient||'|'||sexe||'|'||tranche_age||'|'||id_localisation||'|'||region))/COUNT(*),4) FROM read_parquet('poc/apres/f_mesures/**/*.parquet', hive_partitioning=true)
+) TO 'dq/results/dq_doublons_faits.csv' (HEADER, DELIMITER ';');
 
 -- ============ D. COHERENCE REFERENTIELLE ============
 COPY (
@@ -161,6 +181,8 @@ COPY (
   UNION ALL SELECT 'S1.PostgreSQL (dump DATA2023)','Prescription',COUNT(*),NULL FROM s1.public."Prescription"
   UNION ALL SELECT 'S1.PostgreSQL (dump DATA2023)','Medicaments',COUNT(*),NULL FROM s1.public."Medicaments"
   UNION ALL SELECT 'S1.PostgreSQL (dump DATA2023)','Laboratoire',COUNT(*),NULL FROM s1.public."Laboratoire"
+  UNION ALL SELECT 'S1.PostgreSQL (dump DATA2023)','AAAA',COUNT(*),NULL FROM s1.public."AAAA"
+  UNION ALL SELECT 'S1.PostgreSQL (dump DATA2023)','date',COUNT(*),NULL FROM s1.public."date"
   UNION ALL SELECT 'S2.Hospitalisations.csv','Hospitalisations.csv',COUNT(*),CAST(MIN(d_entree) AS VARCHAR)||' -> '||CAST(MAX(d_entree) AS VARCHAR) FROM v_hosp_d
   UNION ALL SELECT 'S3/ESATIS','satisfaction_2019.csv',COUNT(*),'2019' FROM src_sat19
   UNION ALL SELECT 'S3/ESATIS','satisfaction_2020.csv',COUNT(*),'2020' FROM src_sat20

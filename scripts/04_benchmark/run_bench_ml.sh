@@ -8,7 +8,8 @@
 # poc/queries/ml/). DuckDB local n'ayant pas de metastore, le glob
 # `**/*.parquet` pénaliserait sinon le scénario "après" (coût de listing).
 #
-# Prérequis : node poc/gen_listes.js   (génère poc/queries/ml/_apres_<q>.sql)
+# Prérequis : ./run-node.sh poc/gen_listes.js  (génère poc/queries/ml/_apres_<q>.sql ;
+#            node tourne dans le conteneur chu-bench-duckdb, rien sur l'hôte)
 # Usage     : ./run_bench_ml.sh
 # ============================================================================
 L2WORK=${L2WORK:-/tmp/l2work}
@@ -17,7 +18,7 @@ export LC_ALL=C
 RES=poc/results/bench_results.csv
 mkdir -p poc/results
 [ -f "$RES" ] || echo "requete;scenario;run;temps_ms" > "$RES"
-[ -f poc/queries/ml/_apres_q01.sql ] || node poc/gen_listes.js
+[ -f poc/queries/ml/_apres_q01.sql ] || ./run-node.sh poc/gen_listes.js
 for q in q01 q02 q03 q04 q05 q06 q07 q08 q09 q10; do
   qf=$(ls poc/queries/${q}_*.sql)
   # --- run 1 : cache froid (process dédié) ---

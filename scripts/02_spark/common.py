@@ -7,15 +7,15 @@
 # au format Parquet partitionné/bucketé. Le catalogue (Hive Metastore) est
 # alimenté par Spark (saveAsTable + enableHiveSupport).
 #
-# Toute la stack tourne dans Docker (voir scripts/04_benchmark/
-# docker-compose-trino.yml) : aucune installation sur le poste hôte.
+# Toute la stack tourne dans Docker (voir scripts/docker-compose.yml) :
+# aucune installation sur le poste hôte.
 #
 # Variables d'environnement (surchargées par le DAG Airflow) :
 #   LAKE_ROOT          racine du data lake          (défaut s3a://lake)
 #   MINIO_ENDPOINT     endpoint MinIO                (défaut http://minio:9000)
 #   MINIO_ACCESS_KEY / MINIO_SECRET_KEY             (défaut minioadmin)
 #   HIVE_METASTORE_URI thrift Hive Metastore         (défaut thrift://hive-metastore:9083)
-#   PG_HOST / PG_PORT / PG_DB / PG_USER / PG_PASSWORD  source S1 (défaut chu-s1:5432/chu_s1/chu/chu)
+#   PG_HOST / PG_PORT / PG_DB / PG_USER / PG_PASSWORD  source S1 (défaut s1-postgres:5432/chu_s1/chu/chu)
 #   WAREHOUSE_DIR      répertoire entrepôt Spark   (défaut s3a://lake/warehouse)
 # ============================================================================
 import os
@@ -29,7 +29,7 @@ MINIO_SECRET_KEY = os.environ.get("MINIO_SECRET_KEY", "minioadmin")
 HIVE_METASTORE_URI = os.environ.get("HIVE_METASTORE_URI", "thrift://hive-metastore:9083")
 WAREHOUSE_DIR = os.environ.get("WAREHOUSE_DIR", f"{LAKE_ROOT}/warehouse")
 
-PG_HOST = os.environ.get("PG_HOST", "chu-s1")
+PG_HOST = os.environ.get("PG_HOST", "s1-postgres")
 PG_PORT = os.environ.get("PG_PORT", "5432")
 PG_DB = os.environ.get("PG_DB", "chu_s1")
 PG_USER = os.environ.get("PG_USER", "chu")

@@ -2,10 +2,11 @@
 # Livrable 2 - CHU - Spark : faits de DÉTAIL et satisfaction (Silver/Gold)
 # ----------------------------------------------------------------------------
 # Équivalent PySpark du script PoC 02a_faits_detail.sql (DuckDB) :
-#   silver.f_consultation_detail : grain = 1 consultation (S1, 1 373 594)
+#   silver.f_consultation_detail : grain = 1 consultation (S1, 1 027 157)
 #   gold.f_hospitalisation       : grain = 1 hospitalisation (S2, 2 479)
 #   gold.f_satisfaction          : grain = établissement JURIDIQUE x année
-#                                  (S3 ESATIS 2019 + 2020, 2 295)
+#                                  (S3 ESATIS 2019 + 2020, 2 295 lignes source
+#                                   agrégées en 1 960 finess juridiques)
 #
 # Lancement : spark-submit --master local[*] 02_spark/load_faits_detail.py
 # (dépend de load_dimensions.py : d_diagnostic, d_etablissement, d_patient)
@@ -25,8 +26,13 @@ spark = get_spark("chu-l2-load-faits-detail")
 # silver.f_consultation_detail (grain = 1 consultation, couche Silver)
 # Rattachement établissement : Consultation.Id_prof_sante -> fichier
 # d'activité (identifiant, identifiant_organisation) -> d_etablissement.
-# Taux de rattachement mesuré en DQ : 71,87 % des consultations ont un
-# professionnel présent dans le fichier d'activité ; les autres -> -1 (Inconnu).
+# Un professionnel exerce souvent dans PLUSIEURS établissements (fichier
+# d'activité 1-N) : la jointure est ramenée à UNE organisation par
+# professionnel (MIN) pour préserver le grain "1 consultation" (un fan-out
+# 1-N dupliquerait les consultations : +346 437 lignes, +33,7 %, corrigé).
+# Taux mesurés en DQ : 71,87 % des consultations ont leur professionnel dans
+# le fichier d'activité ; 63,87 % sont rattachées à un établissement (chaîne
+# complète) ; les autres -> -1 (Inconnu).
 # ---------------------------------------------------------------------------
 consultation = read_postgres(spark, "Consultation")
 patient = read_postgres(spark, "Patient").select(
@@ -56,7 +62,8 @@ activite = (
         F.trim(F.col("identifiant_organisation")).alias("identifiant_organisation"),
     )
     .where(F.col("identifiant").isNotNull() & (F.col("identifiant") != ""))
-    .distinct()
+    .groupBy("identifiant")
+    .agg(F.min("identifiant_organisation").alias("identifiant_organisation"))
 )
 
 f_consultation_detail = (
@@ -139,9 +146,15 @@ save_gold(f_hospitalisation, "gold.f_hospitalisation",
 # gold.f_satisfaction (grain = établissement JURIDIQUE x année, source ESATIS)
 # - Le score brut utilise la VIRGULE DÉCIMALE dans les deux millésimes
 #   (mesuré en DQ) -> replace(',', '.') avant cast DOUBLE.
-# - Le finess ESATIS est un finess JURIDIQUE (correspond à plusieurs sites
-#   FINESS) : rattachement site impossible (0 % en DQ) -> la mesure est
-#   stockée au grain (annee, finess juridique, region), SANS clé site.
+# - Le finess ESATIS est un finess JURIDIQUE : le fichier source contient
+#   plusieurs lignes (sites) par finess juridique (2 295 lignes -> 1 960
+#   finess juridiques, mesuré en DQ). Rattachement site impossible (0 % en
+#   DQ) -> agrégation au grain (annee, finess juridique) :
+#   score = moyenne PONDÉRÉE par le nombre de répondants, nb_repondants =
+#   somme des répondants, nb_sites = nombre de lignes source agrégées.
+# - 6 finess juridiques ont 2 régions dans la source (1 966 couples
+#   annee/finess/region pour 1 960 finess) : région retenue = MIN(region),
+#   la pondération mélange les sites (documenté).
 # - La région provient du fichier ESATIS, normalisée par mapping (18 régions ;
 #   "Océan Indien" ambigu volontairement exclu -> INCONNUE, cf. rapport DQ).
 # ---------------------------------------------------------------------------
@@ -190,7 +203,18 @@ for annee, fichier in [("2019", "satisfaction/ESATIS_2019.csv"),
 f_satisfaction = (
     sat.join(region_map, on="region_brute", how="left")
     .withColumn("region", F.coalesce(F.col("region_norm"), F.lit("INCONNUE")))
-    .select("annee", "finess", "region", "score_satisfaction", "nb_repondants")
+    # Agrégation au grain juridique (annee, finess) : moyenne pondérée par
+    # le nombre de répondants (évite le fan-out 1-N des sites ESATIS).
+    .groupBy("annee", "finess")
+    .agg(
+        F.min("region").alias("region"),
+        (F.sum(F.col("score_satisfaction") * F.col("nb_repondants"))
+         / F.sum("nb_repondants")).alias("score_satisfaction"),
+        F.sum("nb_repondants").alias("nb_repondants"),
+        F.count(F.lit(1)).alias("nb_sites"),
+    )
+    .select("annee", "finess", "region", "score_satisfaction",
+            "nb_repondants", "nb_sites")
 )
 save_gold(f_satisfaction, "gold.f_satisfaction",
           f"{GOLD}/f_satisfaction",
