@@ -68,8 +68,12 @@ d_patient = (
     .select("id_patient", "sexe", "date_naissance", "age_ref",
             "code_postal", "ville", "tranche_age_ref")
 )
+# Partitionnement démographique (sexe, tranche_age_ref) conforme à la grille
+# d'évaluation : sexe + tranche d'âge sur la dimension patient. Le bucketing
+# sur id_patient (32 buckets) co-localise les lignes pour la jointure avec
+# silver.f_consultation_detail (bucketée sur id_patient, 32 buckets).
 save_gold(d_patient, "gold.d_patient", f"{GOLD}/d_patient",
-          partition_cols=["tranche_age_ref"],
+          partition_cols=["sexe", "tranche_age_ref"],
           bucket_col="id_patient", num_buckets=32, sort_cols=["id_patient"])
 
 # ---------------------------------------------------------------------------

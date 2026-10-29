@@ -24,8 +24,11 @@
 --                      problem) ; le tri intra-partition compense.
 --   f_satisfaction     PARTITIONED BY (annee, region) : grain juridique x année,
 --                      la région est la colonne la plus filtrante (besoin métier).
---   d_temps            PARTITIONED BY (annee)    (grain jour, 2015-2030).
---   d_patient          PARTITIONED BY (tranche_age_ref).
+--   d_temps            PARTITIONED BY (annee)    (grain jour, 2015-2030,
+--                      couvre le périmètre 2015-2021 de la grille + marge).
+--   d_patient          PARTITIONED BY (sexe, tranche_age_ref) : partitionnement
+--                      démographique (grille : sexe + tranche d'âge sur la
+--                      dimension patient).
 --   d_localisation     PARTITIONED BY (region)   (grain département, 101 + Inconnu).
 --   d_etablissement, d_diagnostic, d_professionnel : pas de partitionnement
 --                      (tables de taille moyenne) -> bucketing seul.
@@ -79,8 +82,10 @@ CREATE EXTERNAL TABLE IF NOT EXISTS d_patient (
   age_ref         INT,        -- âge à la date de référence (indicatif, non utilisé)
   code_postal     STRING,
   ville           STRING
+  -- 'sexe' et 'tranche_age_ref' = colonnes de partition (chemins Hive
+  -- sexe=.../tranche_age_ref=...), pas stockées dans les fichiers
 )
-PARTITIONED BY (tranche_age_ref STRING)
+PARTITIONED BY (sexe STRING, tranche_age_ref STRING)
 CLUSTERED BY (id_patient) INTO 32 BUCKETS
 STORED AS PARQUET
 LOCATION 's3a://lake/gold/d_patient';
