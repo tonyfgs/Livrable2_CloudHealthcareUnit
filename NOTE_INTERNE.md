@@ -111,7 +111,7 @@ Airflow `admin/admin` · PostgreSQL internes : `hive/hive`, `chu/chu`,
    DDL Hive (schéma silver/gold, tables externes) → vues métier →
    vérification Trino (volumes, `ANALYZE`, pruning) → connexion Trino dans
    Superset (API REST). **Testé : 5/5 tâches SUCCESS** (dont
-   `vues_metier_trino`, voir piège n°23).
+   `vues_metier_trino`, voir piège n°22).
 4. Déclencher **`lakehouse_daily`** (quotidien 02:00, déclenchement manuel
    possible) : `SparkSubmitOperator` — `load_dimensions` → `load_faits_detail`
    ∥ `build_f_deces_agg` → `build_f_mesures` (+ `build_agregats`) →
@@ -367,7 +367,7 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
     `JAVA_OPTS=-Xmx1500m` + `mem_limit: 2g` sur le service `trino`.
     Propriété supprimée en Trino 484 : `query.max-total-memory-per-node`
     (ne pas la remettre — Trino refuse de démarrer, « was not used »).
-23. **Trino ne lit pas les vues Hive** : `SELECT ... FROM gold.v_xxx` échoue
+22. **Trino ne lit pas les vues Hive** : `SELECT ... FROM gold.v_xxx` échoue
     côté Trino (« Hive views are not supported ») — les vues de
     `01_ddl/03_vues_metier.sql` sont des vues HIVE (créées via beeline/HS2).
     Pour Superset/Trino, `01_ddl/04_vues_metier_trino.sql` recrée les mêmes
@@ -375,17 +375,17 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
     `vues_metier_trino` du DAG init) : interroger `vues_t.v_taux_consultation_mensuel`,
     pas `gold.v_taux_consultation_mensuel`. Le harnais Trino a une variante
     `04_benchmark/queries/trino/q09_*.sql` pour cette raison.
-24. **Type de la partition `annee` de `f_satisfaction`** : déclarée `INT`
+23. **Type de la partition `annee` de `f_satisfaction`** : déclarée `INT`
     (comme tous les faits) — ne pas écrire `annee = 2020` en dur sur une
     colonne STRING de partition, Trino refuse (`varchar = integer`).
-25. **ZIP livrable** : `Livrable2_CloudHealthcareUnit.zip` (racine du projet)
+24. **ZIP livrable** : `Livrable2_CloudHealthcareUnit.zip` (racine du projet)
     = dossier `Livrable2_CloudHealthcareUnit/` (rapport + `NOTE_INTERNE.md` +
     grille xlsx + `scripts/`, staging DQ embarqué, sans `.git`). **Extraire
     le ZIP à côté du dossier `DATA Projet`** (les sources brutes sont montées
     en relatif `../../DATA Projet` depuis `scripts/`) : poser `DATA Projet`
     en sibling du dossier extrait, puis `cd Livrable2_CloudHealthcareUnit/scripts
     && docker compose up -d`.
-26. **OOM-killer de la VM Docker pendant `lakehouse_daily`** : la VM Docker
+25. **OOM-killer de la VM Docker pendant `lakehouse_daily`** : la VM Docker
     Desktop fait 7,65 Go. Pendant les jobs Spark (worker à 3g) + Trino
     (Xmx1g) + Airflow/Superset/Hive/3×Postgres, la mémoire est saturée et le
     noyau tue le plus gros consommateur : **Trino mourait (OOMKilled=true,
@@ -418,7 +418,7 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
 | Contrôles qualité | `scripts/05_qualite/` (+ `results/`) |
 | Dashboards Superset | `scripts/06_superset/charts.sql` |
 | Configs (Hive, Trino, Spark, Superset, S1) | `scripts/config/` |
-27. **Splitter SQL du DAG init (`_split_sql_statements`)** : les statements
+26. **Splitter SQL du DAG init (`_split_sql_statements`)** : les statements
     étaient joints avec des retours à la ligne puis passés à `beeline -e` —
     beeline coupe à chaque newline, donc `CREATE DATABASE gold` perdait son
     `LOCATION 's3a://lake/gold'` (mkdir par défaut `s3a://lake/warehouse/…`,
@@ -426,7 +426,7 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
     listes de colonnes mangeaient la fin du statement (ParseException <EOF>).
     Fix : supprimer les commentaires `--` ligne par ligne PUIS normaliser
     chaque statement sur une seule ligne (`" ".join(stmt.split())`).
-28. **CREATE DATABASE flaky sur stack fraîche** : juste après `docker compose
+27. **CREATE DATABASE flaky sur stack fraîche** : juste après `docker compose
     up -d`, le metastore échoue par intermittence à créer le répertoire managé
     `s3a://lake/warehouse/<db>.db` (MetaException « failed to create database »)
     tant que `minio-init` n'a pas fini de recréer le bucket et de copier le raw.
@@ -434,7 +434,7 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
     one-shot chu-minio-init, et le script DDL est retenté 3 fois (30 s) en cas
     d'échec transitoire. Ne PAS pré-créer de markers `warehouse/x.db/` à la main :
     un marker existant fait échouer le mkdir S3A (testé).
-29. **Backfill auto du daily qui race avec l'init (crash "comme d'hab" au from
+28. **Backfill auto du daily qui race avec l'init (crash "comme d'hab" au from
     scratch)** : `AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION` était à `"false"`
     dans le compose (scheduler + webserver) -> dès le premier `up -d` sur une
     DB Airflow neuve, le scheduler créait automatiquement le run backfill
@@ -457,7 +457,7 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
     et daily en parallèle, et en cas de tâche rouge : Clear (pas de re-run de
     l'init en même temps que le daily).
 
-30. **Connexion Superset "Trino CHU" jamais créée sans erreur visible (trouvé par le
+29. **Connexion Superset "Trino CHU" jamais créée sans erreur visible (trouvé par le
     smoke test)** : 4 causes enchaînées — (a) le driver python `trino` n'était PAS
     dans l'image `chu-superset` (06_superset/Dockerfile n'installait que psycopg2)
     -> création API = 422 "Connection failed" ; (b) Superset 4.x exige pour un POST
@@ -470,12 +470,12 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
     `grep` — exit 1 si absente ; 422 "already exists" = idempotent OK). Ne PAS
     remettre un filtre `?q=(...value:'Trino CHU')` dans l'URL du GET : l'espace
     casse curl. Rebuild image : `docker compose build superset && docker compose up -d superset`.
-31. **Smoke test : les endpoints web ne répondent pas tout de suite** — Airflow
+30. **Smoke test : les endpoints web ne répondent pas tout de suite** — Airflow
     (8090) et Superset (8088) mettent 2-4 min à écouter après le démarrage du
     conteneur (gunicorn), un `curl` sec renvoie 000. Le smoke test retente chaque
     endpoint jusqu'à 4 min (`wait_http`). Ne pas conclure à un bug sur un 000
     précoce.
-32. **BashOperator dont le `bash_command` se termine par `.sh` -> TemplateNotFound
+31. **BashOperator dont le `bash_command` se termine par `.sh` -> TemplateNotFound
     (Airflow 2.9.3)** : le `Templater` traite tout champ template dont la valeur
     FINIT par une extension de `template_ext` (qui contient `.sh`) comme un
     FICHIER template Jinja (`jinja_env.get_template`) -> `TemplateNotFound` avant

@@ -172,10 +172,14 @@ Chaque écriture Spark (`save_gold` dans `common.py`) : `partitionBy(...).sortWi
 
 ### 3.3 Versionning (Git)
 
-Dépôt Git initialisé dans `Livrable 2/` (12 commits thématiques) :
+Dépôt Git initialisé dans `Livrable 2/` (16 commits thématiques) :
 
 ```
-v5 (dernier commit) : notation honnête 19,44/20 (relecture stricte), vues Trino natives (vues_t), f_satisfaction.annee INT, anti-OOM Trino/Spark + restart unless-stopped + attente Trino dans dispo (OOM-kill VM constaté en test utilisateur), harness Trino exécuté (10/10 x 3 runs)
+v9 (dernier commit) : fix TemplateNotFound Airflow 2.9.3 — un bash_command qui se termine par `.sh` est traité comme un template Jinja ; le contenu de `verif_superset.sh` est lu au parse time dans le DAG (piège n°31)
+v8 : smoke test from scratch automatisé (`07_smoke_test/smoke_from_scratch.sh`, 54 PASS / 0 FAIL archivé dans `results/`) + connexion Superset « Trino CHU » réparée (driver `trino` dans l'image, cookie+CSRF, attente /health, vérification réelle) + DQ étendus aux faits intégrés (complétude par attribut, intégrité FK) + retry des endpoints web
+v7 : runbook from-scratch finalisé (unpause AVANT trigger, ne jamais pauser un run en cours, catchup=False + max_active_runs=1) — test from scratch réussi : init 5/5 + daily 8/8, volumes Trino conformes
+v6 : DAGs en pause par défaut (DAGS_ARE_PAUSED_AT_CREATION=true) — supprime le backfill auto du daily qui race avec l'init au from scratch (crash récurrent)
+v5 : notation honnête 19,44/20 (relecture stricte), vues Trino natives (vues_t), f_satisfaction.annee INT, anti-OOM Trino/Spark + restart unless-stopped + attente Trino dans dispo (OOM-kill VM constaté en test utilisateur), harness Trino exécuté (10/10 x 3 runs)
 8cc2d31 Livrable 2 v4 : plateforme exécutée de bout en bout (init 5/5, daily 8/8 SUCCESS, volumes vérifiés Trino) + minio from source + code_region + plus de bucketing + metastore S3A + trino anti-OOM + DQ autonome
 a258ea4 NOTE_INTERNE : piège n°14 (JRE/JAVA_HOME dans l'image Airflow)
 3a07f36 §3.3 : historique Git final (8 commits)
@@ -464,7 +468,7 @@ Deux campagnes de benchmark ont été exécutées (mêmes données, mêmes scén
 
 ## 11. Dernière note obtenue et résumé des corrections
 
-**Dernière note : 19,44 / 20** — objectif ≥ 18/20 atteint (grille « A3 informatique — Stockage et Big data — Livrable 2 », notation par sous-agent évaluateur indépendant, itération v4 ; 19,75/20 en v3). Niveaux de la grille : A=20, B=15, C=10, D=5 par critère ; total = Σ(coef × note)/9 ramené sur 20.
+**Dernière note : 19,44 / 20** — objectif ≥ 18/20 atteint (grille « A3 informatique — Stockage et Big data — Livrable 2 », notation par sous-agent évaluateur indépendant, itération v4 ; 19,75/20 en v3), **re-confirmée à l'identique (19,44/20, aucune P1, aucune P2 restante) lors de la re-notation indépendante au commit v9** après audit complet du repo et smoke test from scratch 54 PASS / 0 FAIL. Niveaux de la grille : A=20, B=15, C=10, D=5 par critère ; total = Σ(coef × note)/9 ramené sur 20.
 
 | Critère (grille) | Coef. | Niveau | Note | Commentaire |
 |---|---|---|---|---|
@@ -506,6 +510,15 @@ Deux campagnes de benchmark ont été exécutées (mêmes données, mêmes scén
 4. **`f_satisfaction.annee` passée en INT** (cohérent avec tous les faits) : `WHERE annee = 2020` fonctionne enfin côté Trino (q08, chart 8).
 5. **Anti-OOM** : plafonds Trino (`config.properties` + `JAVA_OPTS=-Xmx1g` + `mem_limit: 1536m`), worker Spark à 2 Go, et `restart: unless-stopped` sur les 14 services long terme — la VM Docker (7,6 Go) pouvait encore tuer Trino (OOMKilled) pendant les jobs Spark ; le conteneur est désormais relancé automatiquement et la tâche `dispo_trino_superset` attend que Trino réponde (boucle ~3 min) avant de valider.
 6. **Historique Git §3.3** mis à jour (12 commits) ; commentaire `queries/_apres.sql` aligné (plus de bucketing).
+
+### Corrections appliquées (re-notation v9 — audit indépendant + smoke test from scratch)
+
+1. **Crash récurrent au from scratch** (le backfill auto du `lakehouse_daily` race avec l'init) → DAGs en pause par défaut (`DAGS_ARE_PAUSED_AT_CREATION=true`) ; runbook §12.2 : unpause → trigger `lakehouse_init` → attendre 5/5 → unpause `lakehouse_daily` (un run auto, `catchup=False` + `max_active_runs=1`) → attendre 8/8 (v6, v7).
+2. **Connexion Superset « Trino CHU » jamais créée sans erreur visible** → driver `trino==0.330.0` ajouté à l'image Superset, script dédié `dags/verif_superset.sh` (attente /health 6 min, login + cookie + `X-CSRFToken`, POST idempotent, VÉRIFICATION par GET avec grep — exit 1 si absente), image rebuildée (v8).
+3. **`verification_superset` en échec TemplateNotFound** (Airflow 2.9.3 : tout champ template finissant par `.sh` est traité comme un fichier Jinja) → contenu du script lu au parse time dans le DAG, passé inline (v9, piège n°31).
+4. **DQ étendus aux faits intégrés** : complétude par attribut (`dq_completude_faits.csv`) et intégrité FK faits → dimensions (`dq_integrite_fk.csv`, 13 contrôles dont le taux de rattachement établissement 63,87 % documenté) → **9 CSV DQ** (v8).
+5. **Smoke test from scratch automatisé** `scripts/07_smoke_test/smoke_from_scratch.sh` : `down -v` → `up -d` → 14 conteneurs healthy → endpoints (retry 4 min) → DAGs en pause / 0 run → init 5/5 → daily 8/8 → 13 volumes Trino exacts → 12 tables + 9 vues `vues_t` → bucket/prefixes/objets MinIO → connexion Superset → 13 tables S1 → 9 CSV DQ → re-pause des DAGs ; log archivé dans `07_smoke_test/results/`, exit 0 = 100 % PASS. Résultat : **54 PASS / 0 FAIL** (v8, rejoué à v9).
+6. **Preuve de données indépendante** : rapprochement Trino ↔ sources (`DATA Projet`, 48 fichiers) ↔ dump S1 par sous-agent dédié (réconciliation en plus du smoke test).
 
 ---
 
