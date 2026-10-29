@@ -475,3 +475,13 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
     conteneur (gunicorn), un `curl` sec renvoie 000. Le smoke test retente chaque
     endpoint jusqu'à 4 min (`wait_http`). Ne pas conclure à un bug sur un 000
     précoce.
+32. **BashOperator dont le `bash_command` se termine par `.sh` -> TemplateNotFound
+    (Airflow 2.9.3)** : le `Templater` traite tout champ template dont la valeur
+    FINIT par une extension de `template_ext` (qui contient `.sh`) comme un
+    FICHIER template Jinja (`jinja_env.get_template`) -> `TemplateNotFound` avant
+    même l'exécution, la tâche échoue quoi que contienne le script. Symptôme vu :
+    `verification_superset` rouge alors que `verif_superset.sh` est correct.
+    Fix retenu : lire le contenu du script au PARSE time dans le DAG
+    (`_verif_sh = (Path(__file__).parent / "verif_superset.sh").read_text()` puis
+    `bash_command=_verif_sh`) — le contenu inline ne finit pas par `.sh`, plus de
+    template. Ne jamais passer `bash_command=".../verif_superset.sh"`.

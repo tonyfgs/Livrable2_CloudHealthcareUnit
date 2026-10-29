@@ -218,9 +218,15 @@ with DAG(
     #    dags/verif_superset.sh : attente /health, cookie+CSRF, driver trino
     #    dans l'image, et ECHEC REEL si la connexion n'est pas creee).
     # -------------------------------------------------------------------------
+    # Le contenu du script est lu au parse time : un bash_command qui SE TERMINE
+    # par ".sh" est traité par Airflow comme un template Jinja (template_ext
+    # contient ".sh" -> jinja_env.get_template -> TemplateNotFound avant même
+    # l'exécution). En passant par le contenu du fichier, on évite ce piège.
+    from pathlib import Path as _Path
+    _verif_sh = (_Path(__file__).parent / "verif_superset.sh").read_text()
     verif_superset = BashOperator(
         task_id="verification_superset",
-        bash_command="bash /opt/airflow/dags/verif_superset.sh",
+        bash_command=_verif_sh,
     )
 
     ddl_hive >> vues_metier >> vues_metier_trino >> verif_trino >> verif_superset
