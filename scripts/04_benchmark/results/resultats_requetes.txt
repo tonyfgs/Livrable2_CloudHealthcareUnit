@@ -1,0 +1,205 @@
+===== q01 — Q01 (métier 1) : taux de consultation par établissement et par période - top 20 établissements, 2019
+raison_sociale_site|code_commune|region|nbre_consultations
+SERVICE DE SANTE DES ARMEES|75107|Île-de-France|380
+HU PITIE SALPETRIERE APHP|75113|Île-de-France|367
+HU NECKER ENFANTS MALADES APHP|75115|Île-de-France|230
+CHU DE NANTES :SITE HÔTEL-DIEU- HME|44109|Pays de la Loire|227
+HU PARIS CENTRE SITE COCHIN APHP|75114|Île-de-France|222
+HOPITAL NORD - CHU38|38516|Auvergne-Rhône-Alpes|220
+HU HENRI MONDOR SITE HENRI MONDOR APHP|94028|Île-de-France|214
+HOPITAL LE BOCAGE CHRU DIJON|21231|Bourgogne-Franche-Comté|208
+HOPITAL CHARLES NICOLLE CHU ROUEN|76540|Normandie|203
+GROUPE HOSPITALIER PELLEGRIN - CHU|33063|Nouvelle-Aquitaine|192
+CHU LA MILETRIE|86194|Nouvelle-Aquitaine|179
+APHM HOPITAL LA TIMONE|13205|Provence-Alpes-Côte d'Azur|176
+HOPITAL PURPAN CHU TLSE|31555|Occitanie|176
+CHU D' ANGERS :SITE LARREY|49007|Pays de la Loire|174
+HU PARIS SUD SITE KREMLIN BICETRE APHP|94043|Île-de-France|169
+HU PARIS OUEST SITE G POMPIDOU APHP|75115|Île-de-France|167
+HOPITAL NORD - CHU42|42275|Auvergne-Rhône-Alpes|167
+CHU COTE DE NACRE - CAEN|14118|Normandie|167
+CHU AMIENS SALOUËL|80725|Hauts-de-France|164
+CHRU JEAN MINJOZ|25056|Bourgogne-Franche-Comté|160
+
+===== q02 — Q02 (métier 2) : taux de consultation par diagnostic - top 10, 2019-2021
+libelle_diagnostic|nbre_consultations
+infection aigue par agent delta au cours d'hepatite B chronique|91
+Myosite ossifiante progressive, region scapulaire|83
+Sequelles d'une lesion traumatique de muscles et de tendons du membre superieur|83
+Occupant d'un autobus, blesse dans une collision avec un objet fixe ou stationnaire, conducteur, accident en dehors de la circulation|82
+Autres affections precisees du systeme nerveux au cours de maladies classees ailleurs|82
+Panniculite, sans precision, region pelvienne et cuisse|81
+Arthrose primaire generalisee|80
+Arthrose erosive|79
+Brucellose e Brucella canis|78
+enuresie non organique|76
+
+===== q03 — Q03 (métier 3) : taux global d'hospitalisation sur la période 2015-2021
+annee|nbre_hospitalisations|nbre_consultations|taux_hospitalisation_pour_100_consultations
+2015|255|45374|0.56
+2016|395|246399|0.16
+2017|458|177860|0.26
+2018|395|215038|0.18
+2019|374|117329|0.32
+2020|410|217536|0.19
+2021|192|195372|0.1
+
+===== q04 — Q04 (métier 4) : hospitalisation par diagnostic - top 10, 2015-2021
+libelle_diagnostic|nbre_hospitalisations|duree_moyenne_jours
+Naevus e melanocytes de la levre|3|17.7
+Atteinte de la valvule pulmonaire, sans precision|3|17.3
+Paraplegie flasque, complete au niveau dorsal, comprend : dorso-lombaire|3|14.7
+Raideur articulaire, non classee ailleurs, region scapulaire|3|15.3
+Dents incluses|3|20.0
+Diabete sucre preexistant d'un autre type ou type non precise troubles ou complications post-partum|3|23.7
+Lesion maligne e localisations contigues des os et du cartilage articulaire des membres|2|10.0
+Tumeur maligne du prolongement axillaire du sein droit|2|17.5
+Gangosa|2|19.5
+Cecite, monoculaire|2|6.5
+
+===== q05 — Q05 (métier 5) : hospitalisation par sexe et tranche d'âge, 2015-2021
+sexe|tranche_age|nbre_hospitalisations
+F|0-14|276
+F|15-29|231
+F|30-44|184
+F|45-59|217
+F|60-74|208
+F|75+|309
+M|0-14|181
+M|15-29|180
+M|30-44|150
+M|45-59|155
+M|60-74|159
+M|75+|229
+
+===== q06 — Q06 (métier 6) : consultation par professionnel - top 10, 2020
+identifiant|civilite|nom|prenom|profession|nbre_consultations
+10100398113|Madame|BENHAMICHE|Helene|Medecin|63
+10100812618|Monsieur|GENSON|Pierre Yves|Medecin|63
+10003890653|Monsieur|LESTRA|Pierre Marie|Medecin|55
+10003299814|Monsieur|BOISSY|Christian|Medecin|48
+10100580579|Monsieur|CHEBAHI|Nassim|Medecin|42
+10100680502|Monsieur|ESTIVALET|Louis|Medecin|42
+10100667129|Monsieur|KOZAL|Sebastien|Medecin|42
+10002149713|Madame|FRAPPIER BENOIT|Valerie|Medecin|42
+10003942850|Monsieur|WIRTH|Bernard|Medecin|42
+10002149945|Monsieur|JACOB|Denis|Medecin|42
+
+===== q07 — Q07 (métier 7) : nombre de décès par région sur 2019
+region|nbre_deces
+Île-de-France|76988
+Auvergne-Rhône-Alpes|70407
+Nouvelle-Aquitaine|66097
+Occitanie|59781
+Hauts-de-France|55137
+Grand Est|53443
+Provence-Alpes-Côte d'Azur|52579
+Bretagne|35616
+Pays de la Loire|35546
+Normandie|34119
+Bourgogne-Franche-Comté|30178
+Centre-Val de Loire|26436
+Inconnue|7271
+La Réunion|5111
+Martinique|3555
+Guadeloupe|3415
+Corse|3170
+Guyane|1013
+Mayotte|746
+
+===== q08 — Q08 (métier 8) : taux global de satisfaction par région sur 2020
+region|nbre_etablissements|score_moyen_satisfaction|total_repondants
+Bretagne|40|75.96|19396
+Nouvelle-Aquitaine|81|75.22|25816
+Pays de la Loire|39|75.21|16773
+Hauts-de-France|74|74.58|22765
+Bourgogne-Franche-Comté|34|74.56|10964
+Occitanie|78|74.44|33510
+Auvergne-Rhône-Alpes|100|74.35|49490
+Normandie|43|74.34|9665
+Provence-Alpes-Côte d'Azur|91|74.16|31570
+Grand Est|73|74.07|22591
+Centre-Val de Loire|27|73.95|9562
+Île-de-France|135|71.87|73947
+Guadeloupe|3|70.31|229
+INCONNUE|7|70.01|1999
+Martinique|5|68.72|863
+Guyane|2|66.74|364
+
+===== q09 — Q09 (technique) : requête sur vue métier v_taux_consultation_mensuel
+annee|annee_mois|nbre_consultations|moyenne_mobile_3mois
+2019|2019-01|9927|16136.0
+2019|2019-02|9191|13075.0
+2019|2019-03|9777|9632.0
+2019|2019-04|9841|9603.0
+2019|2019-05|9305|9641.0
+2019|2019-06|8446|9197.0
+2019|2019-07|9433|9061.0
+2019|2019-08|11481|9787.0
+2019|2019-09|9841|10252.0
+2019|2019-10|9214|10179.0
+2019|2019-11|10434|9830.0
+2019|2019-12|10439|10029.0
+2020|2020-01|17015|12629.0
+2020|2020-02|15575|14343.0
+2020|2020-03|20041|17544.0
+2020|2020-04|15174|16930.0
+2020|2020-05|16009|17075.0
+2020|2020-06|15843|15675.0
+2020|2020-07|21434|17762.0
+2020|2020-08|19670|18982.0
+2020|2020-09|21365|20823.0
+2020|2020-10|17741|19592.0
+2020|2020-11|19793|19633.0
+2020|2020-12|17876|18470.0
+2021|2021-01|21211|19627.0
+2021|2021-02|18755|19281.0
+2021|2021-03|22576|20847.0
+2021|2021-04|20280|20537.0
+2021|2021-05|21551|21469.0
+2021|2021-06|16528|19453.0
+2021|2021-07|13625|17235.0
+2021|2021-08|12171|14108.0
+2021|2021-09|13280|13025.0
+2021|2021-10|11334|12262.0
+2021|2021-11|12781|12465.0
+2021|2021-12|11280|11798.0
+2022|2022-01|10561|11541.0
+2022|2022-02|9429|10423.0
+2022|2022-03|12360|10783.0
+2022|2022-04|9507|10432.0
+2022|2022-05|10137|10668.0
+2022|2022-06|9935|9860.0
+2022|2022-07|13380|11151.0
+2022|2022-08|12220|11845.0
+2022|2022-09|13430|13010.0
+2022|2022-10|11358|12336.0
+2022|2022-11|12451|12413.0
+2022|2022-12|11163|11657.0
+2023|2023-01|6947|10187.0
+2023|2023-02|6398|8169.0
+2023|2023-03|9410|7585.0
+
+===== q10 — Q10 (technique) : jointure étoile complète (fait + 4 dimensions), filtre croisé
+region|tranche_age|annee|nbre_consultations
+Île-de-France|75+|2019|2022
+Auvergne-Rhône-Alpes|75+|2019|1185
+Île-de-France|15-29|2019|1125
+Île-de-France|60-74|2019|1096
+Île-de-France|45-59|2019|1093
+Île-de-France|30-44|2019|1082
+Nouvelle-Aquitaine|75+|2019|946
+Île-de-France|0-14|2019|907
+Occitanie|75+|2019|898
+Provence-Alpes-Côte d'Azur|75+|2019|896
+Hauts-de-France|75+|2019|750
+Grand Est|75+|2019|742
+Auvergne-Rhône-Alpes|15-29|2019|616
+Auvergne-Rhône-Alpes|45-59|2019|599
+Auvergne-Rhône-Alpes|30-44|2019|594
+Auvergne-Rhône-Alpes|60-74|2019|563
+Auvergne-Rhône-Alpes|0-14|2019|540
+Provence-Alpes-Côte d'Azur|30-44|2019|533
+Nouvelle-Aquitaine|45-59|2019|529
+Occitanie|60-74|2019|494
+

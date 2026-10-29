@@ -1,0 +1,27 @@
+fichier;attribut;total;non_vide;pct_complet
+Hospitalisations;Num_Hospitalisation;2479;2479;100.0
+Hospitalisations;Id_patient;2479;2479;100.0
+Hospitalisations;identifiant_organisation;2479;2479;100.0
+Hospitalisations;Code_diagnostic;2479;2479;100.0
+Hospitalisations;Date_Entree;2479;2479;100.0
+Hospitalisations;Jour_Hospitalisation;2479;2479;100.0
+S1_Patient;Sexe;100000;100000;100.0
+S1_Patient;Date_naissance;100000;100000;100.0
+S1_Patient;Age;100000;100000;100.0
+S1_Patient;Num_Secu;100000;100000;100.0
+S1_Consultation;Date;1027157;1027157;100.0
+S1_Consultation;Code_diag;1027157;1027157;100.0
+S1_Consultation;Id_prof_sante;1027157;1027157;100.0
+deces;sexe;25088208;25088208;100.0
+deces;date_deces;25088208;25088208;100.0
+deces;date_naissance;25088208;25087658;100.0
+deces;code_lieu_deces;25088208;25077274;99.96
+etablissement;finess_site;416665;200;0.05
+etablissement;finess_etablissement_juridique;416665;57692;13.85
+etablissement;identifiant_organisation;416665;416665;100.0
+etablissement;code_commune;416665;277860;66.69
+professionnel_sante;identifiant;1048575;1048575;100.0
+satisfaction_2019;score_all_rea_ajust;1152;858;74.48
+satisfaction_2020;score_all_rea_ajust;1143;832;72.79
+satisfaction_2019;score_all_rea_ajust normalise (non NULL);1152;858;74.48
+satisfaction_2020;score_all_rea_ajust normalise (non NULL);1143;832;72.79

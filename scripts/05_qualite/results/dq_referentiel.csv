@@ -1,0 +1,23 @@
+controle;total;trouves;pct_trouve
+Hospitalisations.identifiant_organisation -> etab.identifiant_organisation;2479;2479;100.0
+Hospitalisations.identifiant_organisation -> etab.finess_etablissement_juridique;2479;0;0.0
+Hospitalisations.identifiant_organisation -> etab.finess_site;2479;0;0.0
+Hospitalisations.Id_patient -> S1.Patient.Id_patient;2479;2479;100.0
+Hospitalisations.Code_diagnostic -> S1.Diagnostic.Code_diag;2479;2479;100.0
+satisfaction_2019.finess -> etab.finess_etablissement_juridique;1152;575;49.91
+satisfaction_2019.finess_geo -> etab.finess_site;1152;0;0.0
+satisfaction_2020.finess -> etab.finess_etablissement_juridique;1143;580;50.74
+satisfaction_2020.finess_geo -> etab.finess_site;1143;0;0.0
+activite.identifiant -> pro_referentiel.identifiant;1823588;1042874;57.19
+activite.identifiant_organisation -> etab.identifiant_organisation;1823588;1464774;80.32
+S1.Consultation.Id_prof_sante -> pro_referentiel.identifiant;1027157;1027157;100.0
+S1.Consultation.Id_prof_sante -> activite.identifiant;1027157;738190;71.87
+satisfaction_2019.finess -> etab.identifiant_organisation;1152;0;0.0
+satisfaction_2020.finess -> etab.identifiant_organisation;1143;0;0.0
+etablissement.code_commune -> departement (regle INSEE, non vides);277860;277127;99.74
+deces.code_lieu_deces -> departement (regle INSEE, non vides);25077274;24876383;99.2
+satisfaction_2019.region brute -> region normalisee (mapping);1152;1140;98.96
+satisfaction_2020.region brute -> region normalisee (mapping);1143;1130;98.86
+satisfaction_2019.region normalisee -> referentiel region;1140;1140;100.0
+satisfaction_2020.region normalisee -> referentiel region;1130;1130;100.0
+satisfaction_2020: concordance region ESATIS vs region etab (via finess juridique);8308;8027;96.62

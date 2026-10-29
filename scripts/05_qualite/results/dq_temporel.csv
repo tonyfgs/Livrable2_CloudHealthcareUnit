@@ -1,0 +1,7 @@
+fichier;controle;total;conformes;pct_conforme;plage_obseevee
+Hospitalisations;Date_Entree dans [2015,2023];2479;2479;100.0;2015-06-21 00:00:00 -> 2021-06-19 00:00:00
+S1_Consultation;Date dans [2015,2023];1027157;1027157;100.0;2015-06-20 -> 2023-03-31
+deces;date_deces >= date_naissance;25088208;24997051;99.64;1882-10-01 -> 2020-03-30
+S1_Patient;coherence Age vs date_naissance (|ecart|<=2 ans);100000;45998;46.0;age 0..100 observe
+satisfaction_2019;score_all_rea_ajust dans [0,100];1152;858;74.48;scores 0-100
+satisfaction_2020;score_all_rea_ajust dans [0,100];1143;832;72.79;scores 0-100

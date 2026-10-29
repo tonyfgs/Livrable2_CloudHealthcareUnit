@@ -1,0 +1,19 @@
+source;table_ou_fichier;lignes;plage
+S1.PostgreSQL (dump DATA2023);Patient;100000;
+S1.PostgreSQL (dump DATA2023);Consultation;1027157;2015-06-20 -> 2023-03-31
+S1.PostgreSQL (dump DATA2023);Diagnostic;15490;
+S1.PostgreSQL (dump DATA2023);Professionnel_de_sante;1048575;
+S1.PostgreSQL (dump DATA2023);Specialites;93;
+S1.PostgreSQL (dump DATA2023);Salle;201735;
+S1.PostgreSQL (dump DATA2023);Adher;96671;
+S1.PostgreSQL (dump DATA2023);Mutuelle;254;
+S1.PostgreSQL (dump DATA2023);Prescription;1003845;
+S1.PostgreSQL (dump DATA2023);Medicaments;15455;
+S1.PostgreSQL (dump DATA2023);Laboratoire;677;
+S2.Hospitalisations.csv;Hospitalisations.csv;2479;2015-06-21 00:00:00 -> 2021-06-19 00:00:00
+S3/ESATIS;satisfaction_2019.csv;1152;2019
+S3/ESATIS;satisfaction_2020.csv;1143;2020
+S4.INSEE;deces.csv;25088208;1882-10-01 -> 2020-03-30
+Referentiel FINESS;etablissement_sante.csv;416665;
+Referentiel FINESS;professionnel_sante.csv;1048575;
+Referentiel FINESS;activite_professionnel_sante.csv;1823588;

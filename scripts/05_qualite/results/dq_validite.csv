@@ -1,0 +1,13 @@
+fichier;controle;total;invalides;pct_invalide
+deces;date_deces format ISO AAA-MM-JJ;25088208;646;0.0026
+deces;date_naissance format ISO;25088208;89898;0.3583
+deces;sexe dans {1,2};25088208;0;0.0
+Hospitalisations;Date_Entree format JJ/MM/AAAA;2479;0;0.0
+Hospitalisations;Code_diagnostic format CIM-10;2479;368;14.8447
+S1_Patient;Sexe dans {male,female};100000;0;0.0
+S1_Patient;Date_naissance format M/J/AAAA;100000;0;0.0
+etablissement;finess_site 9 caracteres (non vides);200;0;0.0
+satisfaction_2019;finess 9 caracteres;1152;7;0.6076
+satisfaction_2019;score_all_rea_ajust decimal (virgule);1152;0;0.0
+satisfaction_2020;finess 9 caracteres;1143;0;0.0
+satisfaction_2020;score_all_rea_ajust decimal (virgule);1143;0;0.0
