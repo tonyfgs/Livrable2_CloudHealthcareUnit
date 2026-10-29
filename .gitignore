@@ -1,0 +1,5 @@
+*.duckdb
+*.duckdb.wal
+poc/avant/
+poc/apres/
+.DS_Store
