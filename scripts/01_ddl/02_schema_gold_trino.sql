@@ -52,7 +52,7 @@ DESCRIBE hive.gold.f_mesures;
 -- colonnes de partition : annee (int), sexe (varchar), tranche_age (varchar)
 
 DESCRIBE hive.gold.f_deces_agg;    -- partition : annee (int)
-DESCRIBE hive.gold.f_satisfaction;  -- partitions : annee (varchar), code_region (varchar)
+DESCRIBE hive.gold.f_satisfaction;  -- partitions : annee (int), code_region (varchar)
 DESCRIBE hive.gold.f_hospitalisation;   -- partition : annee (int)
 DESCRIBE hive.silver.f_consultation_detail; -- partition : annee (int) [silver]
 DESCRIBE hive.gold.d_temps;         -- partition : annee (int)

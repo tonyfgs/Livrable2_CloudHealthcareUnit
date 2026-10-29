@@ -1,0 +1,136 @@
+"Trino version: 484
+Queued: 228.83us, Analysis: 14.47ms, Planning: 53.64ms, Execution: 434.56ms, Finishing: 0.00ns
+Fragment 1 [SINGLE]
+    CPU: 1.54ms, Scheduled: 1.73ms, Blocked 2.18s (Input: 1.93s, Output: 0.00ns), Input: 20 rows (1.42kB); per task: avg.: 20.00 std.dev.: 0.00, Output: 20 rows (1.42kB)
+    Peak Memory: 1.77kB, Tasks count: 1; per task: max: 1.77kB
+    Output layout: [raison_sociale_site, code_commune, region_2, sum]
+    Output partitioning: SINGLE []
+    TopN[count = 20, orderBy = [sum DESC NULLS LAST]]
+    │   Layout: [raison_sociale_site:varchar, code_commune:varchar, region_2:varchar, sum:bigint]
+    │   Estimates: {rows: 20 (1.31kB), cpu: ?, memory: ?, network: ?}
+    │   CPU: 0.00ns (0.00%), Scheduled: 0.00ns (0.00%), Blocked: 0.00ns (0.00%), Output: 20 rows (1.42kB)
+    │   Input avg.: 20.00 rows, Input std.dev.: 0.00%
+    └─ LocalExchange[partitioning = SINGLE]
+       │   Layout: [raison_sociale_site:varchar, code_commune:varchar, region_2:varchar, sum:bigint]
+       │   Estimates: {rows: 20 (1.31kB), cpu: 0, memory: 0B, network: 0B}
+       │   CPU: 0.00ns (0.00%), Scheduled: 0.00ns (0.00%), Blocked: 247.00ms (3.06%), Output: 20 rows (1.42kB)
+       │   Input avg.: 2.50 rows, Input std.dev.: 264.58%
+       └─ RemoteSource[sourceFragmentIds = [2]]
+              Layout: [raison_sociale_site:varchar, code_commune:varchar, region_2:varchar, sum:bigint]
+              CPU: 0.00ns (0.00%), Scheduled: 0.00ns (0.00%), Blocked: 1.93s (23.90%), Output: 20 rows (1.42kB)
+              Input avg.: 2.50 rows, Input std.dev.: 264.58%
+
+Fragment 2 [HASH]
+    CPU: 42.35ms, Scheduled: 49.73ms, Blocked 5.52s (Input: 1.70s, Output: 0.00ns), Input: 22744 rows (1.60MB); per task: avg.: 22744.00 std.dev.: 0.00, Output: 20 rows (1.42kB)
+    Peak Memory: 1.77kB, Tasks count: 1; per task: max: 1.77kB
+    Output layout: [raison_sociale_site, code_commune, region_2, sum]
+    Output partitioning: SINGLE []
+    TopNPartial[count = 20, orderBy = [sum DESC NULLS LAST]]
+    │   Layout: [raison_sociale_site:varchar, code_commune:varchar, region_2:varchar, sum:bigint]
+    │   Estimates: {rows: 20 (1.31kB), cpu: ?, memory: ?, network: ?}
+    │   CPU: 0.00ns (0.00%), Scheduled: 0.00ns (0.00%), Blocked: 0.00ns (0.00%), Output: 20 rows (1.42kB)
+    │   Input avg.: 120.00 rows, Input std.dev.: 0.00%
+    └─ LocalExchange[partitioning = SINGLE]
+       │   Layout: [raison_sociale_site:varchar, code_commune:varchar, region_2:varchar, sum:bigint]
+       │   Estimates: {rows: 20 (1.31kB), cpu: 0, memory: 0B, network: 0B}
+       │   CPU: 0.00ns (0.00%), Scheduled: 0.00ns (0.00%), Blocked: 231.00ms (2.86%), Output: 120 rows (8.42kB)
+       │   Input avg.: 15.00 rows, Input std.dev.: 57.74%
+       └─ TopNPartial[count = 20, orderBy = [sum DESC NULLS LAST]]
+          │   Layout: [raison_sociale_site:varchar, code_commune:varchar, region_2:varchar, sum:bigint]
+          │   Estimates: {rows: 20 (1.31kB), cpu: ?, memory: ?, network: ?}
+          │   CPU: 1.00ms (0.36%), Scheduled: 1.00ms (0.16%), Blocked: 0.00ns (0.00%), Output: 120 rows (8.42kB)
+          │   Input avg.: 20.00 rows, Input std.dev.: 70.71%
+          └─ LocalExchange[partitioning = ROUND_ROBIN]
+             │   Layout: [raison_sociale_site:varchar, code_commune:varchar, region_2:varchar, sum:bigint]
+             │   Estimates: {rows: 20 (1.31kB), cpu: 1.31k, memory: 0B, network: 0B}
+             │   CPU: 0.00ns (0.00%), Scheduled: 5.00ms (0.82%), Blocked: 1.82s (22.54%), Output: 160 rows (11.03kB)
+             │   Input avg.: 20.00 rows, Input std.dev.: 0.00%
+             └─ TopNPartial[count = 20, orderBy = [sum DESC NULLS LAST]]
+                │   Layout: [raison_sociale_site:varchar, code_commune:varchar, region_2:varchar, sum:bigint]
+                │   Estimates: {rows: 20 (1.31kB), cpu: ?, memory: ?, network: ?}
+                │   CPU: 3.00ms (1.09%), Scheduled: 3.00ms (0.49%), Blocked: 0.00ns (0.00%), Output: 160 rows (11.03kB)
+                │   Input avg.: 2843.00 rows, Input std.dev.: 1.98%
+                └─ Aggregate[type = FINAL, keys = [raison_sociale_site, code_commune, region_2]]
+                   │   Layout: [raison_sociale_site:varchar, code_commune:varchar, region_2:varchar, sum:bigint]
+                   │   Estimates: {rows: 89875 (5.77MB), cpu: 5.77M, memory: 5.77MB, network: 0B}
+                   │   CPU: 21.00ms (7.66%), Scheduled: 21.00ms (3.44%), Blocked: 0.00ns (0.00%), Output: 22744 rows (1.60MB)
+                   │   Input avg.: 2843.00 rows, Input std.dev.: 1.98%
+                   │   sum := sum(sum_6)
+                   └─ LocalExchange[partitioning = HASH, arguments = [raison_sociale_site::varchar, code_commune::varchar, region_2::varchar]]
+                      │   Layout: [raison_sociale_site:varchar, code_commune:varchar, region_2:varchar, sum_6:bigint]
+                      │   Estimates: {rows: 89875 (5.77MB), cpu: 5.77M, memory: 0B, network: 0B}
+                      │   CPU: 9.00ms (3.28%), Scheduled: 11.00ms (1.80%), Blocked: 1.77s (21.92%), Output: 22744 rows (1.60MB)
+                      │   Input avg.: 2843.00 rows, Input std.dev.: 180.89%
+                      └─ RemoteSource[sourceFragmentIds = [3]]
+                             Layout: [raison_sociale_site:varchar, code_commune:varchar, region_2:varchar, sum_6:bigint]
+                             CPU: 6.00ms (2.19%), Scheduled: 6.00ms (0.98%), Blocked: 1.70s (21.05%), Output: 22744 rows (1.60MB)
+                             Input avg.: 2843.00 rows, Input std.dev.: 180.89%
+
+Fragment 3 [SOURCE]
+    CPU: 126.86ms, Scheduled: 143.58ms, Blocked 379.05ms (Input: 206.43ms, Output: 0.00ns), Input: 503767 rows (29.07MB); per task: avg.: 503767.00 std.dev.: 0.00, Output: 22744 rows (1.60MB)
+    Peak Memory: 1.92MB, Tasks count: 1; per task: max: 1.92MB
+    Output layout: [raison_sociale_site, code_commune, region_2, sum_6]
+    Output partitioning: HASH [raison_sociale_site, code_commune, region_2]
+    Aggregate[type = INTERMEDIATE, keys = [raison_sociale_site, code_commune, region_2]]
+    │   Layout: [raison_sociale_site:varchar, code_commune:varchar, region_2:varchar, sum_6:bigint]
+    │   Estimates: {rows: 89875 (5.77MB), cpu: ?, memory: ?, network: ?}
+    │   CPU: 19.00ms (6.93%), Scheduled: 19.00ms (3.11%), Blocked: 0.00ns (0.00%), Output: 22744 rows (1.60MB)
+    │   Input avg.: 31389.00 rows, Input std.dev.: 0.00%
+    │   sum_6 := sum(sum_6)
+    └─ InnerJoin[criteria = (id_etablissement_0 = id_etablissement), distribution = REPLICATED]
+       │   Layout: [raison_sociale_site:varchar, code_commune:varchar, region_2:varchar, sum_6:bigint]
+       │   Estimates: {rows: 89875 (5.62MB), cpu: 33.22M, memory: 1.53MB, network: 0B}
+       │   CPU: 34.00ms (12.41%), Scheduled: 34.00ms (5.56%), Blocked: 144.00ms (1.78%), Output: 31389 rows (2.40MB)
+       │   Left (probe) Input avg.: 416665.00 rows, Input std.dev.: 0.00%
+       │   Right (build) Input avg.: 31396.00 rows, Input std.dev.: 0.00%
+       │   Distribution: REPLICATED
+       │   dynamicFilterAssignments = {id_etablissement -> #df_435}
+       ├─ ScanFilter[table = hive:gold:d_etablissement, dynamicFilters = {id_etablissement_0 = #df_435}]
+       │      Layout: [id_etablissement_0:bigint, raison_sociale_site:varchar, code_commune:varchar, region_2:varchar]
+       │      Estimates: {rows: 416665 (26.07MB), cpu: 26.07M, memory: 0B, network: 0B}/{rows: 416665 (26.07MB), cpu: 26.07M, memory: 0B, network: 0B}
+       │      CPU: 57.00ms (20.80%), Scheduled: 68.00ms (11.13%), Blocked: 0.00ns (0.00%), Output: 416665 rows (27.57MB)
+       │      Input avg.: 416665.00 rows, Input std.dev.: 0.00%
+       │      code_commune := code_commune:string:REGULAR
+       │      region_2 := region:string:REGULAR
+       │      id_etablissement_0 := id_etablissement:bigint:REGULAR
+       │      raison_sociale_site := raison_sociale_site:string:REGULAR
+       │      Input: 416665 rows (27.58MB), Filtered: 0.00%, Physical input: 4.53MB, Physical input time: 21.30ms, Splits: 1, Splits generation wait time: 7.31ms
+       │      Dynamic filters: 
+       │          - df_435, [ SortedRangeSet[type=bigint, ranges=22769, {[-1], ..., [416622]}] ], collection time=141.63ms
+       └─ LocalExchange[partitioning = SINGLE]
+          │   Layout: [id_etablissement:bigint, sum_6:bigint]
+          │   Estimates: {rows: 88902 (1.53MB), cpu: 0, memory: 0B, network: 0B}
+          │   CPU: 0.00ns (0.00%), Scheduled: 0.00ns (0.00%), Blocked: 28.00ms (0.35%), Output: 31396 rows (551.88kB)
+          │   Input avg.: 3924.50 rows, Input std.dev.: 94.22%
+          └─ Aggregate[type = PARTIAL, keys = [id_etablissement]]
+             │   Layout: [id_etablissement:bigint, sum_6:bigint]
+             │   Estimates: {rows: 88902 (1.53MB), cpu: ?, memory: ?, network: ?}
+             │   CPU: 15.00ms (5.47%), Scheduled: 18.00ms (2.95%), Blocked: 0.00ns (0.00%), Output: 31396 rows (551.88kB)
+             │   Input avg.: 10887.75 rows, Input std.dev.: 97.97%
+             │   sum_6 := sum(nbre_consultation)
+             └─ RemoteSource[sourceFragmentIds = [4]]
+                    Layout: [id_etablissement:bigint, nbre_consultation:bigint]
+                    CPU: 3.00ms (1.09%), Scheduled: 4.00ms (0.65%), Blocked: 206.00ms (2.55%), Output: 87102 rows (1.50MB)
+                    Input avg.: 10887.75 rows, Input std.dev.: 97.97%
+
+Fragment 4 [SOURCE]
+    CPU: 105.83ms, Scheduled: 421.93ms, Blocked 0.00ns (Input: 0.00ns, Output: 0.00ns), Input: 88686 rows (1.52MB); per task: avg.: 88686.00 std.dev.: 0.00, Output: 87102 rows (1.50MB)
+    Peak Memory: 7.18MB, Tasks count: 1; per task: max: 8.18MB
+    Output layout: [id_etablissement, nbre_consultation]
+    Output partitioning: BROADCAST []
+    ScanFilter[table = hive:gold:f_mesures, filterPredicate = (bigint '0' < nbre_consultation)]
+        Layout: [id_etablissement:bigint, nbre_consultation:bigint]
+        Estimates: {rows: 88902 (1.53MB), cpu: 1.53M, memory: 0B, network: 0B}/{rows: 88902 (1.53MB), cpu: 1.53M, memory: 0B, network: 0B}
+        CPU: 106.00ms (38.69%), Scheduled: 421.00ms (68.90%), Blocked: 0.00ns (0.00%), Output: 87102 rows (1.50MB)
+        Input avg.: 2956.20 rows, Input std.dev.: 58.28%
+        nbre_consultation := nbre_consultation:bigint:REGULAR
+        id_etablissement := id_etablissement:bigint:REGULAR
+        annee:int:PARTITION_KEY
+            :: [[2019]]
+        sexe:string:PARTITION_KEY
+            :: [[F], [M], [TOUS]]
+        tranche_age:string:PARTITION_KEY
+            :: [[0-14], [15-29], [30-44], [45-59], [60-74], [75+], [INCONNUE], [TOUTES]]
+        Input: 88686 rows (1.52MB), Filtered: 1.79%, Physical input: 739.85kB, Physical input time: 231.01ms, Splits: 30, Splits generation wait time: 37.21ms
+
+"

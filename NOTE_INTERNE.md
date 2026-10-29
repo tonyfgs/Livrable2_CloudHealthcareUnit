@@ -110,7 +110,8 @@ Airflow `admin/admin` · PostgreSQL internes : `hive/hive`, `chu/chu`,
 3. Déclencher **`lakehouse_init`** (one-shot, manuel) :
    DDL Hive (schéma silver/gold, tables externes) → vues métier →
    vérification Trino (volumes, `ANALYZE`, pruning) → connexion Trino dans
-   Superset (API REST). **Testé : 4/4 tâches SUCCESS.**
+   Superset (API REST). **Testé : 5/5 tâches SUCCESS** (dont
+   `vues_metier_trino`, voir piège n°23).
 4. Déclencher **`lakehouse_daily`** (quotidien 02:00, déclenchement manuel
    possible) : `SparkSubmitOperator` — `load_dimensions` → `load_faits_detail`
    ∥ `build_f_deces_agg` → `build_f_mesures` (+ `build_agregats`) →
@@ -357,6 +358,47 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
     son staging (`05_qualite/staging/` monté en `:ro`) — plus de dépendance à
     un workspace externe (`L2WORK`). 7 CSV régénérés dans
     `05_qualite/results/` à chaque run du DAG daily.
+21. **Trino tué par OOM (exit 137)** : sans plafond, le launcher Trino prend
+    ~80 % de la RAM de la VM Docker Desktop (~6 Go sur une VM de 7,6 Go) ;
+    pendant les gros jobs Spark (f_deces_agg, CSV 2 Go), la VM manque de
+    mémoire et le noyau tue Trino (`Exited (137)`), ce qui fait échouer la
+    tâche `dispo_trino_superset` (« container ... is not running »). Fix :
+    `config/trino/config.properties` (plafonds `query.max-memory*`) +
+    `JAVA_OPTS=-Xmx1500m` + `mem_limit: 2g` sur le service `trino`.
+    Propriété supprimée en Trino 484 : `query.max-total-memory-per-node`
+    (ne pas la remettre — Trino refuse de démarrer, « was not used »).
+23. **Trino ne lit pas les vues Hive** : `SELECT ... FROM gold.v_xxx` échoue
+    côté Trino (« Hive views are not supported ») — les vues de
+    `01_ddl/03_vues_metier.sql` sont des vues HIVE (créées via beeline/HS2).
+    Pour Superset/Trino, `01_ddl/04_vues_metier_trino.sql` recrée les mêmes
+    vues en vues NATIVES Trino dans le schéma **`vues_t`** (tâche
+    `vues_metier_trino` du DAG init) : interroger `vues_t.v_taux_consultation_mensuel`,
+    pas `gold.v_taux_consultation_mensuel`. Le harnais Trino a une variante
+    `04_benchmark/queries/trino/q09_*.sql` pour cette raison.
+24. **Type de la partition `annee` de `f_satisfaction`** : déclarée `INT`
+    (comme tous les faits) — ne pas écrire `annee = 2020` en dur sur une
+    colonne STRING de partition, Trino refuse (`varchar = integer`).
+25. **ZIP livrable** : `Livrable2_CloudHealthcareUnit.zip` (racine du projet)
+    = dossier `Livrable2_CloudHealthcareUnit/` (rapport + `NOTE_INTERNE.md` +
+    grille xlsx + `scripts/`, staging DQ embarqué, sans `.git`). **Extraire
+    le ZIP à côté du dossier `DATA Projet`** (les sources brutes sont montées
+    en relatif `../../DATA Projet` depuis `scripts/`) : poser `DATA Projet`
+    en sibling du dossier extrait, puis `cd Livrable2_CloudHealthcareUnit/scripts
+    && docker compose up -d`.
+26. **OOM-killer de la VM Docker pendant `lakehouse_daily`** : la VM Docker
+    Desktop fait 7,65 Go. Pendant les jobs Spark (worker à 3g) + Trino
+    (Xmx1g) + Airflow/Superset/Hive/3×Postgres, la mémoire est saturée et le
+    noyau tue le plus gros consommateur : **Trino mourait (OOMKilled=true,
+    exit 137) au milieu du DAG**, et la tâche `dispo_trino_superset` (qui fait
+    `docker exec chu-trino` depuis le scheduler via le socket Docker) échouait
+    avec « container … is not running ». Correctifs appliqués :
+    `restart: unless-stopped` sur les 14 services long terme (un conteneur
+    tué est automatiquement relancé), `SPARK_WORKER_MEMORY: 2g` (suffisant pour
+    ~1M de lignes), et la tâche `dispo_trino_superset` boucle jusqu'à ~3 min
+    en attendant que Trino réponde avant de valider. Pour relancer une tâche
+    plantée sans rejouer tout le DAG : `airflow tasks clear lakehouse_daily
+    -t '^dispo_trino_superset$' -s <exec_date> -e <exec_date+1s> -y` (ou clic
+    droit sur la tâche rouge dans la Grid view → Clear).
 
 ---
 
@@ -376,3 +418,19 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
 | Contrôles qualité | `scripts/05_qualite/` (+ `results/`) |
 | Dashboards Superset | `scripts/06_superset/charts.sql` |
 | Configs (Hive, Trino, Spark, Superset, S1) | `scripts/config/` |
+27. **Splitter SQL du DAG init (`_split_sql_statements`)** : les statements
+    étaient joints avec des retours à la ligne puis passés à `beeline -e` —
+    beeline coupe à chaque newline, donc `CREATE DATABASE gold` perdait son
+    `LOCATION 's3a://lake/gold'` (mkdir par défaut `s3a://lake/warehouse/…`,
+    unreliable sur stack fraîche), et les commentaires inline `--` dans les
+    listes de colonnes mangeaient la fin du statement (ParseException <EOF>).
+    Fix : supprimer les commentaires `--` ligne par ligne PUIS normaliser
+    chaque statement sur une seule ligne (`" ".join(stmt.split())`).
+28. **CREATE DATABASE flaky sur stack fraîche** : juste après `docker compose
+    up -d`, le metastore échoue par intermittence à créer le répertoire managé
+    `s3a://lake/warehouse/<db>.db` (MetaException « failed to create database »)
+    tant que `minio-init` n'a pas fini de recréer le bucket et de copier le raw.
+    Fix dans le DAG init : `_wait_minio_init_done()` attend la fin du conteneur
+    one-shot chu-minio-init, et le script DDL est retenté 3 fois (30 s) en cas
+    d'échec transitoire. Ne PAS pré-créer de markers `warehouse/x.db/` à la main :
+    un marker existant fait échouer le mkdir S3A (testé).

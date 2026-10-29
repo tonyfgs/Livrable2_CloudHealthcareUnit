@@ -5,10 +5,12 @@
 # du schéma en étoile déclarées dans 01_ddl/01_schema_gold_hive.sql :
 #   d_temps (grain jour, 2015-2030, PARTITIONED BY annee)
 #   d_patient (S1 PostgreSQL.Patient, PARTITIONED BY (sexe, tranche_age_ref))
-#   d_etablissement (référentiel FINESS, bucketing 32 sur id_etablissement)
+#   d_etablissement (référentiel FINESS, pas de partition)
 #   d_localisation (101 départements + Inconnu, PARTITIONED BY code_region)
-#   d_diagnostic (S1 PostgreSQL.Diagnostic, bucketing 8)
-#   d_professionnel (S1 PostgreSQL.Professionnel_de_sante, bucketing 32)
+#   d_diagnostic (S1 PostgreSQL.Diagnostic, pas de partition)
+#   d_professionnel (S1 PostgreSQL.Professionnel_de_sante, pas de partition)
+# Pas de bucketing (incompatible Trino 484, voir livrable2.md §4.2) : le tri
+# intra-partition sur les clés de jointure remplace la co-localisation.
 #
 # Lancement (dans le conteneur spark, stack docker-compose) :
 #   spark-submit --master local[*] 02_spark/load_dimensions.py
@@ -69,9 +71,10 @@ d_patient = (
             "code_postal", "ville", "tranche_age_ref")
 )
 # Partitionnement démographique (sexe, tranche_age_ref) conforme à la grille
-# d'évaluation : sexe + tranche d'âge sur la dimension patient. Le bucketing
-# sur id_patient (32 buckets) co-localise les lignes pour la jointure avec
-# silver.f_consultation_detail (bucketée sur id_patient, 32 buckets).
+# d'évaluation : sexe + tranche d'âge sur la dimension patient. Pas de
+# bucketing (incompatible Trino 484) : le tri intra-partition sur id_patient
+# (voir save_gold, common.py) remplace la co-localisation pour la jointure
+# avec silver.f_consultation_detail.
 save_gold(d_patient, "gold.d_patient", f"{GOLD}/d_patient",
           partition_cols=["sexe", "tranche_age_ref"])
 

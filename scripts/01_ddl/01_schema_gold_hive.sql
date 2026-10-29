@@ -253,11 +253,12 @@ CREATE EXTERNAL TABLE IF NOT EXISTS gold.f_satisfaction (
   score_satisfaction DOUBLE,  -- score moyen ajusté ESATIS, pondéré (0-100)
   nb_repondants      BIGINT,  -- somme des répondants des sites agrégés
   nb_sites           INT     -- nombre de sites ESATIS agrégés (lignes source)
-  -- 'annee' et 'code_region' = colonnes de partition (chemins Hive
-  -- annee=.../code_region=...) ; code_region et pas region car les noms de
-  -- régions contiennent des caractères invalides dans les chemins Hive
+  -- 'annee' (INT, comme toutes les faits) et 'code_region' = colonnes de
+  -- partition (chemins Hive annee=.../code_region=...) ; code_region et pas
+  -- region car les noms de régions contiennent des caractères invalides
+  -- dans les chemins Hive
 )
-PARTITIONED BY (annee STRING, code_region STRING)
+PARTITIONED BY (annee INT, code_region STRING)
 STORED AS PARQUET
 LOCATION 's3a://lake/gold/f_satisfaction';
 

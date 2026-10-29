@@ -26,6 +26,7 @@
 #     preview, incompatible de la JVM 17 du conteneur) et plante ; la variable
 #     TERM=dumb force le provider 'dumb' et beeline démarre correctement.
 # ============================================================================
+import re
 import subprocess
 from datetime import datetime
 
@@ -51,16 +52,47 @@ def _split_sql_statements(sql_text):
     """Découpe un script SQL en statements exécutables (commentaires -- ignorés)."""
     lines = []
     for line in sql_text.splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("--"):
-            continue
-        lines.append(line)
+        # Supprimer les commentaires (-- ...) AVANT de joindre les lignes :
+        # aplati sur une seule ligne, un commentaire inline mangerait la fin
+        # du statement (ParseException <EOF>).
+        line = re.sub(r"--.*$", "", line)
+        if line.strip():
+            lines.append(line)
     statements = []
     for stmt in "\n".join(lines).split(";"):
-        stmt = stmt.strip()
+        # Normaliser sur UNE seule ligne : beeline -e "..." coupe à chaque
+        # retour à la ligne, ce qui séparait par ex. "CREATE DATABASE gold"
+        # de son "LOCATION 's3a://lake/gold'" (le LOCATION était perdu et Hive
+        # créait le répertoire par défaut s3a://lake/warehouse/gold.db, dont
+        # le mkdir S3A est unreliable sur une stack fraîche).
+        stmt = " ".join(stmt.split())
         if stmt:
             statements.append(stmt)
     return statements
+
+
+def _wait_minio_init_done(timeout_s=900):
+    """Attend que le conteneur one-shot chu-minio-init soit terminé.
+
+    Sur une stack fraîche, minio-init recrée le bucket `lake` et y copie les
+    sources raw (gros fichiers). Pendant ce bulk copy, les mkdir S3A faits par
+    le metastore (CREATE DATABASE -> répertoire managé s3a://lake/warehouse/...)
+    échouent de façon intermittente ("failed to create database"). On attend
+    donc que l'ingestion initiale soit finie avant de jouer le DDL.
+    """
+    import time
+
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        proc = subprocess.run(
+            ["docker", "inspect", "-f", "{{.State.Status}}", "chu-minio-init"],
+            capture_output=True, text=True,
+        )
+        status = (proc.stdout or "").strip()
+        if status in ("exited", "dead"):
+            return
+        time.sleep(10)
+    raise AirflowException("chu-minio-init n'est pas terminé après 15 min")
 
 
 def run_hive_sql_file(database, sql_path):
@@ -70,11 +102,31 @@ def run_hive_sql_file(database, sql_path):
     beeline -u jdbc:hive2://localhost:10000/<database> -e "<statement>"`.
     beeline renvoie 0 même en cas d'erreur SQL : la sortie est donc aussi
     inspectée (Error / FAILED / Exception) pour détecter les échecs.
+
+    Le script complet est retenté jusqu'à 3 fois (30 s entre les essais) :
+    les premier mkdir S3A du metastore peuvent échouer de façon transitoire
+    juste après le démarrage de la stack.
     """
+    _wait_minio_init_done()
     with open(sql_path, "r", encoding="utf-8") as f:
         statements = _split_sql_statements(f.read())
     if not statements:
         raise AirflowException(f"Aucun statement trouvé dans {sql_path}")
+    last_output = ""
+    for attempt in range(1, 4):
+        try:
+            _run_statements(database, sql_path, statements)
+            return
+        except AirflowException as exc:
+            last_output = str(exc)
+            if attempt < 3:
+                import time
+
+                time.sleep(30)
+    raise AirflowException(last_output)
+
+
+def _run_statements(database, sql_path, statements):
     for i, stmt in enumerate(statements, 1):
         proc = subprocess.run(
             [
@@ -136,6 +188,20 @@ with DAG(
     )
 
     # -------------------------------------------------------------------------
+    # 2b. Vues métier côté Trino (vues NATIVES Trino, schéma vues_t) : le
+    #     connecteur Hive de Trino ne lit pas les vues Hive du metastore
+    #     (« Hive views are not supported ») -> Superset/Trino utilisent vues_t
+    # -------------------------------------------------------------------------
+    vues_metier_trino = BashOperator(
+        task_id="vues_metier_trino",
+        bash_command=(
+            "docker exec chu-trino "
+            "trino --server http://localhost:8080 --catalog hive "
+            "--file /opt/scripts/01_ddl/04_vues_metier_trino.sql"
+        ),
+    )
+
+    # -------------------------------------------------------------------------
     # 3. Vérification Trino (volumes + statistiques optimiseur + pruning)
     # -------------------------------------------------------------------------
     verif_trino = BashOperator(
@@ -169,4 +235,4 @@ with DAG(
         ),
     )
 
-    ddl_hive >> vues_metier >> verif_trino >> verif_superset
+    ddl_hive >> vues_metier >> vues_metier_trino >> verif_trino >> verif_superset

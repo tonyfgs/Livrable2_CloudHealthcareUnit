@@ -183,7 +183,7 @@ for annee, fichier in [("2019", "satisfaction/ESATIS_2019.csv"),
                        ("2020", "satisfaction/ESATIS_2020.csv")]:
     s = (
         read_raw_csv(spark, fichier)
-        .withColumn("annee", F.lit(annee))
+        .withColumn("annee", F.lit(annee).cast("int"))
         .select(
             "annee",
             F.trim(F.col("finess")).alias("finess"),

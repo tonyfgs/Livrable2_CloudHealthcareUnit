@@ -173,6 +173,14 @@ with DAG(
     dispo_trino_superset = BashOperator(
         task_id="dispo_trino_superset",
         bash_command=(
+            # Trino peut être en cours de redémarrage (restart: unless-stopped,
+            # ex. après un OOM-kill de la VM Docker pendant les jobs Spark) :
+            # on attend qu'il réponde avant de valider (jusqu'à ~3 min).
+            "for i in $(seq 1 18); do "
+            "docker exec chu-trino trino --server http://localhost:8080 "
+            "--execute 'SELECT version()' >/dev/null 2>&1 && break; "
+            "echo \"trino pas encore pret (tentative $i/18), attente 10s...\"; "
+            "sleep 10; done; "
             "docker exec chu-trino trino --server http://localhost:8080 "
             "--execute 'SELECT version()' && "
             "docker exec chu-trino trino --server http://localhost:8080 "

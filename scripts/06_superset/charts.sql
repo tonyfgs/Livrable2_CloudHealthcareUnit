@@ -123,7 +123,9 @@ ORDER BY score_moyen_satisfaction DESC;
 -- ============================================================================
 -- Charts complémentaires (hors 8 besoins, disponibles via les vues métier) :
 --   * Évolution mensuelle des consultations + moyenne mobile 3 mois :
---       SELECT * FROM gold.v_taux_consultation_mensuel ORDER BY annee_mois;
+--       SELECT * FROM vues_t.v_taux_consultation_mensuel ORDER BY annee_mois;
+--       (vues_t = vues NATIVES Trino ; Trino ne lit pas les vues Hive du
+--        metastore, cf. 01_ddl/04_vues_metier_trino.sql)
 --   * Vue d'ensemble étoile (jointure fait + 4 dimensions) : cf. requête q10
 --     du benchmark (scripts/04_benchmark/queries/q10_etoile_complete.sql)
 -- ============================================================================

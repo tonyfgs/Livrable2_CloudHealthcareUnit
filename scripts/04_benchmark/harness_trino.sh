@@ -33,19 +33,22 @@ echo "== Vérification de Trino =="
 docker compose -f ../docker-compose.yml exec -T trino trino \
   --server http://trino:8080 --execute 'SELECT version()' | head -1
 
-echo "== Création des vues métier (si absentes) =="
+echo "== Création des vues métier Trino (schéma vues_t ; Trino ne lit pas les vues Hive) =="
 docker compose -f ../docker-compose.yml exec -T trino trino \
-  --server http://trino:8080 $CATALOG_FLAGS \
-  --file ../01_ddl/03_vues_metier.sql || echo "(vues déjà présentes ou créées via Hive)"
+  --server http://trino:8080 --catalog hive \
+  --file /opt/scripts/01_ddl/04_vues_metier_trino.sql || echo "ERREUR vues_t"
 
 echo "== Benchmark des 10 requêtes (${REPS} répétitions) =="
 printf 'requete;run;temps_ms;lignes\n' > "$RESULTS/bench_trino.csv"
 
 for q in queries/q*.sql; do
   name=$(basename "$q" .sql)
+  # variante spécifique Trino si présente (ex. q09 : vues_t au lieu des vues Hive)
+  if [ -f "queries/trino/${name}.sql" ]; then q="queries/trino/${name}.sql"; fi
   for run in $(seq 1 "$REPS"); do
     start=$(date +%s%N)
-    $TRINO --file "$q" > "$RESULTS/${name}_r${run}.csv" 2>"$RESULTS/${name}_r${run}.err" \
+    # NB : --file est résolu DANS le conteneur trino (scripts montés en /opt/scripts:ro)
+    $TRINO --file "/opt/scripts/04_benchmark/$q" > "$RESULTS/${name}_r${run}.csv" 2>"$RESULTS/${name}_r${run}.err" \
       || { echo "ERREUR sur $name (run $run) :"; cat "$RESULTS/${name}_r${run}.err"; exit 1; }
     end=$(date +%s%N)
     ms=$(( (end - start) / 1000000 ))
@@ -63,7 +66,7 @@ for name in q01_consult_etab_2019 q10_etoile_complete; do
   { echo "EXPLAIN ANALYZE"; cat "queries/${name}.sql"; } > "$RESULTS/_explain_${name}.sql"
   docker compose -f ../docker-compose.yml exec -T trino trino \
     --server http://trino:8080 $CATALOG_FLAGS \
-    --file "$RESULTS/_explain_${name}.sql" > "$RESULTS/explain_${name}.txt" 2>&1 || true
+    --file "/opt/scripts/04_benchmark/$RESULTS/_explain_${name}.sql" > "$RESULTS/explain_${name}.txt" 2>&1 || true
   echo "  plan ${name} -> $RESULTS/explain_${name}.txt"
 done
 

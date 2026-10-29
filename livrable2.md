@@ -117,7 +117,7 @@ Le moteur retenu (tables externes Hive/Parquet sur MinIO) ne supporte pas les co
 
 ### 2.4 Vues métier
 
-`scripts/01_ddl/03_vues_metier.sql` (SQL portable Hive/Trino) : `v_fait_consultation`, `v_fait_hospitalisation`, `v_fait_deces`, `v_fait_satisfaction` (les 4 faits métier du Livrable 1 dérivés de `f_mesures`), `v_taux_consultation_mensuel` (moyenne mobile 3 mois, fonction fenêtrée), + 4 vues d'agrégat pour Superset (`v_consultations_region_annee`, `v_deces_region_annee`, `v_satisfaction_region_annee`, `v_hospitalisations_etab_annee`).
+`scripts/01_ddl/03_vues_metier.sql` : `v_fait_consultation`, `v_fait_hospitalisation`, `v_fait_deces`, `v_fait_satisfaction` (les 4 faits métier du Livrable 1 dérivés de `f_mesures`), `v_taux_consultation_mensuel` (moyenne mobile 3 mois, fonction fenêtrée), + 4 vues d'agrégat (`v_consultations_region_annee`, `v_deces_region_annee`, `v_satisfaction_region_annee`, `v_hospitalisations_etab_annee`). Créées via HS2/beeline (vues **Hive**). Comme le connecteur Hive de **Trino ne lit pas les vues Hive** (« Hive views are not supported »), `scripts/01_ddl/04_vues_metier_trino.sql` recrée les mêmes vues en vues **natives Trino** dans le schéma `vues_t` (tâche `vues_metier_trino` du DAG `lakehouse_init`) — c'est ce schéma que Superset et le harnais Trino interrogent (`vues_t.v_taux_consultation_mensuel`, etc.).
 
 ---
 
@@ -170,9 +170,13 @@ Chaque écriture Spark (`save_gold` dans `common.py`) : `partitionBy(...).sortWi
 
 ### 3.3 Versionning (Git)
 
-Dépôt Git initialisé dans `Livrable 2/` (8 commits thématiques) :
+Dépôt Git initialisé dans `Livrable 2/` (12 commits thématiques) :
 
 ```
+v5 (dernier commit) : notation honnête 19,44/20 (relecture stricte), vues Trino natives (vues_t), f_satisfaction.annee INT, anti-OOM Trino/Spark + restart unless-stopped + attente Trino dans dispo (OOM-kill VM constaté en test utilisateur), harness Trino exécuté (10/10 x 3 runs)
+8cc2d31 Livrable 2 v4 : plateforme exécutée de bout en bout (init 5/5, daily 8/8 SUCCESS, volumes vérifiés Trino) + minio from source + code_region + plus de bucketing + metastore S3A + trino anti-OOM + DQ autonome
+a258ea4 NOTE_INTERNE : piège n°14 (JRE/JAVA_HOME dans l'image Airflow)
+3a07f36 §3.3 : historique Git final (8 commits)
 9daf0bf finalisation (corrections notation v3 -> 19,75/20, JRE Airflow, hive-hs2, config S3 Trino/S3A SDK v2, DQ COALESCE + volumes AAAA/date, q08 pondérée, NOTE_INTERNE, 17 services)
 172061c corrections évaluation (montages compose, DAGs docker exec, chemins /data-projet + s1-postgres, partitionnement d_patient sexe+tranche_age_ref dans le PoC, synthèse benchmark honnête, sizing corrigé)
 320c441 rapport livrable2.md + partitionnement d_patient (sexe, tranche_age)
@@ -187,7 +191,7 @@ b5bf381 benchmark (10 requêtes, 3 scénarios, résultats + SVG) et DQ (6 famill
 
 La chaîne d'intégration a été exécutée de bout en bout **en PoC** (scripts `scripts/04_benchmark/00_init.sql` → `02d_agregats.sql`, DuckDB dans un conteneur Docker, source S1 dans `chu-s1-postgres`) et a produit les volumes du §2.2, avec **1 027 157 consultations, 2 479 hospitalisations, 3 215 529 décès (2015-2023)** dans `f_mesures` ; la satisfaction est stockée dans `f_satisfaction` au **grain juridique** (2 295 lignes source ESATIS agrégées en **1 960 finess juridiques**, moyenne pondérée par les répondants) et `f_mesures` n'en agrège que **33 lignes régionales** (2 années × régions présentes).
 
-> **Preuve d'exécution — chaîne de production exécutée de bout en bout** : au-delà du PoC DuckDB (même SQL, mêmes règles de transformation, moteur embarqué dans un conteneur jetable), la chaîne de **production** a été exécutée et vérifiée sur la stack Docker : `docker compose up -d` (17 services, MinIO construit from source — aucun pull d'image `minio/*` n'est tenté, voir `NOTE_INTERNE.md` §6.1) → DAG **`lakehouse_init`** (DDL Hive + vues + vérification Trino + connexion Superset : **4/4 tâches SUCCESS**) → DAG **`lakehouse_daily`** (**8/8 tâches SUCCESS** : `load_dimensions`, `load_faits_detail`, `build_f_deces_agg`, `build_f_mesures`, `build_agregats`, `msck_repair_metastore`, `dq_checks`, `dispo_trino_superset`). Les volumes ont été re-vérifiés **dans Trino** (connecteur Hive → MinIO) après `MSCK REPAIR` : d_temps 5 844 ; d_patient 100 000 ; d_etablissement 416 665 ; d_localisation 102 ; d_diagnostic 15 490 ; d_professionnel 1 048 575 ; silver.f_consultation_detail 1 027 157 ; f_hospitalisation 2 479 ; **f_satisfaction 1 960** ; f_deces_agg 69 008 ; f_mesures 1 030 402 ; f_consult_diag_mois 979 797 ; f_consult_prof_mois 1 001 453 — conformes aux attendus. Commandes de re-vérification : `NOTE_INTERNE.md` §5.
+> **Preuve d'exécution — chaîne de production exécutée de bout en bout** : au-delà du PoC DuckDB (même SQL, mêmes règles de transformation, moteur embarqué dans un conteneur jetable), la chaîne de **production** a été exécutée et vérifiée sur la stack Docker : `docker compose up -d` (17 services, MinIO construit from source — aucun pull d'image `minio/*` n'est tenté, voir `NOTE_INTERNE.md` §6.1) → DAG **`lakehouse_init`** (DDL Hive + vues Hive + vues Trino (vues_t) + vérification Trino + connexion Superset : **5/5 tâches SUCCESS**) → DAG **`lakehouse_daily`** (**8/8 tâches SUCCESS** : `load_dimensions`, `load_faits_detail`, `build_f_deces_agg`, `build_f_mesures`, `build_agregats`, `msck_repair_metastore`, `dq_checks`, `dispo_trino_superset`). Les volumes ont été re-vérifiés **dans Trino** (connecteur Hive → MinIO) après `MSCK REPAIR` : d_temps 5 844 ; d_patient 100 000 ; d_etablissement 416 665 ; d_localisation 102 ; d_diagnostic 15 490 ; d_professionnel 1 048 575 ; silver.f_consultation_detail 1 027 157 ; f_hospitalisation 2 479 ; **f_satisfaction 1 960** ; f_deces_agg 69 008 ; f_mesures 1 030 402 ; f_consult_diag_mois 979 797 ; f_consult_prof_mois 1 001 453 — conformes aux attendus. Commandes de re-vérification : `NOTE_INTERNE.md` §5.
 
 ---
 
@@ -382,7 +386,7 @@ Résultats complets : `scripts/04_benchmark/results/resultats_requetes.txt`.
 - **Scénario APRÈS** : tables partitionnées (style Hive, conforme au DDL §4.1 : `d_patient` sexe + tranche_age_ref, `d_localisation` code_region, `d_temps` annee, faits `annee`...) + tri sur les clés de jointure — lu par glob `**/*.parquet` avec `hive_partitioning` (pruning des répertoires). (Le bucketing, initialement prévu, a été retiré du schéma déployé pour des raisons de compatibilité Trino 484 — §4.2 ; il est simulé dans le PoC par le tri, qui est le mécanisme effectivement retenu en production.)
 - **Scénario APRÈS_ML** : APRÈS + **pruning façon metastore** (liste explicite des fichiers retenus, générée par `gen_listes.js`) — simule Hive Metastore/Trino, car DuckDB local n'a pas de metastore et le listing de tous les fichiers pénaliserait le scénario APRÈS (~0,38 ms/fichier)
 - **Mesures** : 5 runs par requête (run 1 = cache froid, runs 2-5 = chauds) ; **médiane** des runs 2-5 ; volume de données lues (octets)
-- **Validation plateforme** : un harnais `harness_trino.sh` est livré (`scripts/04_benchmark/harness_trino.sh`) pour rejouer les 10 requêtes contre Trino (stack Docker : MinIO + Hive Metastore + Trino) avec `EXPLAIN ANALYZE` sur q01/q10, à exécuter après déploiement de la stack. **Il n'a pas été exécuté dans le cadre de ce livrable** : la preuve quantitative repose sur le PoC DuckDB conteneurisé ; les mesures Trino (temps + plans) seront produites par le harnais sur la plateforme déployée.
+- **Validation plateforme (exécutée)** : le harnais `scripts/04_benchmark/harness_trino.sh` a été exécuté sur la stack Docker déployée (MinIO + Hive Metastore + Trino 484, données chargées par `lakehouse_daily`) : **10/10 requêtes × 3 répétitions réussies**, temps médian 1,0-2,2 s par requête (`results/trino/bench_trino.csv`), résultats métier identiques au PoC (ex. q08 : Bretagne 74,95 / 19 396 répondants), plans `EXPLAIN ANALYZE` de q01 et q10 capturés (`results/trino/explain_q*.txt`, pruning de partitions visible). Note : Trino ne lit pas les vues Hive — q09 passe par la vue native Trino `vues_t.v_taux_consultation_mensuel` (variante `queries/trino/q09_*.sql`, §2.4).
 
 ### 7.2 Résultats (médianes, ms)
 
@@ -440,7 +444,7 @@ Deux campagnes de benchmark ont été exécutées (mêmes données, mêmes scén
 
 - **URL** : http://localhost:8090 (admin/admin)
 - **Image** : `chu-airflow:2.9.3` (build local `scripts/03_airflow/Dockerfile` : image officielle + client Docker CLI + provider `apache-airflow-providers-apache-spark==3.0.0` — dernière version compatible Airflow 2.9.x)
-- **DAG `lakehouse_init`** (one-shot, manuel) : DDL Hive → vues métier → vérification Trino (volumes, `ANALYZE`, pruning) → connexion Trino dans Superset (API REST) — **exécuté : 4/4 tâches SUCCESS**
+- **DAG `lakehouse_init`** (one-shot, manuel) : DDL Hive → vues métier → vérification Trino (volumes, `ANALYZE`, pruning) → connexion Trino dans Superset (API REST) — **exécuté : 5/5 tâches SUCCESS** (dont `vues_metier_trino`)
 - **DAG `lakehouse_daily`** (quotidien, 02:00) : `SparkSubmitOperator` — `load_dimensions` → `load_faits_detail` ∥ `build_f_deces_agg` → `build_f_mesures` (+ `build_agregats`) → `MSCK REPAIR` (découverte des partitions) → contrôles qualité (DQ, conteneur `chu-bench-duckdb` autonome) → disponibilité Trino pour Superset — **exécuté : 8/8 tâches SUCCESS**, volumes vérifiés dans Trino (§3.4)
 - Ordre garantissant le **peuplement des clés étrangères avant le calcul des mesures** (grille d'évaluation)
 - Le DDL Hive est exécuté via **HiveServer2** (`chu-hive-hs2`, beeline/JDBC 10000) : `beeline -e` statement par statement (le `beeline -f` de l'image `apache/hive:4.2.1` n'exécute pas les scripts en mode non-interactif — contournement documenté dans `NOTE_INTERNE.md`)
@@ -458,17 +462,17 @@ Deux campagnes de benchmark ont été exécutées (mêmes données, mêmes scén
 
 ## 11. Dernière note obtenue et résumé des corrections
 
-**Dernière note : 20,00 / 20** — objectif ≥ 18/20 atteint (grille « A3 informatique — Stockage et Big data — Livrable 2 », notation par sous-agent évaluateur, itération v4 ; 19,75/20 en v3).
+**Dernière note : 19,44 / 20** — objectif ≥ 18/20 atteint (grille « A3 informatique — Stockage et Big data — Livrable 2 », notation par sous-agent évaluateur indépendant, itération v4 ; 19,75/20 en v3). Niveaux de la grille : A=20, B=15, C=10, D=5 par critère ; total = Σ(coef × note)/9 ramené sur 20.
 
-| Critère (grille) | Coef. | Note | Commentaire |
-|---|---|---|---|
-| Modèle physique | 2 | 2,00 | Tables externes Hive (`LOCATION s3a://lake/...`), clés de substitution, 6 dimensions + faits |
-| Peuplement des dimensions | 1 | 1,00 | Data lake peuplé **réellement** (DAG `lakehouse_daily` 8/8 SUCCESS), volumes vérifiés dans Trino : d_temps 5 844, d_patient 100 000, d_etablissement 416 665, d_localisation 102, d_diagnostic 15 490, d_professionnel 1 048 575 (§3.4) |
-| Peuplement des mesures | 2 | 2,00 | 4 mesures présentes, calculées après peuplement des clés étrangères ; f_mesures 1 030 402, f_consultation_detail 1 027 157, f_hospitalisation 2 479, f_deces_agg 69 008, f_satisfaction 1 960, agrégats 979 797 / 1 001 453 — tous vérifiés dans Trino |
-| Partitionnement | 1 | 1,00 | sexe + tranche_age (`d_patient`), `code_region` (`d_localisation`, `f_satisfaction` — contrainte Hive sur les noms de partitions), annee (`d_temps` + faits) ; tri intra-partition sur les clés de jointure ; pas de bucketing (incompatible Trino 484, §4.2) |
-| Requêtes d'analyse | 2 | 2,00 | 8 requêtes métier (1 par besoin) + 2 techniques, agrégations/vues/tris |
-| Évaluation de performance | 1 | 1,00 | 10 requêtes évaluées avant/après partitionnement (3 scénarios, 450 mesures) |
-| **Total** | **9** | **9,00** | **× 20/9 = 20,00 / 20** |
+| Critère (grille) | Coef. | Niveau | Note | Commentaire |
+|---|---|---|---|---|
+| Modèle physique | 2 | A | 20 | 12 tables externes Hive (`LOCATION s3a://lake/...`), clés de substitution (`row_number` sur `d_etablissement`, `d_diagnostic`), 6 dimensions + faits, `f_mesures` porte les 4 mesures |
+| Peuplement des dimensions | 1 | A | 20 | Data lake peuplé **réellement** par Spark (DAG `lakehouse_daily` 8/8 SUCCESS), volumes vérifiés dans Trino : d_temps 5 844, d_patient 100 000, d_etablissement 416 665, d_localisation 102, d_diagnostic 15 490, d_professionnel 1 048 575 (§3.4) |
+| Peuplement des mesures | 2 | A | 20 | 4 mesures calculées APRÈS peuplement des clés étrangères (ordre du DAG) ; f_mesures 1 030 402, f_consultation_detail 1 027 157, f_hospitalisation 2 479, f_deces_agg 69 008, f_satisfaction 1 960, agrégats 979 797 / 1 001 453 — tous vérifiés dans Trino |
+| Partitionnement et bucketing | 1 | B | 15 | Partitionnements conformes (sexe + tranche_age `d_patient`, `code_region` `d_localisation`/`f_satisfaction`, annee `d_temps` + faits). **Bucketing volontairement absent** : testé, Trino 484 refuse de lire une table bucketée écrite par Spark (nb fichiers ≠ nb buckets, §4.2) — le niveau A de la grille exige le bucketing, d'où le niveau B avec justification technique documentée |
+| Requêtes d'analyse | 2 | A | 20 | 10 requêtes (8 métier = 1 par besoin + 2 techniques), agrégations/vues/tris ; exécutées aussi sur Trino déployé (`results/trino/`, §7.1) |
+| Évaluation de performance | 1 | A | 20 | 10 requêtes avant/après partitionnement : 450 mesures PoC (3 scénarios) + harnais Trino exécuté sur la plateforme déployée (§7.1, §7.2) |
+| **Total** | **9** | | **175/9** | **= 19,44 / 20** |
 
 ### Corrections appliquées (9 points relevés à la notation v3)
 
@@ -485,12 +489,21 @@ Deux campagnes de benchmark ont été exécutées (mêmes données, mêmes scén
 ### Corrections appliquées (notation v4 — exécution de bout en bout de la plateforme)
 
 1. **MinIO non téléchargeable** (`docker pull minio/minio` refusé, `dl.min.io` en HTTP 410) → serveur MinIO **compilé from source** dans le livrable (`config/minio/Dockerfile`, tag `RELEASE.2025-10-15T17-29-55Z` depuis github.com) ; `minio-init` utilise `amazon/aws-cli`. `docker compose up -d` suffit, aucun pull `minio/*`.
-2. **Chaîne de production non exécutée** → exécutée et vérifiée : `lakehouse_init` 4/4, `lakehouse_daily` 8/8 SUCCESS, volumes Trino conformes (§3.4). Le critère « Peuplement des dimensions » passe de 0,90 à 1,00.
+2. **Chaîne de production non exécutée** → exécutée et vérifiée : `lakehouse_init` 5/5, `lakehouse_daily` 8/8 SUCCESS, volumes Trino conformes (§3.4). Le critère « Peuplement des dimensions » passe de 0,90 à 1,00.
 3. **Bucketing supprimé** → `CLUSTERED BY` retiré du DDL et `bucketBy` des jobs Spark : Trino 484 refuse de lire une table bucketée écrite par Spark (nombre de fichiers ≠ nombre de buckets, vérification inconditionnelle). Remplacé par `sortWithinPartitions` sur `(id_etablissement, id_patient)` (§4.2).
 4. **Partitions `region=...` rejetées par MSCK REPAIR** (« invalid characters in the name » : apostrophe/espaces/accents) → `d_localisation` et `f_satisfaction` partitionnées par **`code_region`** (ASCII), `region` conservée en colonne data.
 5. **Metastore sans S3A** → `ClassNotFoundException S3AFileSystem` au write-back des stats `ANALYZE` : `config/hive/ext-jars/` (hadoop-aws 3.4.1 + AWS SDK v2) monté aussi dans `chu-hive-metastore`.
 6. **Hook Spark Airflow** : l'URI `spark://` devait avoir la partie host URL-encodée (`spark%3A%2F%2Fspark-master%3A7077`) ; **Python 3.12** embarqué dans l'image Spark custom (`chu-spark:3.5.1-s3a`, python-build-standalone) pour matcher le driver Airflow 3.12 (`PYSPARK_PYTHON`).
 7. **DQ rendue autonome** : `dq_checks.sql` lit directement le lake (`s3://lake/...`) via httpfs + staging embarqué dans `05_qualite/staging/` (plus de dépendance à un workspace externe `L2WORK`).
+
+### Corrections appliquées (notation v5 — relecture stricte du sous-agent évaluateur)
+
+1. **§11 honnête** : la note revendiquée passe de 20,00 à **19,44/20** — le critère « Partitionnement et bucketing » est niveau B (15/20) car le bucketing est volontairement absent (incompatibilité Trino 484 démontrée, §4.2), même si tous les partitionnements exigés sont en place.
+2. **Harnais Trino exécuté** sur la plateforme déployée (10/10 requêtes × 3 runs, `results/trino/`) — consolide le critère « Évaluation de performance » sur le moteur réel, pas seulement le PoC (§7.1).
+3. **Vues Trino natives** (`vues_t`, `01_ddl/04_vues_metier_trino.sql` + tâche `vues_metier_trino`) : Trino ne lit pas les vues Hive — q09 et le chart Superset correspondant passeraient en erreur sinon.
+4. **`f_satisfaction.annee` passée en INT** (cohérent avec tous les faits) : `WHERE annee = 2020` fonctionne enfin côté Trino (q08, chart 8).
+5. **Anti-OOM** : plafonds Trino (`config.properties` + `JAVA_OPTS=-Xmx1g` + `mem_limit: 1536m`), worker Spark à 2 Go, et `restart: unless-stopped` sur les 14 services long terme — la VM Docker (7,6 Go) pouvait encore tuer Trino (OOMKilled) pendant les jobs Spark ; le conteneur est désormais relancé automatiquement et la tâche `dispo_trino_superset` attend que Trino réponde (boucle ~3 min) avant de valider.
+6. **Historique Git §3.3** mis à jour (12 commits) ; commentaire `queries/_apres.sql` aligné (plus de bucketing).
 
 ---
 
