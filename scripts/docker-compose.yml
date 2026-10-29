@@ -1,0 +1,370 @@
+# ============================================================================
+# Livrable 2 - Cloud Healthcare Unit (CHU) - Plateforme data (Docker Compose)
+# ----------------------------------------------------------------------------
+# Stack imposée, positionnée par couche :
+#
+#   INGESTION      lake-ingest        : copie des sources brutes (DATA Projet)
+#                                       dans le data lake MinIO (zone raw)
+#   STOCKAGE       minio (+ minio-init): data lake S3 (bucket `lake`,
+#                                       préfixes raw/ silver/ gold/ warehouse/)
+#   CATALOGUE      metastore-db +       : Hive Metastore (métadonnées des tables
+#                   hive-metastore         externes Parquet partitionnées/bucketées)
+#   TRAITEMENT     spark-master +       : Apache Spark (ETL/ELT : S1 PostgreSQL
+#                   spark-worker          via JDBC, CSV du lake, écriture Gold)
+#   ORCHESTRATION  airflow-webserver +  : Apache Airflow (DAGs lakehouse_init /
+#                   airflow-scheduler      lakehouse_daily, SparkSubmitOperator)
+#   REQUÊTAGE      trino               : Trino (lecture distribuée du lake via
+#                                       le connecteur Hive, pruning partitions)
+#   VISUALISATION  superset (+ superset-db) : Apache Superset (localhost:8088)
+#   SOURCES        s1-postgres         : S1 PostgreSQL (dump ChuSimulation)
+#                   bench-duckdb        : conteneur PoC/benchmark (DuckDB) +
+#                                       contrôles qualité (dq_checks.sql)
+#
+# Démarrage :  docker compose up -d
+# Arrêt :      docker compose down        (ajouter -v pour purger les volumes)
+#
+# URLs :  Superset http://localhost:8088   Trino http://localhost:8080
+#         MinIO  http://localhost:9001    Airflow http://localhost:8090
+# ============================================================================
+name: chu-l2
+
+networks:
+  chu-net:
+    driver: bridge
+
+volumes:
+  minio-data:
+  metastore-db-data:
+  superset-db-data:
+  airflow-db-data:
+  s1-data:
+  airflow-logs:
+
+services:
+
+  # --------------------------------------------------------------------------
+  # STOCKAGE : data lake MinIO (S3)
+  # --------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: chu-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"   # API S3 (S3A côté Spark/Hive, S3 natif côté Trino)
+      - "9001:9001"   # console d'admin
+    volumes:
+      - minio-data:/data
+    networks: [chu-net]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: chu-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - mc alias set chu http://minio:9000 minioadmin minioadmin
+        && mc mb --ignore-existing chu/lake
+        && mc cp --recursive /data/ chu/lake/raw/
+    volumes:
+      # Zone d'atterrissage des sources brutes (lecture seule)
+      - "../DATA Projet:/data:ro"
+    networks: [chu-net]
+    restart: "no"
+
+  # --------------------------------------------------------------------------
+  # INGESTION : copie des sources brutes vers la zone raw du lake.
+  # Le service minio-init ci-dessus joue ce rôle (one-shot, restart: "no").
+  # Les CSV sont ensuite lus directement depuis s3a://lake/raw/ par Spark.
+  # --------------------------------------------------------------------------
+
+  # --------------------------------------------------------------------------
+  # CATALOGUE : Hive Metastore (métadonnées) + son SGBD PostgreSQL
+  # --------------------------------------------------------------------------
+  metastore-db:
+    image: postgres:15
+    container_name: chu-metastore-db
+    environment:
+      POSTGRES_USER: hive
+      POSTGRES_PASSWORD: hive
+      POSTGRES_DB: metastore
+    volumes:
+      - metastore-db-data:/var/lib/postgresql/data
+    networks: [chu-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hive -d metastore"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  hive-metastore-init:
+    image: apache/hive:4.2.1
+    container_name: chu-hive-metastore-init
+    depends_on:
+      metastore-db:
+        condition: service_healthy
+    environment:
+      HIVE_CONF_DIR: /opt/hive/conf
+    volumes:
+      - ./config/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
+    # Télécharge le driver JDBC PostgreSQL (absent de l'image Hive) puis
+    # initialise le schéma du metastore (idempotent : -initSchema échoue
+    # proprement si le schéma existe déjà -> || true)
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - curl -sfL -o /opt/hive/lib/postgresql.jar https://jdbc.postgresql.org/download/postgresql-42.7.3.jar
+        && /opt/hive/bin/schematool -dbType postgres -initSchema || true
+    networks: [chu-net]
+    restart: "no"
+
+  hive-metastore:
+    image: apache/hive:4.2.1
+    container_name: chu-hive-metastore
+    depends_on:
+      hive-metastore-init:
+        condition: service_completed_successfully
+    environment:
+      HIVE_CONF_DIR: /opt/hive/conf
+      SERVICE_NAME: metastore
+    volumes:
+      - ./config/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
+    # Le metastore ne stocke que des MÉTADONNÉES (les données Parquet restent
+    # dans MinIO) : il n'a jamais besoin d'accéder au S3.
+    command: ["hive", "--service", "metastore"]
+    ports:
+      - "9083:9083"   # Thrift (Spark, Trino)
+      - "10000:10000" # Beeline (DAG lakehouse_init : DDL + vues)
+    networks: [chu-net]
+
+  # --------------------------------------------------------------------------
+  # SOURCES : S1 PostgreSQL (dump ChuSimulation) + conteneur benchmark DuckDB
+  # --------------------------------------------------------------------------
+  s1-postgres:
+    image: postgres:15
+    container_name: chu-s1-postgres
+    environment:
+      POSTGRES_USER: chu
+      POSTGRES_PASSWORD: chu
+      POSTGRES_DB: chu_s1
+    volumes:
+      - s1-data:/var/lib/postgresql/data
+      - ./config/s1-postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+      - "../DATA Projet/BDD PostgreSQL/DATA2023:/docker-entrypoint-initdb.d/DATA2023.dump:ro"
+    ports:
+      - "5432:5432"
+    networks: [chu-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chu -d chu_s1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  bench-duckdb:
+    build:
+      context: ./04_benchmark
+      dockerfile: Dockerfile.duckdb
+    image: chu-bench-duckdb:latest
+    container_name: chu-bench-duckdb
+    volumes:
+      - "../DATA Projet:/data:ro"
+      - ./05_qualite/results:/opt/l2work/dq/results
+      - ./04_benchmark/results:/opt/l2work/poc/results
+    # Le conteneur reste disponible pour le benchmark (harness) et les
+    # contrôles qualité exécutés par Airflow (docker exec chu-bench-duckdb)
+    command: ["sleep", "infinity"]
+    networks: [chu-net]
+
+  # --------------------------------------------------------------------------
+  # TRAITEMENT : Apache Spark (standalone : 1 master + 1 worker)
+  # --------------------------------------------------------------------------
+  spark-master:
+    image: bitnami/spark:3.5
+    container_name: chu-spark-master
+    environment:
+      SPARK_MODE: master
+      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
+      SPARK_RPC_ENCRYPTION_ENABLED: "no"
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
+      SPARK_SSL_ENABLED: "no"
+    volumes:
+      - ./config/spark/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+    ports:
+      - "7077:7077"   # Spark master (soumission Airflow)
+    networks: [chu-net]
+
+  spark-worker:
+    image: bitnami/spark:3.5
+    container_name: chu-spark-worker
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_WORKER_MEMORY: 4g
+      SPARK_WORKER_CORES: "2"
+      SPARK_RPC_AUTHENTICATION_ENABLED: "no"
+      SPARK_RPC_ENCRYPTION_ENABLED: "no"
+      SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED: "no"
+      SPARK_SSL_ENABLED: "no"
+    volumes:
+      - ./config/spark/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+    depends_on: [spark-master]
+    networks: [chu-net]
+
+  # --------------------------------------------------------------------------
+  # REQUÊTAGE : Trino (connecteur Hive -> MinIO, pruning des partitions)
+  # --------------------------------------------------------------------------
+  trino:
+    image: trinodb/trino:latest
+    container_name: chu-trino
+    depends_on:
+      hive-metastore:
+        condition: service_started
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./config/trino/catalog:/etc/trino/catalog:ro
+    ports:
+      - "8080:8080"
+    networks: [chu-net]
+
+  # --------------------------------------------------------------------------
+  # VISUALISATION : Apache Superset (localhost:8088)
+  # --------------------------------------------------------------------------
+  superset-db:
+    image: postgres:15
+    container_name: chu-superset-db
+    environment:
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset
+      POSTGRES_DB: superset
+    volumes:
+      - superset-db-data:/var/lib/postgresql/data
+    networks: [chu-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U superset -d superset"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  superset:
+    image: apache/superset:4.1.1
+    container_name: chu-superset
+    depends_on:
+      superset-db:
+        condition: service_healthy
+      trino:
+        condition: service_started
+    environment:
+      SUPERSET_CONFIG_PATH: /app/pythonpath/superset_config.py
+      SUPERSET_SECRET_KEY: change-me-in-production-0123456789abcdef
+      # Admin par défaut (à changer) : admin / admin
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin
+      ADMIN_EMAIL: admin@chu.local
+      ADMIN_FIRSTNAME: Admin
+      ADMIN_LASTNAME: CHU
+    volumes:
+      - ./config/superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+    command:
+      - /bin/bash
+      - -c
+      - superset db upgrade
+        && superset fab create-admin --username $$ADMIN_USERNAME --firstname $$ADMIN_FIRSTNAME --lastname $$ADMIN_LASTNAME --email $$ADMIN_EMAIL --password $$ADMIN_PASSWORD || true
+        && superset init
+        && superset run -h 0.0.0.0 -p 8088
+    ports:
+      - "8088:8088"
+    networks: [chu-net]
+
+  # --------------------------------------------------------------------------
+  # ORCHESTRATION : Apache Airflow (LocalExecutor, 1 scheduler + 1 webserver)
+  # --------------------------------------------------------------------------
+  airflow-db:
+    image: postgres:15
+    container_name: chu-airflow-db
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow-db-data:/var/lib/postgresql/data
+    networks: [chu-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  airflow-scheduler:
+    image: apache/airflow:2.9.3
+    container_name: chu-airflow-scheduler
+    depends_on:
+      airflow-db:
+        condition: service_healthy
+      spark-master:
+        condition: service_started
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
+      AIRFLOW__CORE__FERNET_KEY: "UKMzEm3yIuFYHrpoiMOQc3wvXHkqYz8bumjZWmZTjNw="
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__WEBSERVER__SECRET_KEY: "chu-l2-webserver-secret"
+      AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
+      # Provider Spark (SparkSubmitOperator) installé au premier démarrage
+      _PIP_ADDITIONAL_REQUIREMENTS: apache-airflow-providers-apache-spark==8.9.0
+      # Connexion Spark standalone pour SparkSubmitOperator
+      AIRFLOW_CONN_SPARK_DEFAULT: spark://spark-master:7077
+      SPARK_CONN_ID: spark_default
+      SPARK_MASTER: spark://spark-master:7077
+    volumes:
+      - ./03_airflow/dags:/opt/airflow/dags
+      - ./02_spark:/opt/spark/jobs
+      - .:/opt/airflow/scripts
+      - airflow-logs:/opt/airflow/logs
+      # Socket Docker : permet au DAG dq_checks d'exécuter le conteneur DuckDB
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: ["scheduler"]
+    networks: [chu-net]
+
+  airflow-webserver:
+    image: apache/airflow:2.9.3
+    container_name: chu-airflow-webserver
+    depends_on:
+      airflow-db:
+        condition: service_healthy
+      airflow-scheduler:
+        condition: service_started
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
+      AIRFLOW__CORE__FERNET_KEY: "UKMzEm3yIuFYHrpoiMOQc3wvXHkqYz8bumjZWmZTjNw="
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__WEBSERVER__SECRET_KEY: "chu-l2-webserver-secret"
+      AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
+      _PIP_ADDITIONAL_REQUIREMENTS: apache-airflow-providers-apache-spark==8.9.0
+      AIRFLOW_CONN_SPARK_DEFAULT: spark://spark-master:7077
+      SPARK_CONN_ID: spark_default
+      SPARK_MASTER: spark://spark-master:7077
+    volumes:
+      - ./03_airflow/dags:/opt/airflow/dags
+      - ./02_spark:/opt/spark/jobs
+      - .:/opt/airflow/scripts
+      - airflow-logs:/opt/airflow/logs
+    command:
+      - /bin/bash
+      - -c
+      - airflow db migrate && airflow users create --role Admin --username admin --password admin --firstname Admin --lastname CHU --email admin@chu.local || true
+        && airflow webserver --port 8090
+    ports:
+      - "8090:8090"
+    networks: [chu-net]

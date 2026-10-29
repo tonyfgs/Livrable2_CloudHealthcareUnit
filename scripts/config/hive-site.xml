@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<!-- ==========================================================================
+     Livrable 2 - CHU - Hive Metastore (service `hive-metastore`)
+     Le metastore stocke les MÉTADONNÉES des tables externes (localisations
+     s3a://lake/...) : il ne lit jamais les données Parquet (c'est le rôle de
+     Trino/Spark). Seul le SGBD du catalogue est PostgreSQL (service
+     `metastore-db`) ; le schéma est initialisé par `hive-metastore-init`
+     (schematool -initSchema).
+     ========================================================================== -->
+<configuration>
+
+  <!-- SGBD du catalogue -->
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>
+    <value>jdbc:postgresql://metastore-db:5432/metastore</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionDriverName</name>
+    <value>org.postgresql.Driver</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionUserName</name>
+    <value>hive</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionPassword</name>
+    <value>hive</value>
+  </property>
+
+  <!-- Le service EST le metastore : pas d'URI distant -->
+  <property>
+    <name>hive.metastore.uris</name>
+    <value></value>
+  </property>
+  <property>
+    <name>hive.metastore.port</name>
+    <value>9083</value>
+  </property>
+  <property>
+    <name>hive.metastore.thrift.bind.host</name>
+    <value>0.0.0.0</value>
+  </property>
+
+  <!-- Le schéma est initialisé par schematool (service hive-metastore-init) -->
+  <property>
+    <name>datanucleus.schema.autoCreateAll</name>
+    <value>false</value>
+  </property>
+  <property>
+    <name>hive.metastore.schema.verification</name>
+    <value>false</value>
+  </property>
+
+  <!-- Entrepôt par défaut (les tables Gold/Silver sont EXTERNES sur s3a://lake) -->
+  <property>
+    <name>hive.metastore.warehouse.dir</name>
+    <value>s3a://lake/warehouse</value>
+  </property>
+
+  <!-- Sécurité désactivée (environnement local de démonstration) -->
+  <property>
+    <name>hive.security.authorization.enabled</name>
+    <value>false</value>
+  </property>
+  <property>
+    <name>hive.server2.enable.doAs</name>
+    <value>false</value>
+  </property>
+
+  <!-- Beeline (port 10000) utilisé par le DAG lakehouse_init pour le DDL -->
+  <property>
+    <name>hive.server2.thrift.port</name>
+    <value>10000</value>
+  </property>
+  <property>
+    <name>hive.server2.thrift.bind.host</name>
+    <value>0.0.0.0</value>
+  </property>
+
+</configuration>
