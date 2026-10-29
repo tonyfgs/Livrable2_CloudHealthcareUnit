@@ -7,7 +7,7 @@
 --                 poc/apres (Parquet partitionné/bucketé, trié)
 -- ============================================================
 INSTALL postgres; LOAD postgres;
-ATTACH 'dbname=chu_s1 host=chu-s1 user=chu password=chu' AS s1 (TYPE postgres);
+ATTACH 'dbname=chu_s1 host=s1-postgres user=chu password=chu' AS s1 (TYPE postgres);
 
 -- ---------- d_temps : grain jour, 2015-2030 ----------
 CREATE OR REPLACE TABLE d_temps AS
@@ -95,14 +95,14 @@ COPY (SELECT * FROM d_professionnel) TO 'poc/avant/d_professionnel.parquet' (FOR
 -- ============================================================
 -- EXPORT "APRES" : partitionnement Hive + bucketing + tri sur les clés de jointure
 --  d_temps          PARTITIONED BY (annee)                      -> 16 partitions
---  d_patient        PARTITIONED BY (tranche_age_ref)            -> 7 partitions
+--  d_patient        PARTITIONED BY (sexe, tranche_age_ref)      -> 12 partitions
 --  d_etablissement  CLUSTERED BY (id_etablissement) INTO 32 BUCKETS (simulé : 32 fichiers bucket=N)
 --  d_localisation   PARTITIONED BY (region)                     -> 19 partitions
 --  d_diagnostic     CLUSTERED BY (id_diagnostic) INTO 8 BUCKETS
 --  d_professionnel  CLUSTERED BY (identifiant) INTO 32 BUCKETS
 -- ============================================================
 COPY (SELECT * FROM d_temps ORDER BY id_temps) TO 'poc/apres/d_temps' (FORMAT PARQUET, PARTITION_BY (annee), OVERWRITE_OR_IGNORE 1);
-COPY (SELECT * FROM d_patient ORDER BY id_patient) TO 'poc/apres/d_patient' (FORMAT PARQUET, PARTITION_BY (tranche_age_ref), OVERWRITE_OR_IGNORE 1);
+COPY (SELECT * FROM d_patient ORDER BY id_patient) TO 'poc/apres/d_patient' (FORMAT PARQUET, PARTITION_BY (sexe, tranche_age_ref), OVERWRITE_OR_IGNORE 1);
 COPY (SELECT *, (hash(id_etablissement) % 32)::INTEGER AS bucket FROM (SELECT * FROM d_etablissement ORDER BY id_etablissement)) TO 'poc/apres/d_etablissement' (FORMAT PARQUET, PARTITION_BY (bucket), OVERWRITE_OR_IGNORE 1);
 COPY (SELECT * FROM d_localisation ORDER BY id_localisation) TO 'poc/apres/d_localisation' (FORMAT PARQUET, PARTITION_BY (region), OVERWRITE_OR_IGNORE 1);
 COPY (SELECT *, (hash(id_diagnostic) % 8)::INTEGER AS bucket FROM (SELECT * FROM d_diagnostic ORDER BY id_diagnostic)) TO 'poc/apres/d_diagnostic' (FORMAT PARQUET, PARTITION_BY (bucket), OVERWRITE_OR_IGNORE 1);

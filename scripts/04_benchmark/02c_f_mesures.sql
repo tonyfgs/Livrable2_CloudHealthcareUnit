@@ -9,7 +9,7 @@
 -- 4 mesures : nbre_consultation, nbre_hospitalisation, total_satisfaction, nbre_deces
 -- ============================================================
 INSTALL postgres; LOAD postgres;
-ATTACH 'dbname=chu_s1 host=chu-s1 user=chu password=chu' AS s1 (TYPE postgres);
+ATTACH 'dbname=chu_s1 host=s1-postgres user=chu password=chu' AS s1 (TYPE postgres);
 
 CREATE OR REPLACE TABLE f_mesures AS
 WITH consult AS (

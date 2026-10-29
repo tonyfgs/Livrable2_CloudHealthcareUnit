@@ -1,21 +1,29 @@
 .mode list
 .headers on
 .timer off
+-- ============================================================
+-- Contrôles qualité Livrable 2 - 6 familles (complétude, validité,
+-- doublons, cohérence référentielle FINESS, temporalité, volumes).
+-- Sources : PostgreSQL S1 (service Docker "s1-postgres") + CSV sous
+-- /data-projet (montage fixe de "DATA Projet", voir run-duckdb.sh) +
+-- staging/ (CSV dérivés UTF-8, lus en relatif depuis le workspace $L2WORK).
+-- Résultats : dq/results/*.csv (relatifs au workspace).
+-- ============================================================
 INSTALL postgres; LOAD postgres;
-ATTACH 'dbname=chu_s1 host=chu-s1 user=chu password=chu' AS s1 (TYPE postgres);
-CREATE OR REPLACE VIEW src_hosp AS SELECT * FROM read_csv('/Users/tonyfages/CESI/4A/Big Data/projet/DATA Projet/Hospitalisation/Hospitalisations.csv', header=true, delim=';', nullstr='', all_varchar=true);
-CREATE OR REPLACE VIEW src_etab AS SELECT * FROM read_csv('/Users/tonyfages/CESI/4A/Big Data/projet/DATA Projet/Etablissement de SANTE/etablissement_sante.csv', header=true, delim=';', nullstr='', all_varchar=true, max_line_size=10000000);
+ATTACH 'dbname=chu_s1 host=s1-postgres user=chu password=chu' AS s1 (TYPE postgres);
+CREATE OR REPLACE VIEW src_hosp AS SELECT * FROM read_csv('/data-projet/Hospitalisation/Hospitalisations.csv', header=true, delim=';', nullstr='', all_varchar=true);
+CREATE OR REPLACE VIEW src_etab AS SELECT * FROM read_csv('/data-projet/Etablissement de SANTE/etablissement_sante.csv', header=true, delim=';', nullstr='', all_varchar=true, max_line_size=10000000);
 CREATE OR REPLACE VIEW src_pro AS SELECT * FROM read_csv('staging/professionnel_sante_utf8.csv', header=true, delim=';', nullstr='', all_varchar=true);
 CREATE OR REPLACE VIEW src_act AS SELECT * FROM read_csv('staging/activite_professionnel_sante_utf8.csv', header=true, delim=';', nullstr='', all_varchar=true);
 CREATE OR REPLACE VIEW src_sat19 AS SELECT * FROM read_csv('staging/satisfaction_2019.csv', header=true, delim=';', nullstr='', all_varchar=true);
 CREATE OR REPLACE VIEW src_sat20 AS SELECT * FROM read_csv('staging/satisfaction_2020_clean.csv', header=true, delim=';', nullstr='', all_varchar=true);
-CREATE OR REPLACE VIEW src_deces AS SELECT * FROM read_csv('/Users/tonyfages/CESI/4A/Big Data/projet/DATA Projet/DECES EN FRANCE/deces.csv', header=true, delim=',', quote='"', nullstr='', types={'sexe':'VARCHAR','date_deces':'VARCHAR','date_naissance':'VARCHAR','code_lieu_deces':'VARCHAR','code_lieu_naissance':'VARCHAR','numero_acte_deces':'VARCHAR'});
+CREATE OR REPLACE VIEW src_deces AS SELECT * FROM read_csv('/data-projet/DECES EN FRANCE/deces.csv', header=true, delim=',', quote='"', nullstr='', types={'sexe':'VARCHAR','date_deces':'VARCHAR','date_naissance':'VARCHAR','code_lieu_deces':'VARCHAR','code_lieu_naissance':'VARCHAR','numero_acte_deces':'VARCHAR'});
 -- matérialisation physique intermédiaire : coupe la poussée de cast dans le lecteur CSV
 -- (un try_cast poussé dans read_csv provoque une erreur dure, ex. "75,09" -> DOUBLE ou "1983" -> DATE)
 CREATE OR REPLACE TABLE t_hosp AS SELECT * FROM src_hosp;
 CREATE OR REPLACE TABLE t_sat19 AS SELECT * FROM src_sat19;
 CREATE OR REPLACE TABLE t_sat20 AS SELECT * FROM src_sat20;
-CREATE OR REPLACE TABLE t_deces AS SELECT * FROM read_csv('/Users/tonyfages/CESI/4A/Big Data/projet/DATA Projet/DECES EN FRANCE/deces.csv', header=true, delim=',', quote='"', nullstr='', all_varchar=true);
+CREATE OR REPLACE TABLE t_deces AS SELECT * FROM read_csv('/data-projet/DECES EN FRANCE/deces.csv', header=true, delim=',', quote='"', nullstr='', all_varchar=true);
 -- vues typées sûres : le cast s'applique sur une table DuckDB, jamais dans le lecteur CSV
 CREATE OR REPLACE VIEW v_deces_d AS SELECT *, try_cast(date_deces AS DATE) AS d_deces, try_cast(date_naissance AS DATE) AS d_naissance FROM t_deces;
 CREATE OR REPLACE VIEW v_hosp_d AS SELECT *, try_strptime("Date_Entree",'%d/%m/%Y') AS d_entree FROM t_hosp;

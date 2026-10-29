@@ -84,9 +84,10 @@ f_deces_agg = (
 # ---------------------------------------------------------------------------
 # Écriture : PARTITIONED BY (annee) SEULEMENT. Justification (cf. rapport) :
 # un partitionnement par (annee, sexe, tranche_age) produirait
-# 138 x 3 x 7 = 2 898 partitions de ~24 lignes (small-files problem) pour
-# 69 008 lignes ; le grain annuel + annee en partition donnent 138 partitions
-# de ~500 lignes. Le tri par (sexe, tranche_age, id_localisation) compense
+# 1 251 combinaisons réelles (~55 lignes ; borne 133 x 2 x 7 = 1 862) pour
+# 69 008 lignes (small-files problem) ; le grain annuel + annee en partition
+# donnent 133 partitions de ~519 lignes. Le tri par (sexe, tranche_age,
+# id_localisation) compense
 # l'absence de partitionnement sur ces colonnes (min/max par fichier ->
 # pruning intra-partition côté Trino).
 # ---------------------------------------------------------------------------

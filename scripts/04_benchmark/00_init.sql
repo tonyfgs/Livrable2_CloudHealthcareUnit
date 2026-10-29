@@ -5,17 +5,18 @@
 -- PoC Livrable 2 - initialisation : sources + matérialisation
 -- Base persistante : poc/warehouse.duckdb (ouverte en argument CLI)
 --
--- Chemins : les 3 chemins absolus "DATA Projet" ci-dessous correspondent au
--- montage du volume Docker chu-l2-data (même chemin absolu hôte/conteneur,
--- voir run-duckdb.sh, variable DATA_PROJET). Adapter si le projet est ailleurs.
+-- Chemins : les sources brutes sont lues sous /data-projet, point de montage
+-- fixe du dossier "DATA Projet" (variable DATA_PROJET de run-duckdb.sh ;
+-- même convention dans le service bench-duckdb du docker-compose.yml).
+-- La source S1 PostgreSQL est atteinte via le nom de service "s1-postgres".
 -- Les CSV de staging/ (satisfaction nettoyés, référentiels UTF-8) sont lus
 -- en relatif depuis le workspace ($L2WORK).
 -- ============================================================
 INSTALL postgres; LOAD postgres;
-ATTACH 'dbname=chu_s1 host=chu-s1 user=chu password=chu' AS s1 (TYPE postgres);
+ATTACH 'dbname=chu_s1 host=s1-postgres user=chu password=chu' AS s1 (TYPE postgres);
 
-CREATE OR REPLACE VIEW src_hosp AS SELECT * FROM read_csv('/Users/tonyfages/CESI/4A/Big Data/projet/DATA Projet/Hospitalisation/Hospitalisations.csv', header=true, delim=';', nullstr='', all_varchar=true);
-CREATE OR REPLACE VIEW src_etab AS SELECT * FROM read_csv('/Users/tonyfages/CESI/4A/Big Data/projet/DATA Projet/Etablissement de SANTE/etablissement_sante.csv', header=true, delim=';', nullstr='', all_varchar=true, max_line_size=10000000);
+CREATE OR REPLACE VIEW src_hosp AS SELECT * FROM read_csv('/data-projet/Hospitalisation/Hospitalisations.csv', header=true, delim=';', nullstr='', all_varchar=true);
+CREATE OR REPLACE VIEW src_etab AS SELECT * FROM read_csv('/data-projet/Etablissement de SANTE/etablissement_sante.csv', header=true, delim=';', nullstr='', all_varchar=true, max_line_size=10000000);
 CREATE OR REPLACE VIEW src_pro AS SELECT * FROM read_csv('staging/professionnel_sante_utf8.csv', header=true, delim=';', nullstr='', all_varchar=true);
 CREATE OR REPLACE VIEW src_act AS SELECT * FROM read_csv('staging/activite_professionnel_sante_utf8.csv', header=true, delim=';', nullstr='', all_varchar=true);
 CREATE OR REPLACE VIEW src_sat19 AS SELECT * FROM read_csv('staging/satisfaction_2019.csv', header=true, delim=';', nullstr='', all_varchar=true);
@@ -48,7 +49,7 @@ CREATE OR REPLACE VIEW ref_region_map AS SELECT * FROM (VALUES
 CREATE OR REPLACE TABLE t_hosp AS SELECT * FROM src_hosp;
 CREATE OR REPLACE TABLE t_sat19 AS SELECT * FROM src_sat19;
 CREATE OR REPLACE TABLE t_sat20 AS SELECT * FROM src_sat20;
-CREATE OR REPLACE TABLE t_deces AS SELECT * FROM read_csv('/Users/tonyfages/CESI/4A/Big Data/projet/DATA Projet/DECES EN FRANCE/deces.csv', header=true, delim=',', quote='"', nullstr='', all_varchar=true);
+CREATE OR REPLACE TABLE t_deces AS SELECT * FROM read_csv('/data-projet/DECES EN FRANCE/deces.csv', header=true, delim=',', quote='"', nullstr='', all_varchar=true);
 CHECKPOINT;
 
 -- Vues typées sûres (cast sur table DuckDB, jamais dans le lecteur CSV)

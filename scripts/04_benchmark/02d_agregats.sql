@@ -7,7 +7,7 @@
 -- f_consult_prof_mois   : consultations par professionnel x mois
 -- ============================================================
 INSTALL postgres; LOAD postgres;
-ATTACH 'dbname=chu_s1 host=chu-s1 user=chu password=chu' AS s1 (TYPE postgres);
+ATTACH 'dbname=chu_s1 host=s1-postgres user=chu password=chu' AS s1 (TYPE postgres);
 
 CREATE OR REPLACE TABLE f_consult_diag_mois AS
 SELECT annee_mois, CAST(substring(annee_mois,1,4) AS INTEGER) AS annee, id_diagnostic, id_etablissement, COUNT(*) AS nbre_consultation

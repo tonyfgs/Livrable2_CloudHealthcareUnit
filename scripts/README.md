@@ -54,7 +54,7 @@ scripts/
 
 ```bash
 cd scripts
-docker compose up -d          # démarre les 12 services (MinIO, Hive Metastore,
+docker compose up -d          # démarre les 15 services (MinIO, Hive Metastore,
                               # Spark, Trino, Superset, Airflow, S1, benchmark)
 # 1. Ingestion : minio-init copie "DATA Projet" -> s3a://lake/raw/ (one-shot)
 # 2. Airflow (http://localhost:8090, admin/admin) :
@@ -68,15 +68,19 @@ docker compose up -d          # démarre les 12 services (MinIO, Hive Metastore,
 ### B. PoC benchmark (exécuté pendant le projet, hôte uniquement)
 
 Voir `04_benchmark/README.md` : DuckDB tourne dans un conteneur jetable
-(`run-duckdb.sh`), la source S1 dans `chu-s1-postgres`. Les résultats
-(CSV + SVG) sont déjà dans `04_benchmark/results/`.
+(`run-duckdb.sh`), la source S1 dans le conteneur `chu-s1-postgres`
+(service `s1-postgres`). Les résultats (CSV + SVG) sont déjà dans
+`04_benchmark/results/`.
 
-### C. Contrôles qualité seuls
+### C. Contrôles qualité seuls (workspace PoC)
 
 ```bash
-cd $L2WORK   # workspace contenant staging/ et le lien poc -> scripts/04_benchmark
-./run-duckdb.sh <l2.duckdb> < scripts/05_qualite/dq_checks.sql
-# -> scripts/05_qualite/results/dq_*.csv
+export L2WORK=${L2WORK:-/tmp/l2work}   # workspace contenant staging/
+mkdir -p "$L2WORK/dq/results"
+# depuis la racine de "Livrable 2" (les sources brutes sont montées
+# au point fixe /data-projet par le runner, variable DATA_PROJET) :
+sh scripts/04_benchmark/run-duckdb.sh "$L2WORK/dq/l2.duckdb" < scripts/05_qualite/dq_checks.sql
+cp "$L2WORK"/dq/results/dq_*.csv scripts/05_qualite/results/
 ```
 
 ## Couches de la stack (positionnement)

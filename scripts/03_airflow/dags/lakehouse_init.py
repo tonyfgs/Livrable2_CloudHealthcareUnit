@@ -11,14 +11,15 @@
 # Le DAG quotidien (lakehouse_daily.py) prend le relais pour les charges.
 #
 # Prérequis : docker-compose.yml démarré (services hive-metastore, trino,
-# superset, s1-postgres). Les scripts DDL sont montés dans /opt/airflow/scripts.
+# superset, s1-postgres). Les scripts DDL sont montés dans /opt/airflow/scripts
+# (conteneur Airflow) et /opt/scripts (conteneurs hive-metastore / trino) :
+# ce DAG pilote beeline et trino-cli via `docker exec` (socket Docker monté
+# dans le scheduler, image chu-airflow construite depuis 03_airflow/Dockerfile).
 # ============================================================================
 from datetime import datetime
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-
-SCRIPTS = "/opt/airflow/scripts"
 
 default_args = {
     "owner": "chu-data-team",
@@ -38,13 +39,15 @@ with DAG(
 
     # -------------------------------------------------------------------------
     # 1. DDL Hive : schéma silver/gold (tables EXTERNES sur s3a://lake)
-    #    Le conteneur hive-metastore expose beeline sur jdbc:hive2://localhost:10000
+    #    beeline tourne DANS le conteneur hive-metastore (docker exec) :
+    #    jdbc:hive2://localhost:10000 depuis ce conteneur
     # -------------------------------------------------------------------------
     ddl_hive = BashOperator(
         task_id="ddl_schema_gold_hive",
         bash_command=(
-            "beeline -u jdbc:hive2://hive-metastore:10000/default "
-            f"-f {SCRIPTS}/01_ddl/01_schema_gold_hive.sql"
+            "docker exec chu-hive-metastore "
+            "beeline -u jdbc:hive2://localhost:10000/default "
+            "-f /opt/scripts/01_ddl/01_schema_gold_hive.sql"
         ),
     )
 
@@ -54,8 +57,9 @@ with DAG(
     vues_metier = BashOperator(
         task_id="vues_metier",
         bash_command=(
-            "beeline -u jdbc:hive2://hive-metastore:10000/gold "
-            f"-f {SCRIPTS}/01_ddl/03_vues_metier.sql"
+            "docker exec chu-hive-metastore "
+            "beeline -u jdbc:hive2://localhost:10000/gold "
+            "-f /opt/scripts/01_ddl/03_vues_metier.sql"
         ),
     )
 
@@ -65,8 +69,9 @@ with DAG(
     verif_trino = BashOperator(
         task_id="verification_trino",
         bash_command=(
-            "trino --server http://trino:8080 --catalog hive --schema gold "
-            f"--file {SCRIPTS}/01_ddl/02_schema_gold_trino.sql"
+            "docker exec chu-trino "
+            "trino --server http://localhost:8080 --catalog hive --schema gold "
+            "--file /opt/scripts/01_ddl/02_schema_gold_trino.sql"
         ),
     )
 

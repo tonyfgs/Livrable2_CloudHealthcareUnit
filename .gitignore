@@ -1,5 +1,9 @@
 *.duckdb
 *.duckdb.wal
+# exports Parquet du PoC (workspace "poc/" réel ou lien vers scripts/04_benchmark)
 poc/avant/
 poc/apres/
+scripts/04_benchmark/avant/
+scripts/04_benchmark/apres/
+scripts/04_benchmark/results/_*
 .DS_Store

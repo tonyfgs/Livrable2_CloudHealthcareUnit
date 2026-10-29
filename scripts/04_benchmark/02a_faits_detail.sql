@@ -5,7 +5,7 @@
 -- PoC Livrable 2 - faits de détail et satisfaction (couches Silver/Gold)
 -- ============================================================
 INSTALL postgres; LOAD postgres;
-ATTACH 'dbname=chu_s1 host=chu-s1 user=chu password=chu' AS s1 (TYPE postgres);
+ATTACH 'dbname=chu_s1 host=s1-postgres user=chu password=chu' AS s1 (TYPE postgres);
 
 -- ---------- f_consultation_detail (grain = 1 consultation, couche Silver) ----------
 -- Rattachement établissement : Consultation.Id_prof_sante -> activite (identifiant, identifiant_organisation)

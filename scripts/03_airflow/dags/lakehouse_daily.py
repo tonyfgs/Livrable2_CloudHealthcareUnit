@@ -44,7 +44,6 @@ from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOpe
 SPARK_CONN = os.environ.get("SPARK_CONN_ID", "spark_default")
 SPARK_MASTER = os.environ.get("SPARK_MASTER", "spark://spark-master:7077")
 JOBS = "/opt/spark/jobs"
-SCRIPTS = "/opt/airflow/scripts"
 
 # Packages nécessaires aux jobs : driver JDBC PostgreSQL (source S1) et
 # connecteur Hadoop S3A (data lake MinIO). Hadoop 3.3 (Spark 3.5).
@@ -123,13 +122,15 @@ with DAG(
     #    référentiel, temporalité, volumes). Le script dq_checks.sql est écrit
     #    pour le moteur DuckDB du conteneur de benchmark (mêmes règles que le
     #    rapport qualité) ; les résultats CSV sont archivés dans
-    #    05_qualite/results/.
+    #    05_qualite/results/. Le conteneur chu-bench-duckdb monte : le script
+    #    (/opt/l2work/dq), les résultats (/opt/l2work/dq/results), les sources
+    #    brutes (/data-projet) et le staging du workspace (/opt/l2work/staging).
     # -------------------------------------------------------------------------
     dq_checks = BashOperator(
         task_id="dq_checks",
         bash_command=(
             "docker exec chu-bench-duckdb sh -c '"
-            f"cd /opt/l2work && duckdb l2 < {SCRIPTS}/05_qualite/dq_checks.sql"
+            "cd /opt/l2work && duckdb /tmp/dq.duckdb < /opt/l2work/dq/dq_checks.sql"
             "' && echo 'DQ OK - résultats dans 05_qualite/results/'"
         ),
     )
@@ -143,8 +144,10 @@ with DAG(
     dispo_trino_superset = BashOperator(
         task_id="dispo_trino_superset",
         bash_command=(
-            "curl -sf http://trino:8080/v1/info && "
-            "trino --server http://trino:8080 --catalog hive --schema gold "
+            "docker exec chu-trino trino --server http://localhost:8080 "
+            "--execute 'SELECT version()' && "
+            "docker exec chu-trino trino --server http://localhost:8080 "
+            "--catalog hive --schema gold "
             "--execute 'SELECT COUNT(*) AS lignes_f_mesures FROM gold.f_mesures'"
         ),
     )

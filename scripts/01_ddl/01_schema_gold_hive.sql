@@ -19,9 +19,11 @@
 --   f_consultation_detail PARTITIONED BY (annee) -> pruning temporel.
 --   f_hospitalisation  PARTITIONED BY (annee).
 --   f_deces_agg        PARTITIONED BY (annee) SEULEMENT : un partitionnement par
---                      (annee, sexe, tranche_age) produirait 138 x 2 x 6 = 1 656
---                      partitions de ~40 lignes pour 69 008 lignes (small-files
---                      problem) ; le tri intra-partition compense.
+--                      (annee, sexe, tranche_age) produirait 1 251 combinaisons
+--                      réelles (~55 lignes chacune ; borne 133 x 2 x 7 = 1 862)
+--                      pour 69 008 lignes (small-files problem) ; annee seul
+--                      donne 133 partitions (~519 lignes). Le tri intra-partition
+--                      compense.
 --   f_satisfaction     PARTITIONED BY (annee, region) : grain juridique x année,
 --                      la région est la colonne la plus filtrante (besoin métier).
 --   d_temps            PARTITIONED BY (annee)    (grain jour, 2015-2030,

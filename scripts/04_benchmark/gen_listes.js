@@ -43,7 +43,7 @@ function listeFichiers(table, filtre) {
           if (idx > 0) kv[decodeURIComponent(comp.slice(0, idx))] = decodeURIComponent(comp.slice(idx + 1));
         }
         const ok = Object.entries(filtre).every(([k, vals]) => vals.includes(kv[k]));
-        if (ok) fichiers.push(path.relative('/tmp/l2work', p));
+        if (ok) fichiers.push(path.relative(path.dirname(POC), p));
       }
     }
   };

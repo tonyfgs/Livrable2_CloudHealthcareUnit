@@ -55,7 +55,7 @@ DESCRIBE hive.gold.f_satisfaction;  -- partitions : annee (varchar), region (var
 DESCRIBE hive.gold.f_hospitalisation;   -- partition : annee (int)
 DESCRIBE hive.gold.f_consultation_detail; -- partition : annee (int) [silver]
 DESCRIBE hive.gold.d_temps;         -- partition : annee (int)
-DESCRIBE hive.gold.d_patient;       -- partition : tranche_age_ref (varchar)
+DESCRIBE hive.gold.d_patient;       -- partitions : sexe (varchar), tranche_age_ref (varchar)
 DESCRIBE hive.gold.d_localisation;  -- partition : region (varchar)
 DESCRIBE hive.gold.d_etablissement; -- pas de partition (bucketing Hive)
 
@@ -109,8 +109,8 @@ SELECT SUM(nbre_consultation)
 FROM hive.gold.f_mesures
 WHERE annee = 2019 AND nbre_consultation > 0;
 -- le champ "parquet" doit indiquer un sous-ensemble des 9 partitions annee
--- (2015-2023) de f_mesures, et non les 9 x 2 x 7 = 126 combinaisons
--- (annee, sexe, tranche_age).
+-- (2015-2023) de f_mesures, et non les 9 x 3 x 8 = 216 combinaisons
+-- (annee, sexe, tranche_age ; 122 réellement présentes dans les données).
 
 -- ---------------------------------------------------------------------------
 -- 6. Requête de bout en bout (jointure étoile) - sanity check Superset

@@ -46,7 +46,7 @@ Le groupe CHU a engagé une transformation digitale de son système d'informatio
 | Source | **PostgreSQL** (S1) | Dump ChuSimulation restauré par `pg_restore` |
 | Benchmark/DQ | DuckDB (conteneur jetable) | PoC de performance + contrôles qualité (rien installé sur l'hôte) |
 
-> **Contrainte環境** : l'intégralité de la plateforme tourne dans Docker (12 services, `scripts/docker-compose.yml`). Aucune installation sur le poste hôte (ni PostgreSQL, ni Spark, ni Java...).
+> **Contrainte d'environnement** : l'intégralité de la plateforme tourne dans Docker (15 services, `scripts/docker-compose.yml`). Aucune installation sur le poste hôte (ni PostgreSQL, ni Spark, ni Java...).</description>
 
 ---
 
@@ -188,12 +188,12 @@ La chaîne complète a été exécutée de bout en bout (scripts `scripts/04_ben
 
 | Table | Colonnes de partition | Justification |
 |---|---|---|
-| `f_mesures` | `annee`, `sexe`, `tranche_age` | **Pruning temporel + démographique** : les requêtes métier filtrent systématiquement sur l'année (voire la période), le sexe et la tranche d'âge sont les axes démographiques des besoins 5 et 10. 9 années × 3 sexes × 7 tranches = 189 partitions max. |
+| `f_mesures` | `annee`, `sexe`, `tranche_age` | **Pruning temporel + démographique** : les requêtes métier filtrent systématiquement sur l'année (voire la période), le sexe et la tranche d'âge sont les axes démographiques des besoins 5 et 10. 9 années × 3 sexes × 8 tranches = 216 combinaisons max (122 réellement présentes). |
 | `d_patient` | `sexe`, `tranche_age_ref` | Partitionnement démographique de la dimension patient (conforme à la grille d'évaluation). |
 | `d_temps` | `annee` | Partitionnement temporel de la dimension temps (couvre 2015-2021, périmètre de la grille, prolongé à 2030 pour la planification). |
 | `d_localisation` | `region` | Partitionnement par région (la région est l'axe géographique le plus filtrant — besoins 7 et 8). |
 | `f_consultation_detail`, `f_hospitalisation`, `f_consult_diag_mois`, `f_consult_prof_mois` | `annee` | Pruning temporel (tous les besoins portent sur des périodes). |
-| `f_deces_agg` | `annee` **seulement** | Un partitionnement par `(annee, sexe, tranche_age)` produirait 138 × 3 × 7 = 2 898 partitions de ~24 lignes pour 69 008 lignes (**small-files problem**). Le grain annuel + `annee` en partition donnent 138 partitions de ~500 lignes ; le **tri intra-partition** par `(sexe, tranche_age, id_localisation)` compense l'absence de partitionnement sur ces colonnes (pruning par min/max de fichier côté Trino). |
+| `f_deces_agg` | `annee` **seulement** | Un partitionnement par `(annee, sexe, tranche_age)` produirait 1 251 combinaisons réelles (~55 lignes chacune ; borne 133 × 2 × 7 = 1 862) pour 69 008 lignes (**small-files problem**). Le grain annuel + `annee` en partition donnent 133 partitions de ~519 lignes ; le **tri intra-partition** par `(sexe, tranche_age, id_localisation)` compense l'absence de partitionnement sur ces colonnes (pruning par min/max de fichier côté Trino). |
 | `f_satisfaction` | `annee`, `region` | Grain juridique × année ; la région est la colonne la plus filtrante (besoin 8). |
 | `d_etablissement`, `d_diagnostic`, `d_professionnel` | — | Tables de taille moyenne/volumineuse mais peu filtrées seules : le **bucketing** suffit (pas de partition). |
 
@@ -357,7 +357,7 @@ Résultats complets : `scripts/04_benchmark/results/resultats_requetes.txt`.
 
 - **Moteur du PoC** : DuckDB (dans un conteneur Docker jetable, `scripts/04_benchmark/run-duckdb.sh`), données : entrepôt complet construit par les scripts `00_init` → `02d`
 - **Scénario AVANT** : tables plates (1 fichier Parquet par table, aucun ordre) — équivalent « non optimisé »
-- **Scénario APRÈS** : tables partitionnées (style Hive) + bucketing simulé + tri sur les clés de jointure — lu par glob `**/*.parquet` avec `hive_partitioning` (pruning des répertoires)
+- **Scénario APRÈS** : tables partitionnées (style Hive, conforme au DDL §4.1 : `d_patient` sexe + tranche_age_ref, `d_localisation` region, `d_temps` annee, faits `annee`...) + bucketing simulé + tri sur les clés de jointure — lu par glob `**/*.parquet` avec `hive_partitioning` (pruning des répertoires)
 - **Scénario APRÈS_ML** : APRÈS + **pruning façon metastore** (liste explicite des fichiers retenus, générée par `gen_listes.js`) — simule Hive Metastore/Trino, car DuckDB local n'a pas de metastore et le listing de tous les fichiers pénaliserait le scénario APRÈS (~0,38 ms/fichier)
 - **Mesures** : 5 runs par requête (run 1 = cache froid, runs 2-5 = chauds) ; **médiane** des runs 2-5 ; volume de données lues (octets)
 - **Validation plateforme** : `harness_trino.sh` rejoue les 10 requêtes contre Trino (stack Docker) avec `EXPLAIN ANALYZE` sur q01/q10
@@ -368,16 +368,16 @@ Fichier complet : `scripts/04_benchmark/results/bench_synthese.csv` (et `bench_r
 
 | Requête | Avant | Après | Après + metastore | Accélération (×) | Volume lu avant (Mo) | Volume lu après (Mo) | Réduction volume (×) |
 |---|---|---|---|---|---|---|---|
-| q01 | 33,5 | 94,0 | **33,5** | 1,00 | 23,1 | 13,2 | 1,7 |
-| q02 | 15,0 | 29,5 | **16,0** | 0,94 | 8,1 | 3,0 | 2,7 |
-| q03 | 7,5 | 76,0 | **16,5** | 0,45 | 13,1 | 9,7 | 1,4 |
-| q04 | 7,5 | 13,0 | **8,0** | 0,94 | 0,4 | 0,6 | 0,8 |
-| q05 | 5,0 | 74,5 | **16,0** | 0,31 | 13,1 | 9,7 | 1,4 |
-| q06 | 46,5 | 59,0 | **56,0** | 0,83 | 23,0 | 18,8 | 1,2 |
-| q07 | 7,0 | 56,5 | **6,0** | **1,17** | 0,3 | 0,02 | **13,6** |
-| q08 | 4,0 | 19,0 | **5,0** | 0,80 | 0,02 | 0,02 | 0,9 |
-| q09 | 8,5 | 82,0 | **15,5** | 0,55 | 13,1 | 5,5 | 2,4 |
-| q10 | 31,5 | 118,0 | **28,0** | **1,13** | 24,3 | 13,8 | 1,8 |
+| q01 | 32,0 | 97,5 | **27,0** | **1,19** | 23,1 | 13,2 | 1,7 |
+| q02 | 16,5 | 30,5 | **15,5** | **1,06** | 8,1 | 3,0 | 2,7 |
+| q03 | 7,0 | 78,0 | **17,0** | 0,41 | 13,1 | 9,7 | 1,4 |
+| q04 | 10,5 | 13,5 | **7,5** | **1,40** | 0,4 | 0,6 | 0,8 |
+| q05 | 8,5 | 74,0 | **15,5** | 0,55 | 13,1 | 9,7 | 1,4 |
+| q06 | 53,5 | 69,0 | **51,5** | **1,04** | 23,0 | 18,7 | 1,2 |
+| q07 | 8,0 | 63,0 | **7,0** | **1,14** | 0,3 | 0,02 | **13,6** |
+| q08 | 2,0 | 19,0 | **5,0** | 0,40 | 0,02 | 0,02 | 0,9 |
+| q09 | 11,0 | 85,0 | **15,0** | 0,73 | 13,1 | 5,5 | 2,4 |
+| q10 | 37,5 | 125,5 | **26,0** | **1,44** | 24,3 | 13,8 | 1,8 |
 
 ### 7.3 Graphiques
 
@@ -389,15 +389,15 @@ Fichier complet : `scripts/04_benchmark/results/bench_synthese.csv` (et `bench_r
 
 **1. Le volume de données lues est le levier dominant.** Le partitionnement réduit systématiquement le volume lu (jusqu'à ×13,6 sur q07 : 328 Ko → 24 Ko), parce que les filtres sur `annee` (colonne de partition) éliminent des répertoires entiers avant lecture. C'est exactement le mécanisme du pruning Hive/Trino en production.
 
-**2. Le scénario APRÈS brut est pénalisé par le listing de fichiers (biais connu du PoC).** Sans metastore, DuckDB liste tous les fichiers (`glob`) avant de pouvoir pruner : sur `f_mesures` (189 partitions × buckets), ce listing coûte plus cher que le scan complet de la table plate (q03 : 76 ms vs 7,5 ms). Ce biais est **inhérent au PoC local**, pas à la stratégie : en production, le Hive Metastore connaît les partitions et Trino ne liste que les fichiers retenus (scénario APRÈS_ML). C'est pourquoi le scénario APRÈS_ML est le plus représentatif de la plateforme livrée.
+**2. Le scénario APRÈS brut est pénalisé par le listing de fichiers (biais connu du PoC).** Sans metastore, DuckDB liste tous les fichiers (`glob`) avant de pouvoir pruner : sur `f_mesures` (122 partitions), ce listing coûte plus cher que le scan complet de la table plate (q03 : 78 ms vs 7,0 ms). Ce biais est **inhérent au PoC local**, pas à la stratégie : en production, le Hive Metastore connaît les partitions et Trino ne liste que les fichiers retenus (scénario APRÈS_ML). C'est pourquoi le scénario APRÈS_ML est le plus représentatif de la plateforme livrée.
 
-**3. APRÈS_ML (pruning metastore) : gains nets sur les requêtes filtrées.** q07 (décès 2019) : 7,0 → 6,0 ms et volume ×13,6 ; q10 (jointure étoile, filtre annee × sexe) : 31,5 → 28,0 ms et volume ×1,8. Les gains sont modestes en temps absolu car le PoC tourne sur une machine locale avec des données déjà en cache OS et un moteur (DuckDB) très rapide sur de petits volumes ; l'apport du partitionnement croît avec le volume (en production : 25 M de décès non agrégés, téraoctets de consultations) et avec la concurrence (un scan complet bloque, un pruning ne lit que l'utile).
+**3. APRÈS_ML (pruning metastore) : gains nets sur les requêtes filtrées.** q07 (décès 2019) : 8,0 → 7,0 ms (×1,14) et volume ×13,6 ; q10 (jointure étoile, filtre annee × sexe) : 37,5 → 26,0 ms (×1,44) et volume ×1,8. Les gains sont modestes en temps absolu car le PoC tourne sur une machine locale avec des données déjà en cache OS et un moteur (DuckDB) très rapide sur de petits volumes ; l'apport du partitionnement croît avec le volume (en production : 25 M de décès non agrégés, ~1,4 M de faits mensuels) et avec la concurrence (un scan complet bloque, un pruning ne lit que l'utile).
 
 **4. q04 et q08 : petits volumes, pas de gain (voire small-files).** `f_hospitalisation` (2 479 lignes) et `f_satisfaction` (2 295 lignes) tiennent en 1-2 fichiers : le partitionnement y crée plus de fichiers que de lignes utiles (q04 : volume lu ×0,8, q08 : ×0,9). **Leçon** : le partitionnement se justifie au-delà d'un seuil de volume ; ces deux faits restent partitionnés par `annee` pour la cohérence du modèle (et parce que S2/S3 grossiront), mais le bénéfice est neutre. C'est un résultat honnête du benchmark.
 
-**5. q06 (consultations par professionnel, 2020) : le bucketing paie peu ici.** La jointure `f_consult_prof_mois ↔ d_professionnel` porte sur 1 M de professionnels ; le bucketing évite le shuffle complet côté Spark/Hive, mais le PoC (single-node) ne montre pas cet avantage (59 → 56 ms). En cluster Spark/Trino, le bucketed join est le levier principal sur ce type de jointure.
+**5. q06 (consultations par professionnel, 2020) : le bucketing paie peu ici.** La jointure `f_consult_prof_mois ↔ d_professionnel` porte sur 1 M de professionnels ; le bucketing évite le shuffle complet côté Spark/Hive, mais le PoC (single-node) n'en montre qu'un avantage marginal (69 → 51,5 ms). En cluster Spark/Trino, le bucketed join est le levier principal sur ce type de jointure.
 
-**6. Synthèse.** Sur les 10 requêtes : **volume lu réduit sur 9/10** (×1,2 à ×13,6), **temps amélioré ou stable sur 10/10 en scénario APRÈS_ML** (le scénario représentatif de la production), avec un gain net marqué dès que le filtre porte sur une colonne de partition à forte cardinalité (q07, q10). La stratégie (partitionnement temporel/démographique + bucketing sur les clés de jointure + tri + agrégats pré-calculés) est validée.
+**6. Synthèse.** Sur les 10 requêtes : **volume lu réduit sur 8/10** (×1,2 à ×13,6 ; overhead small-files sur les deux petites tables q04 ×0,8 et q08 ×0,9). En scénario APRÈS_ML (le plus représentatif de la production), le **temps de réponse progresse sur 6/10 requêtes** (q10 ×1,44, q04 ×1,40, q01 ×1,19, q07 ×1,14, q06 ×1,04, q02 ×1,06) et **recule sur 4/10** (q03 ×0,41, q08 ×0,40, q09 ×0,73, q05 ×0,55) : à l'échelle du PoC local (quelques dizaines de Mo, données en cache OS, moteur single-node), la réduction du volume lu ne se traduit pas mécaniquement en gain de temps — les requêtes en retrait lisent déjà peu de données, où le temps de listing/coordination domine. La stratégie est validée là où elle compte : le pruning de partitions réduit le volume lu dès que le filtre porte sur une colonne de partition (×13,6 sur q07), et ce ratio croît avec le volume réel (en production : 25 M de décès non agrégés, ~1,4 M de faits mensuels) et avec la concurrence. Le partitionnement temporel/démographique + le bucketing sur les clés de jointure + le tri + les agrégats pré-calculés forment une stratégie cohérente, dont le bénéfice temps est attendu en cluster (Trino/Spark distribués), pas sur un PoC local mono-nœud.
 
 ---
 
@@ -444,7 +444,7 @@ Livrable 2/
 ├── livrable2.md                          # ce rapport
 ├── A3-Stockage_et_BigData-Grille-Livrable2.xlsx   # grille d'évaluation
 └── scripts/
-    ├── docker-compose.yml                # stack complète (12 services)
+    ├── docker-compose.yml                # stack complète (15 services)
     ├── README.md                         # arborescence + ordre d'exécution
     ├── config/                           # hive-site.xml, Trino, Spark, Superset, S1
     ├── 01_ddl/                           # DDL Hive + vérification Trino + vues métier

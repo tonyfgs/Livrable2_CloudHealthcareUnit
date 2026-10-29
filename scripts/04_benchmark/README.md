@@ -14,13 +14,16 @@ Deux harnais complémentaires :
 - `results/graph_temps_median.svg` : temps médian avant / après / après+metastore
 - `results/graph_volume_lu.svg` : volume de données lu (Mo)
 - `results/graph_reduction_volume.svg` : taux de réduction du volume lu
-- `results/resultats_requetes.txt` : résultats métier des 8 requêtes (métier)
+- `results/resultats_requetes.txt` : résultats métier des 10 requêtes (q01-q10)
 
 ## Rejouer le PoC (hôte)
 
 Le PoC s'exécute **100 % dans Docker** (aucune installation sur le poste) :
 DuckDB tourne dans un conteneur `postgres:15` jetable (voir `run-duckdb.sh`),
-la source S1 est le conteneur PostgreSQL `chu-s1-postgres`.
+la source S1 est le conteneur PostgreSQL `chu-s1-postgres` (service `s1-postgres`).
+Les sources brutes sont lues au point de montage fixe `/data-projet` (bind du
+dossier `DATA Projet`, variable `DATA_PROJET` de `run-duckdb.sh` — même
+convention dans le service `bench-duckdb` du docker-compose).
 
 ### 1. Préparer le workspace (une fois)
 
@@ -28,25 +31,30 @@ la source S1 est le conteneur PostgreSQL `chu-s1-postgres`.
 export L2WORK=/tmp/l2work                 # surchargeable
 mkdir -p $L2WORK
 ln -s "$(pwd)/scripts/04_benchmark" $L2WORK/poc   # ce répertoire = poc/
-cp scripts/04_benchmark/run-duckdb.sh $L2WORK/     # runner DuckDB-in-Docker
-# staging/ : CSV nettoyés (encodage UTF-8, séparateur ';') dérivés de
-# "DATA Projet" : satisfaction 2019/2020, hospitalisations, référentiels
-# (départements, professionnels, activités) - cf. scripts/05_qualite.
+# staging/ : CSV dérivés des sources brutes, lus en relatif depuis $L2WORK :
+#   - satisfaction_2019.csv       <- "DATA Projet/Satisfaction/2019/resultats-esatis48h-mco-open-data-2019.csv" (conversion UTF-8)
+#   - satisfaction_2020_clean.csv <- "DATA Projet/Satisfaction/2020/resultats-esatis48h-mco-open-data-2020.xlsx" (extraction Excel -> CSV)
+#   - professionnel_sante_utf8.csv <- "DATA Projet/Etablissement de SANTE/professionnel_sante.csv" (ISO-8859-1 -> UTF-8, ex. iconv -f ISO-8859-1 -t UTF-8)
+#   - activite_professionnel_sante_utf8.csv <- "DATA Projet/Etablissement de SANTE/activite_professionnel_sante.csv" (déjà UTF-8)
+#   - referentiel_departements.csv <- geo.api.gouv.fr (101 départements)
 # Le binaire DuckDB est téléchargé automatiquement par run-duckdb.sh.
 ```
 
 ### 2. Conteneur source S1 (PostgreSQL ChuSimulation)
 
 ```bash
-# Either via la stack complète :
-docker compose -f scripts/docker-compose.yml up -d s1-postgres
-# or standalone (identique) :
+# Réseau dédié (les scripts visent le nom de service "s1-postgres") :
+docker network create chu-net
+# Depuis la racine du projet (parent de "Livrable 2") :
 docker run -d --name chu-s1-postgres --network chu-net \
+  --network-alias s1-postgres \
   -e POSTGRES_USER=chu -e POSTGRES_PASSWORD=chu -e POSTGRES_DB=chu_s1 \
   -v s1-data:/var/lib/postgresql/data \
   -v "$PWD/DATA Projet/BDD PostgreSQL/DATA2023:/docker-entrypoint-initdb.d/DATA2023.dump:ro" \
-  -v "$PWD/scripts/config/s1-postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro" \
+  -v "$PWD/Livrable 2/scripts/config/s1-postgres/init.sh:/docker-entrypoint-initdb.d/init.sh:ro" \
   postgres:15
+# ou via la stack complète (depuis "Livrable 2/scripts") :
+#   docker compose -f docker-compose.yml up -d s1-postgres
 ```
 
 ### 3. Construire l'entrepôt PoC (scripts 00 -> 02d, ordre impératif)

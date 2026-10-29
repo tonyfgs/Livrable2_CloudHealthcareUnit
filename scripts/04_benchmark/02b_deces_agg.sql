@@ -9,7 +9,7 @@
 -- f_mesures avec la sentinelle annee_mois = 'AAAA-00' (agrégat annuel, comme la satisfaction).
 -- ============================================================
 INSTALL postgres; LOAD postgres;
-ATTACH 'dbname=chu_s1 host=chu-s1 user=chu password=chu' AS s1 (TYPE postgres);
+ATTACH 'dbname=chu_s1 host=s1-postgres user=chu password=chu' AS s1 (TYPE postgres);
 
 CREATE OR REPLACE TABLE f_deces_agg AS
 SELECT x.annee * 10000 + 101 AS id_temps,          -- 1er janvier de l'année (jointure d_temps)
