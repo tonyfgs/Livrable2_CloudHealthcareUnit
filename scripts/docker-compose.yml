@@ -467,7 +467,10 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: "UKMzEm3yIuFYHrpoiMOQc3wvXHkqYz8bumjZWmZTjNw="
-      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+      # DAGs en pause par defaut : empeche le scheduler de declencher seul le
+      # backfill du daily (scheduled__2026-10-28T02:00) qui race avec l'init.
+      # L'utilisateur unpause + trigger manuellement, dans l'ordre : init puis daily.
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__WEBSERVER__SECRET_KEY: "chu-l2-webserver-secret"
       AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
@@ -500,7 +503,8 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@airflow-db:5432/airflow
       AIRFLOW__CORE__FERNET_KEY: "UKMzEm3yIuFYHrpoiMOQc3wvXHkqYz8bumjZWmZTjNw="
-      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+      # DAGs en pause par defaut (voir commentaire scheduler) : pas de backfill auto.
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__WEBSERVER__SECRET_KEY: "chu-l2-webserver-secret"
       AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"

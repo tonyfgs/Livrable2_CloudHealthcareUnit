@@ -434,3 +434,17 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
     one-shot chu-minio-init, et le script DDL est retenté 3 fois (30 s) en cas
     d'échec transitoire. Ne PAS pré-créer de markers `warehouse/x.db/` à la main :
     un marker existant fait échouer le mkdir S3A (testé).
+29. **Backfill auto du daily qui race avec l'init (crash "comme d'hab" au from
+    scratch)** : `AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION` était à `"false"`
+    dans le compose (scheduler + webserver) -> dès le premier `up -d` sur une
+    DB Airflow neuve, le scheduler créait automatiquement le run backfill
+    `scheduled__2026-10-28T02:00:00+00:00` du DAG `lakehouse_daily`, qui tournait
+    EN MÊME TEMPS que (ou avant) `lakehouse_init` : tables gold inexistantes,
+    tâches en failed, et l'utilisateur voyait "18 failed" dans l'UI.
+    Fix : var passée à `"true"` -> les 2 DAGs s'enregistrent EN PAUSE, aucun run
+    auto. Runbook from-scratch : `down -v && up -d`, attendre les healthy, unpause
+    `lakehouse_init` -> Trigger -> attendre 5/5 SUCCESS, puis unpause
+    `lakehouse_daily` -> Trigger -> attendre 8/8 SUCCESS (~10 min, jobs Spark).
+    `airflow dags trigger` en CLI fonctionne aussi DAG en pause. Ne jamais
+    lancer init et daily en parallèle, et en cas de tâche rouge : Clear (pas de
+    re-run de l'init en même temps que le daily).

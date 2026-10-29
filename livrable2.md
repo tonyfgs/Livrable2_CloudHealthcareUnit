@@ -539,9 +539,16 @@ Livrable 2/
 ### 12.2 Commandes principales
 
 ```bash
-# Stack complète (depuis scripts/)
+# Stack complète (depuis scripts/) — from scratch : docker compose down -v && docker compose up -d
 cd scripts && docker compose up -d
-# Airflow : déclencher lakehouse_init puis lakehouse_daily (http://localhost:8090)
+# Attendre ~2 min que tous les conteneurs soient healthy (docker compose ps)
+# Airflow (http://localhost:8090, admin/admin) — les 2 DAGs démarrent EN PAUSE
+# (AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true) : aucun backfill auto ne peut
+# écraser l'init. Ordre strict dans l'UI :
+#   1. unpause lakehouse_init  -> ▶ Trigger  -> attendre 5/5 SUCCESS (~3-5 min)
+#   2. unpause lakehouse_daily -> ▶ Trigger  -> attendre 8/8 SUCCESS (~10 min)
+# Vérification : docker exec chu-trino trino --server http://localhost:8080 \
+#   --catalog hive --schema gold --execute "SELECT count(*) FROM f_mesures"  # 1030402
 # Superset : http://localhost:8088 -> connexion Trino -> 8 charts (06_superset/charts.sql)
 # Benchmark Trino : cd scripts/04_benchmark && ./harness_trino.sh
 # Contrôles qualité seuls : voir scripts/README.md (section C)
