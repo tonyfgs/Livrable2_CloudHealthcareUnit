@@ -260,6 +260,13 @@ docker exec chu-minio-init mc ls chu/lake/gold/  --recursive | head # tables Gol
 13. **Conteneur étranger** : un conteneur `hive-workshop` (image
     `apache/hive:4.2.1`, projet externe) peut tourner sur la même machine sans
     conflit (noms/ports/réseaux distincts).
+14. **JRE absent de l'image Airflow** : `SparkSubmitOperator` exige
+    `JAVA_HOME` — sans JRE, `spark-submit` échoue (« JAVA_HOME is not set »).
+    Le Dockerfile installe `default-jre-headless` et fixe
+    `ENV JAVA_HOME=/usr/lib/jvm/default-java` (symlink portable amd64/arm64 :
+    ne PAS hardcoder `java-17-openjdk-amd64`, absent sur une machine arm64).
+    Vérifié : `spark-submit --version` OK dans `chu-airflow-scheduler`
+    (Spark 4.2.1 / OpenJDK 17.0.21).
 
 ---
 
