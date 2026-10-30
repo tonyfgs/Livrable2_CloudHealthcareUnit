@@ -9,6 +9,7 @@ Plateforme **lakehouse** complète pour le projet CESI 4A Big Data (sujet « A3 
 - [Contexte](#contexte)
 - [Architecture](#architecture)
 - [Prérequis](#prérequis)
+- [Reproductibilité — faire tourner le clone](#reproductibilité--faire-tourner-le-clone)
 - [Démarrage from scratch](#démarrage-from-scratch)
 - [Runbook Airflow (DAGs)](#runbook-airflow-dags)
 - [Modèle de données](#modèle-de-données)
@@ -68,9 +69,37 @@ Tout est livré ici : DDL/DML versionnés, plateforme Docker Compose exécutée 
 
 ## Prérequis
 
-- Docker Desktop (VM ≥ 8 Go recommandés)
-- Le dossier **`DATA Projet/`** (sources brutes, 48 fichiers) en **frère** de ce dépôt — le compose le monte via `../../DATA Projet`
+- Docker Desktop (VM ≥ 8 Go recommandés — sinon OOM-kill de Trino/Spark, piège n°26)
+- Le dossier **`DATA Projet/`** (sources brutes, 50 fichiers, **2,1 Go**) en **frère** de ce dépôt — le compose le monte via `../../DATA Projet`
 - Aucune installation locale : tout passe par Docker
+
+## Reproductibilité — faire tourner le clone
+
+Tout ce qui est code/config est dans ce dépôt (18 commits) : compose, Dockerfiles, DDL, jobs Spark, DAGs, DQ, smoke test, docs. Un collègue qui clone peut remonter **exactement** la même plateforme :
+
+```bash
+git clone git@github.com:tonyfgs/Livrable2_CloudHealthcareUnit.git
+# placer à côté du clone (hors git, trop gros) :
+#   Livrable2_CloudHealthcareUnit/     <- le clone
+#   DATA Projet/                       <- 2,1 Go, 50 fichiers sources (partage Drive/USB)
+cd Livrable2_CloudHealthcareUnit/scripts
+docker compose up -d --build           # build les images custom from source + pull les bases
+./07_smoke_test/smoke_from_scratch.sh; echo $?   # 0 = 54/54 PASS = état identique garanti
+```
+
+Ce qui est épinglé pour l'exactitude :
+
+| Élément | Comment c'est garanti |
+|---|---|
+| Images custom (minio, spark, airflow, superset, duckdb) | `build:` from source dans le repo (`config/`) — MinIO est compilé from source car les pulls `minio/*` sont bloqués |
+| `postgres:15`, `apache/hive:4.2.1` | tags fixés dans le compose |
+| `trinodb/trino` | épinglé **par digest** = Trino 484 (testé) — `latest` était un tag mouvant |
+| `amazon/aws-cli` | épinglé **par digest** = 2.39.1 |
+| Dépendances Python des images | versions épinglées dans les Dockerfiles (ex. `trino==0.330.0`) |
+| Données brutes | **hors git** (`DATA Projet/`, 2,1 Go — `deces.csv` seul dépasse la limite GitHub de 100 Mo/fichier) : à partager à part, dossier frère du clone |
+| État final attendu | vérifiable : smoke test `exit 0` (54/54) + les 13 volumes du tableau [Données et volumes](#données-et-volumes) |
+
+Caveats honnêtes : testé sur macOS (arm64) — les images de base sont multi-arch et les images custom buildées from source, donc Linux fonctionne aussi ; Windows non testé. Il faut un accès Docker Hub (postgres, hive, trino, aws-cli) et une VM Docker avec **≥ 8 Go** de RAM. Le smoke test a été rejoué 4× from scratch (54/54 à chaque fois), mais sur cette machine — le collègue peut se re-vérifier lui-même avec le script ci-dessus.
 
 ## Démarrage from scratch
 
