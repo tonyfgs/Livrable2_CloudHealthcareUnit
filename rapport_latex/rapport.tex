@@ -108,10 +108,10 @@
   arr/.style={-{Stealth[length=2.5mm]}, thick}
 ]
 \node[box, fill=gray!15] (src) at (0,6.2) {Sources : S1 PostgreSQL + S2/S3/S4\\(CSV, ESATIS, INSEE/FINESS)};
-\node[box, fill=orange!20] (ing) at (0,4.4) {Ingestion $\rightarrow$ zone \texttt{raw/}};
+\node[box, fill=orange!20] (ing) at (0,4.4) {Ingestion \textrightarrow zone \texttt{raw/}};
 \node[box, fill=blue!15] (minio) at (0,2.4) {\textbf{MinIO} -- data lake\\\texttt{raw/ silver/ gold/} (Parquet)};
 \node[box, fill=purple!15] (meta) at (0,0.4) {\textbf{Hive Metastore} + HiveServer2\\(catalogue : tables externes, partitions)};
-\node[box, fill=green!20] (spark) at (-6.4,2.4) {\textbf{Apache Spark}\\ETL/ELT $\rightarrow$ Silver/Gold};
+\node[box, fill=green!20] (spark) at (-6.4,2.4) {\textbf{Apache Spark}\\ETL/ELT \textrightarrow Silver/Gold};
 \node[box, fill=yellow!25] (air) at (-6.4,4.4) {\textbf{Apache Airflow}\\DAGs init + daily};
 \node[box, fill=red!15] (trino) at (6.4,2.4) {\textbf{Trino}\\requetage (connecteur Hive)};
 \node[box, fill=red!25] (sup) at (6.4,0.4) {\textbf{Apache Superset}\\8 tableaux de bord};
@@ -156,7 +156,7 @@ dimensions : \texttt{id\_temps} (AAAAMMJJ), \texttt{id\_patient},
   sil/.style={draw, fill=silvergreen, minimum width=4.4cm, minimum height=1.0cm, align=center, font=\small},
   arr/.style={-{Stealth[length=2mm]}, thick}
 ]
-\node[fact] (fm) {\textbf{f\_mesures} (Gold)\\grain : annee\_mois $\times$ etab $\times$ patient $\times$ sexe\\$\times$ tranche\_age $\times$ loc $\times$ region\\4 mesures : consultation, hospitalisation,\\satisfaction, deces};
+\node[fact] (fm) {\textbf{f\_mesures} (Gold)\\grain : annee\_mois x etab x patient x sexe\\x tranche\_age x loc x region\\4 mesures : consultation, hospitalisation,\\satisfaction, deces};
 \node[dim, above=1.7cm of fm] (dt) {\textbf{d\_temps}\\jour 2015--2030, id\_temps};
 \node[dim, left=1.6cm of fm] (dp) {\textbf{d\_patient}\\100 000, id\_patient\\part. sexe, tranche\_age\_ref};
 \node[dim, right=1.6cm of fm] (de) {\textbf{d\_etablissement}\\416 665 sites FINESS\\id\_etablissement (surrogate)};
@@ -171,7 +171,7 @@ dimensions : \texttt{id\_temps} (AAAAMMJJ), \texttt{id\_patient},
 \draw[arr, dashed] (fc) -- (fm);
 \draw[arr] (dd) -- (fc);
 \draw[arr] (pr) -- (fc);
-\node[font=\footnotesize, align=left, right=0.3cm of fm, text width=5.2cm]
+\node[font=\footnotesize, align=left, above right=0.4cm and 0.3cm of fm, text width=5.2cm, draw, fill=gray!12, rounded corners=2pt, inner sep=5pt]
   {Faits derives et agregats pre-calcules (Gold) :\\[2pt]
    \texttt{f\_hospitalisation} (2 479),\\
    \texttt{f\_deces\_agg} (69 008),\\
@@ -199,13 +199,13 @@ dimensions : \texttt{id\_temps} (AAAAMMJJ), \texttt{id\_patient},
 \texttt{d\_localisation} (\texttt{id\_localisation}) & departement ; Gold ; part. \texttt{code\_region} & 102 \\
 \texttt{d\_diagnostic} (\texttt{id\_diagnostic}, surrogate) & diagnostic CIM-10 ; Gold & 15 490 \\
 \texttt{d\_professionnel} (\texttt{identifiant}) & professionnel ADELI ; Gold & 1 048 575 \\
-\textbf{\texttt{f\_mesures}} (fait) & annee\_mois $\times$ etab $\times$ patient $\times$ sexe $\times$ tranche\_age $\times$ dep. $\times$ region ; Gold ; part. \texttt{annee}, \texttt{sexe}, \texttt{tranche\_age} ; tri \texttt{id\_etablissement}, \texttt{id\_patient} & \textbf{1 030 402} \\
+\textbf{\texttt{f\_mesures}} (fait) & annee\_mois x etab x patient x sexe x tranche\_age x dep. x region ; Gold ; part. \texttt{annee}, \texttt{sexe}, \texttt{tranche\_age} ; tri \texttt{id\_etablissement}, \texttt{id\_patient} & \textbf{1 030 402} \\
 \texttt{f\_consultation\_detail} (\texttt{id\_consultation}) & consultation ; Silver ; part. \texttt{annee} ; tri \texttt{id\_etablissement}, \texttt{id\_patient} & 1 027 157 \\
 \texttt{f\_hospitalisation} (\texttt{id\_hospitalisation}) & hospitalisation ; Gold ; part. \texttt{annee} ; tri \texttt{id\_etablissement}, \texttt{id\_patient} & 2 479 \\
-\texttt{f\_deces\_agg} (fait agr.) & annee $\times$ sexe $\times$ tranche\_age $\times$ departement ; Gold ; part. \texttt{annee} & 69 008 \\
-\texttt{f\_satisfaction} (fait) & finess juridique $\times$ annee ; Gold ; part. \texttt{annee}, \texttt{code\_region} & 1 960 \\
-\texttt{f\_consult\_diag\_mois} (agr.) & mois $\times$ diagnostic $\times$ etab ; Gold ; part. \texttt{annee} & 979 797 \\
-\texttt{f\_consult\_prof\_mois} (agr.) & mois $\times$ professionnel ; Gold ; part. \texttt{annee} & 1 001 453 \\
+\texttt{f\_deces\_agg} (fait agr.) & annee x sexe x tranche\_age x departement ; Gold ; part. \texttt{annee} & 69 008 \\
+\texttt{f\_satisfaction} (fait) & finess juridique x annee ; Gold ; part. \texttt{annee}, \texttt{code\_region} & 1 960 \\
+\texttt{f\_consult\_diag\_mois} (agr.) & mois x diagnostic x etab ; Gold ; part. \texttt{annee} & 979 797 \\
+\texttt{f\_consult\_prof\_mois} (agr.) & mois x professionnel ; Gold ; part. \texttt{annee} & 1 001 453 \\
 \bottomrule
 \end{longtable}}
 
@@ -237,7 +237,7 @@ donc \textbf{assuree par construction} -- les faits ne contiennent que des cles
 produites par les dimensions, dans l'ordre d'execution des DAGs (dimensions
 d'abord, faits ensuite, mesures calculees \emph{apres} le peuplement des cles
 etrangeres) -- et \textbf{controlee a posteriori} par les controles qualite
-\guillemotleft{}integrite faits $\rightarrow$ dimensions\guillemotright{} (\S5.5) :
+\guillemotleft{}integrite faits \textrightarrow dimensions\guillemotright{} (\S5.5) :
 13 controles, taux de rattachement mesures, aucun rejet silencieux.
 
 \subsection{Vues metier}
@@ -296,21 +296,21 @@ benchmark. Les jobs et leurs regles (issues des controles qualite, \S5) :
 \textbf{Job} & \textbf{Role} & \textbf{Regles de transformation} \\
 \midrule
 Session Spark et fonctions communes & session S3A/MinIO + Metastore, helpers & \texttt{tranche\_age} (0-14/15-29/30-44/45-59/60-74/75+), \texttt{dept\_of} (regle INSEE, Corse 2A), sexe normalise M/F, age revolu \\
-Chargement des dimensions & 6 dimensions & \texttt{d\_patient} : sexe normalise, date parsee, tranche a la ref. 2023-12-31 ; \texttt{d\_etablissement} : surrogate \texttt{row\_number}, rattachement commune $\rightarrow$ departement $\rightarrow$ region ; \texttt{d\_localisation} : 101 dep. + Inconnu \\
-Chargement des faits de detail & \texttt{f\_consultation\_detail} (Silver), \texttt{f\_hospitalisation}, \texttt{f\_satisfaction} & rattachement etablissement via le fichier d'activite ; ESATIS : virgule decimale remplacee ; region normalisee (mapping 18 regions) ; grain satisfaction = finess juridique $\times$ annee \\
-Aggregation des deces & \texttt{f\_deces\_agg} (25,09 M deces INSEE) & filtre des 646 dates invalides, agregat annuel (annee $\times$ sexe $\times$ tranche\_age $\times$ departement) \\
+Chargement des dimensions & 6 dimensions & \texttt{d\_patient} : sexe normalise, date parsee, tranche a la ref. 2023-12-31 ; \texttt{d\_etablissement} : surrogate \texttt{row\_number}, rattachement commune \textrightarrow departement \textrightarrow region ; \texttt{d\_localisation} : 101 dep. + Inconnu \\
+Chargement des faits de detail & \texttt{f\_consultation\_detail} (Silver), \texttt{f\_hospitalisation}, \texttt{f\_satisfaction} & rattachement etablissement via le fichier d'activite ; ESATIS : virgule decimale remplacee ; region normalisee (mapping 18 regions) ; grain satisfaction = finess juridique x annee \\
+Aggregation des deces & \texttt{f\_deces\_agg} (25,09 M deces INSEE) & filtre des 646 dates invalides, agregat annuel (annee x sexe x tranche\_age x departement) \\
 Construction du fait consolide & \texttt{f\_mesures} & aggregation des 4 sources au grain commun, \textbf{calcul des mesures APRES peuplement des cles etrangeres}, sentinelle \texttt{'AAAA-00'}, region denormalisee \\
 Agregats pre-calcules & \texttt{f\_consult\_diag\_mois}, \texttt{f\_consult\_prof\_mois} & agregats pre-calcules (besoins 2 et 6) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Chaque ecriture Spark : \texttt{partitionBy(...).sortWithinPartitions(id\_etablissement, id\_patient) ... saveAsTable(...)} $\rightarrow$ table externe Parquet partitionnee et triee ; metadonnees publiees dans le Hive Metastore ; partitions decouvertes (\texttt{MSCK REPAIR}) ; statistiques calculees (\texttt{ANALYZE} Trino apres chargement).
+Chaque ecriture Spark : \texttt{partitionBy(...).sortWithinPartitions(id\_etablissement, id\_patient) ... saveAsTable(...)} \textrightarrow table externe Parquet partitionnee et triee ; metadonnees publiees dans le Hive Metastore ; partitions decouvertes (\texttt{MSCK REPAIR}) ; statistiques calculees (\texttt{ANALYZE} Trino apres chargement).
 
 \subsection{Volumes charges, verifies dans Trino}
 \label{sec:volumes}
 Apres decouverte des partitions, les volumes ont ete re-verifies \textbf{dans
-Trino} (connecteur Hive $\rightarrow$ MinIO), après l'execution du DAG
+Trino} (connecteur Hive \textrightarrow MinIO), après l'execution du DAG
 d'initialisation (5/5 taches en succes) puis du DAG journalier (8/8 taches en
 succes) :
 
@@ -403,13 +403,13 @@ Captures d'ecran realisees sur la plateforme deployee (conteneurs Docker) :
 \toprule
 \textbf{Table} & \textbf{Colonnes de partition} & \textbf{Justification} \\
 \midrule
-\texttt{f\_mesures} & \texttt{annee}, \texttt{sexe}, \texttt{tranche\_age} & pruning temporel + demographique ; les requetes metier filtrent sur l'annee/le sexe/l'age (besoins 5, 10). 9 annees $\times$ 3 sexes $\times$ 8 tranches = 216 combinaisons max (122 presentes) \\
+\texttt{f\_mesures} & \texttt{annee}, \texttt{sexe}, \texttt{tranche\_age} & pruning temporel + demographique ; les requetes metier filtrent sur l'annee/le sexe/l'age (besoins 5, 10). 9 annees x 3 sexes x 8 tranches = 216 combinaisons max (122 presentes) \\
 \texttt{d\_patient} & \texttt{sexe}, \texttt{tranche\_age\_ref} & partitionnement demographique de la dimension patient \\
 \texttt{d\_temps} & \texttt{annee} & partitionnement temporel 2015--2030 (couvre 2015--2021) \\
 \texttt{d\_localisation} & \texttt{code\_region} & la region est l'axe geographique le plus filtrant (besoins 7, 8) ; partitionnee par \emph{code} car les noms de regions contiennent des caracteres invalides dans les chemins Hive \\
 \texttt{f\_consultation\_detail}, \texttt{f\_hospitalisation}, \texttt{f\_consult\_diag\_mois}, \texttt{f\_consult\_prof\_mois} & \texttt{annee} & pruning temporel (tous les besoins portent sur des periodes) \\
 \texttt{f\_deces\_agg} & \texttt{annee} seulement & sinon 1 251 combinaisons reelles (~55 lignes chacune) pour 69 008 lignes = \emph{small-files problem} ; le tri intra-partition par \texttt{(sexe, tranche\_age, id\_localisation)} compense \\
-\texttt{f\_satisfaction} & \texttt{annee}, \texttt{code\_region} & grain juridique $\times$ annee ; region = colonne la plus filtrante (besoin 8), par code pour la meme raison que \texttt{d\_localisation} \\
+\texttt{f\_satisfaction} & \texttt{annee}, \texttt{code\_region} & grain juridique x annee ; region = colonne la plus filtrante (besoin 8), par code pour la meme raison que \texttt{d\_localisation} \\
 \texttt{d\_etablissement}, \texttt{d\_diagnostic}, \texttt{d\_professionnel} & -- & peu filtrees seules ; le tri intra-fichier suffit \\
 \bottomrule
 \end{tabular}
@@ -417,15 +417,15 @@ Captures d'ecran realisees sur la plateforme deployee (conteneurs Docker) :
 
 \subsection{Indexation complementaire}
 \begin{itemize}[leftmargin=*]
-\item \textbf{Parquet + Zstd} : format colonnaire compresse ($\times$5 a $\times$10 vs CSV),
-      pushdown des predicats, statistiques min/max par colonne et par fichier $\rightarrow$
+\item \textbf{Parquet + Zstd} : format colonnaire compresse (x5 a x10 vs CSV),
+      pushdown des predicats, statistiques min/max par colonne et par fichier \textrightarrow
       pruning intra-fichier (Trino) en plus du pruning de partitions ;
 \item \textbf{tri intra-partition} sur les cles de jointure (\texttt{sortWithinPartitions}) ;
 \item \textbf{statistiques} : \texttt{ANALYZE TABLE ... COMPUTE STATISTICS} (Hive/Spark) et
-      \texttt{ANALYZE} (Trino) apres chaque chargement $\rightarrow$ plans de jointure optimaux ;
+      \texttt{ANALYZE} (Trino) apres chaque chargement \textrightarrow plans de jointure optimaux ;
 \item \textbf{agregats pre-calcules} (\texttt{f\_consult\_diag\_mois}, \texttt{f\_consult\_prof\_mois}) :
       equivalents materialises des aggregations les plus demandees (besoins 2 et 6) ;
-\item \textbf{aggregation en amont} du fait deces (25,09 M $\rightarrow$ 69 008 lignes) : le grain
+\item \textbf{aggregation en amont} du fait deces (25,09 M \textrightarrow 69 008 lignes) : le grain
       annuel evite de scanner 25 M de lignes pour un besoin annuel.
 \end{itemize}
 
@@ -509,14 +509,14 @@ comme l'exige le sujet.
 
 Deux defauts de grain detectes par ces controles ont ete corriges et le chargement
 re-joue : (1) \textbf{fan-out de la jointure \texttt{activite}} (1-N) dupliquant les
-consultations (1 373 594 lignes pour 1 027 157 consultations, +33,7 \,\%) $\rightarrow$
+consultations (1 373 594 lignes pour 1 027 157 consultations, +33,7 \,\%) \textrightarrow
 jointure ramenee a 1 organisation par professionnel (\texttt{MIN(identifiant\_organisation)}) ;
 (2) \textbf{grain \texttt{f\_satisfaction}/\texttt{f\_mesures}} : le fichier ESATIS contient
 plusieurs lignes (sites) par finess juridique (2 295 lignes pour 1 960 finess juridiques)
-$\rightarrow$ agregation au grain juridique, moyenne ponderee par les repondants
-(\texttt{SUM(score $\times$ nb\_rep) / SUM(nb\_rep)}) ; la satisfaction etant rattachee a la
+\textrightarrow agregation au grain juridique, moyenne ponderee par les repondants
+(\texttt{SUM(score x nb\_rep) / SUM(nb\_rep)}) ; la satisfaction etant rattachee a la
 region, l'absence de \texttt{region} dans la cle de \texttt{f\_mesures} produisait 31
-doublons $\rightarrow$ \texttt{region} ajoutee au grain (cle a 7 colonnes, 0 doublon).
+doublons \textrightarrow \texttt{region} ajoutee au grain (cle a 7 colonnes, 0 doublon).
 Note : la cle deces est construite avec \texttt{COALESCE(champ,'')} -- sans
 \texttt{COALESCE}, un champ NULL exclut la ligne du \texttt{COUNT(DISTINCT)} et gonfle
 artificiellement le compte (artefact avant correction : 211 833 = 0,8444 \,\% ;
@@ -537,16 +537,16 @@ valeur retenue : 174 794 = 0,6967 \,\%).
 \bottomrule
 \end{longtable}
 
-Points marquants : \texttt{Hospitalisations.identifiant\_organisation} $\rightarrow$
+Points marquants : \texttt{Hospitalisations.identifiant\_organisation} \textrightarrow
 referentiel etablissement : \textbf{100,0 \,\%} ; rattachement chaine complete
-consultation $\rightarrow$ professionnel $\rightarrow$ activite $\rightarrow$ etablissement :
+consultation \textrightarrow professionnel \textrightarrow activite \textrightarrow etablissement :
 \textbf{63,87 \,\%} (71,87 \,\% jusqu'au fichier d'activite) ; \texttt{finess\_site} quasi
 vide (0,05 \,\%) et ESATIS = finess \emph{juridique} (49,91/50,74 \,\% de match,
-0 \,\% en \texttt{identifiant\_organisation}) $\rightarrow$ satisfaction stockee au grain
+0 \,\% en \texttt{identifiant\_organisation}) \textrightarrow satisfaction stockee au grain
 juridique rattachee a la region.
 
 \begin{longtable}{p{8.2cm}rrr}
-\caption{Integrite referentielle faits integres $\rightarrow$ dimensions}\\
+\caption{Integrite referentielle faits integres \textrightarrow dimensions}\\
 \toprule
 \textbf{Controle} & \textbf{Total} & \textbf{Trouves} & \textbf{\%} \\
 \midrule
@@ -576,20 +576,20 @@ juridique rattachee a la region.
 
 \subsection{Traitements appliques (derives des controles)}
 \begin{table}[H]\centering\small
-\caption{Problemes mesures $\rightarrow$ traitements appliques dans les faits}
+\caption{Problemes mesures \textrightarrow traitements appliques dans les faits}
 \begin{tabular}{p{7cm}p{8cm}}
 \toprule
 \textbf{Probleme mesure} & \textbf{Traitement applique} \\
 \midrule
 Score ESATIS en virgule decimale (2019 et 2020) & \texttt{replace(',', '.')} avant cast DOUBLE \\
-Region ESATIS heterogene (18 libelles) & mapping vers 18 regions ; \guillemotleft{}Ocean Indien\guillemotright{} (ambigu) $\rightarrow$ \texttt{INCONNUE} \\
-\texttt{finess\_site} a 0,05 \,\% ; rattachement ESATIS site a 0 \,\% & satisfaction au grain juridique $\times$ annee (2 295 $\rightarrow$ 1 960), rattachee a la region, score pondere ; \texttt{region} ajoutee au grain de \texttt{f\_mesures} (0 doublon) \\
+Region ESATIS heterogene (18 libelles) & mapping vers 18 regions ; \guillemotleft{}Ocean Indien\guillemotright{} (ambigu) \textrightarrow \texttt{INCONNUE} \\
+\texttt{finess\_site} a 0,05 \,\% ; rattachement ESATIS site a 0 \,\% & satisfaction au grain juridique x annee (2 295 \textrightarrow 1 960), rattachee a la region, score pondere ; \texttt{region} ajoutee au grain de \texttt{f\_mesures} (0 doublon) \\
 \texttt{Age} S1 incoherent avec la date de naissance (46 \,\% de coherence) & \texttt{Age} non retenu ; tranche d'age recalculee a la date de l'evenement \\
-63,87 \,\% des consultations rattachees a un etablissement (chaine complete) & rattachement \texttt{Id\_prof\_sante $\rightarrow$ activite (1 org/pro) $\rightarrow$ etablissement} ; non rattachees $\rightarrow$ membre Inconnu (-1) \\
-646 dates de deces invalides & exclues du fait (\texttt{WHERE date\_deces IS NOT NULL}) $\rightarrow$ 25 087 562 deces retenus \\
+63,87 \,\% des consultations rattachees a un etablissement (chaine complete) & rattachement \texttt{Id\_prof\_sante \textrightarrow activite (1 org/pro) \textrightarrow etablissement} ; non rattachees \textrightarrow membre Inconnu (-1) \\
+646 dates de deces invalides & exclues du fait (\texttt{WHERE date\_deces IS NOT NULL}) \textrightarrow 25 087 562 deces retenus \\
 368 codes CIM-10 invalides dans S2 (14,84 \,\%) & conserves s'ils existent dans \texttt{d\_diagnostic} (jointure interne) ; quantifies par la DQ \\
 174 794 doublons potentiels deces (0,6967 \,\%) & conserves et quantifies (homonymes INSEE possibles ; pas de dedoublonnage pour eviter les faux positifs sur 25 M de lignes) \\
-\texttt{code\_commune} a 66,69 \,\% dans le referentiel & regle INSEE \texttt{dept\_of} ; non rattaches $\rightarrow$ \texttt{INCONNU}/\texttt{INCONNUE} \\
+\texttt{code\_commune} a 66,69 \,\% dans le referentiel & regle INSEE \texttt{dept\_of} ; non rattaches \textrightarrow \texttt{INCONNU}/\texttt{INCONNUE} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -609,16 +609,16 @@ et des vues.
 \toprule
 \textbf{\#} & \textbf{Requete} & \textbf{Besoin utilisateur} & \textbf{Mesure} & \textbf{Axes} \\
 \midrule
-q01 & taux consultation par etablissement, 2019 & 1 -- taux de consultation par etablissement, periode Y & \texttt{nbre\_consultation} & etablissement $\times$ periode (top 20) \\
-q02 & taux consultation par diagnostic, 2019--2021 & 2 -- taux de consultation par diagnostic X, periode Y & \texttt{nbre\_consultation} & diagnostic $\times$ periode (top 10) \\
+q01 & taux consultation par etablissement, 2019 & 1 -- taux de consultation par etablissement, periode Y & \texttt{nbre\_consultation} & etablissement x periode (top 20) \\
+q02 & taux consultation par diagnostic, 2019--2021 & 2 -- taux de consultation par diagnostic X, periode Y & \texttt{nbre\_consultation} & diagnostic x periode (top 10) \\
 q03 & taux global d'hospitalisation, 2015--2021 & 3 -- taux global d'hospitalisation, periode Y & \texttt{nbre\_hospitalisation} / \texttt{nbre\_consultation} & annee \\
-q04 & taux d'hospitalisation par diagnostic & 4 -- taux d'hospitalisation par diagnostic, periode & \texttt{nbre\_hospitalisation} & diagnostic $\times$ periode (top 10) \\
-q05 & taux d'hospitalisation par sexe et age & 5 -- taux d'hospitalisation par sexe, age & \texttt{nbre\_hospitalisation} & sexe $\times$ tranche d'age \\
+q04 & taux d'hospitalisation par diagnostic & 4 -- taux d'hospitalisation par diagnostic, periode & \texttt{nbre\_hospitalisation} & diagnostic x periode (top 10) \\
+q05 & taux d'hospitalisation par sexe et age & 5 -- taux d'hospitalisation par sexe, age & \texttt{nbre\_hospitalisation} & sexe x tranche d'age \\
 q06 & taux de consultation par professionnel, 2020 & 6 -- taux de consultation par professionnel & \texttt{nbre\_consultation} & professionnel (top 10) \\
-q07 & deces par region, 2019 & 7 -- deces par localisation (region), 2019 & \texttt{nbre\_deces} & region $\times$ annee \\
-q08 & satisfaction par region, 2020 & 8 -- satisfaction par region, 2020 & \texttt{total\_satisfaction} & region $\times$ annee \\
+q07 & deces par region, 2019 & 7 -- deces par localisation (region), 2019 & \texttt{nbre\_deces} & region x annee \\
+q08 & satisfaction par region, 2020 & 8 -- satisfaction par region, 2020 & \texttt{total\_satisfaction} & region x annee \\
 q09 & vue taux mensuel (moyenne mobile 3 mois) & technique -- vue \texttt{v\_taux\_consultation\_mensuel} & \texttt{nbre\_consultation} & mois + moyenne mobile \\
-q10 & jointure etoile complete & technique -- jointure fait + 4 dimensions & \texttt{nbre\_consultation} & filtre annee $\times$ sexe \\
+q10 & jointure etoile complete & technique -- jointure fait + 4 dimensions & \texttt{nbre\_consultation} & filtre annee x sexe \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -653,7 +653,7 @@ Les resultats complets des 10 requetes figurent dans l'archive du livrable.
       Auvergne-Rhone-Alpes 70 407 ; Nouvelle-Aquitaine 66 097 ; Occitanie 59 781 ;
       Hauts-de-France 55 137 (total 2019 : 620 608 deces).
 \item \textbf{q08} (satisfaction moyenne par region, 2020, moyenne \emph{ponderee par les
-      repondants} \texttt{SUM(score $\times$ nb\_repondants) / SUM(nb\_repondants)}, top 5) :
+      repondants} \texttt{SUM(score x nb\_repondants) / SUM(nb\_repondants)}, top 5) :
       Bretagne 74,95 (36 etab., 19 396 repondants) ; Nouvelle-Aquitaine 74,77 (78, 25 816) ;
       Pays de la Loire 74,71 (37, 16 773) ; Grand Est 74,43 (63, 22 591) ;
       Occitanie 74,19 (70, 33 510).
@@ -677,9 +677,9 @@ Les resultats complets des 10 requetes figurent dans l'archive du livrable.
       plateforme livree.
 \item \textbf{Mesures} : 5 runs par requete (run 1 = cache froid, runs 2--5 = chauds) ;
       \textbf{mediane} des runs 2--5 ; volume de donnees lues (octets). 450 mesures
-      brutes : 3 campagnes $\times$ 10 requetes $\times$ 3 scenarios $\times$ 5 runs.
+      brutes : 3 campagnes x 10 requetes x 3 scenarios x 5 runs.
 \item \textbf{Validation plateforme} : le meme harnais a ete execute sur la plateforme
-      deployee (MinIO + Hive Metastore + Trino 484) : 10/10 requetes $\times$ 3
+      deployee (MinIO + Hive Metastore + Trino 484) : 10/10 requetes x 3
       repetitions, resultats metier identiques au PoC, plans \texttt{EXPLAIN ANALYZE}
       captures avec pruning de partitions visible.
 \end{itemize}
@@ -689,7 +689,7 @@ Les resultats complets des 10 requetes figurent dans l'archive du livrable.
 \caption{Benchmark avant/apres partitionnement -- medianes (ms) et volumes lus (Mo)}
 \begin{tabular}{lrrrrrrr}
 \toprule
-\textbf{Requete} & \textbf{Avant} & \textbf{Apres} & \textbf{Apres+ML} & \textbf{$\times$} & \textbf{Mo avant} & \textbf{Mo apres} & \textbf{Red. ($\times$)} \\
+\textbf{Requete} & \textbf{Avant} & \textbf{Apres} & \textbf{Apres+ML} & \textbf{x} & \textbf{Mo avant} & \textbf{Mo apres} & \textbf{Red. (x)} \\
 \midrule
 \rowsbenchmo
 \bottomrule
@@ -770,12 +770,12 @@ Les resultats complets des 10 requetes figurent dans l'archive du livrable.
 \subsection{Analyse et interpretation}
 \begin{enumerate}[leftmargin=*]
 \item \textbf{Le volume lu est le levier dominant} : le partitionnement reduit le volume lu
-      sur \textbf{8/10 requetes} ($\times$1,2 a $\times$13,7, p.~ex. q07 : 328 Ko $\rightarrow$
+      sur \textbf{8/10 requetes} (x1,2 a x13,7, p.~ex. q07 : 328 Ko \textrightarrow
       24 Ko), car filtrer sur \texttt{annee} (colonne de partition) elimine des repertoires
       entiers avant lecture -- le pruning Hive/Trino en production.
 \item \textbf{Gains de temps nets sur les requetes les plus filtrees} (scenario APRES\_ML,
-      avec metastore) : q01 $\times$1,30, q07 $\times$1,17, q02 $\times$1,14, q10 neutre
-      ($\times$0,91). Sans metastore (APRES brut), le listing de tous les fichiers penalise
+      avec metastore) : q01 x1,30, q07 x1,17, q02 x1,14, q10 neutre
+      (x0,91). Sans metastore (APRES brut), le listing de tous les fichiers penalise
       le PoC local -- biais du PoC, pas de la strategie.
 \item \textbf{Petites tables : pas de gain} (q04, q08 sur \texttt{f\_hospitalisation} et
       \texttt{f\_satisfaction}, 1--2 fichiers) : le partitionnement se justifie au-dela d'un
