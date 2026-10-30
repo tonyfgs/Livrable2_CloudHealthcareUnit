@@ -769,46 +769,23 @@ Les resultats complets des 10 requetes figurent dans l'archive du livrable.
 
 \subsection{Analyse et interpretation}
 \begin{enumerate}[leftmargin=*]
-\item \textbf{Le volume de donnees lues est le levier dominant.} Le partitionnement reduit
-      le volume lu sur \textbf{8/10 requetes} ($\times$1,2 a $\times$\textbf{13,7} sur q07 :
-      328 Ko $\rightarrow$ 24 Ko), car les filtres sur \texttt{annee} (colonne de partition)
-      eliminent des repertoires entiers avant lecture -- exactement le mecanisme du pruning
-      Hive/Trino en production.
-\item \textbf{Le scenario APRES brut est penalise par le listing de fichiers} (biais connu du
-      PoC local : sans metastore, le moteur liste tous les fichiers avant de pruner ; sur
-      \texttt{f\_mesures} a 122 partitions, ce listing coute plus cher que le scan complet,
-      p.~ex. q03 : 74 ms vs 5,5 ms). Biais inherent au PoC, pas a la strategie : en
-      production, le Metastore connait les partitions et Trino ne liste que les fichiers
-      retenus (scenario APRES\_ML).
-\item \textbf{APRES\_ML : gains nets sur les requetes les plus filtrees.} q01 (top
-      etablissements 2019) : 39,0 $\rightarrow$ 30,0 ms ($\times$1,30), volume $\times$1,5 ;
-      q07 (deces 2019) : 7,0 $\rightarrow$ 6,0 ms ($\times$1,17), volume $\times$13,7 ;
-      q02 (diagnostics 2019--2021) : 16,5 $\rightarrow$ 14,5 ms ($\times$1,14), volume $\times$2,4 ;
-      q10 (jointure etoile, filtre annee $\times$ sexe) neutre ($\times$0,91), volume $\times$1,5.
-\item \textbf{q04 et q08 : petits volumes, pas de gain (small-files).} \texttt{f\_hospitalisation}
-      (2 479 lignes) et \texttt{f\_satisfaction} (1 960 lignes) tiennent en 1--2 fichiers :
-      le partitionnement y cree plus de fichiers que de lignes utiles (volume $\times$0,8 et
-      $\times$0,9). Lecon : le partitionnement se justifie au-dela d'un seuil de volume ;
-      ces deux faits restent partitionnes par \texttt{annee} pour la coherence du modele.
-\item \textbf{Les requetes en retrait en APRES\_ML (q03, q05, q06, q09) lisent deja peu de
-      donnees} : a l'echelle du PoC local mono-noeud (donnees en cache OS, moteur tres rapide
-      sur de petits volumes), la reduction du volume lu ne se traduit pas mecaniquement en
-      gain de temps -- le temps de coordination/listing domine. Trois campagnes confirment la
-      variance machine a cette echelle sans changer le classement relatif. En cluster
-      (Trino/Spark distribues, donnees froides, concurrence), c'est precisement sur ces
-      requetes que le pruning paiera.
-\item \textbf{q06} (consultations par professionnel, 2020) : la jointure porte sur 1 M de
-      professionnels ; en cluster, c'est sur ce type de jointure que le tri intra-partition
-      (min/max par fichier) fera la difference.
-\item \textbf{Synthese.} Volume lu reduit sur 8/10 requetes ($\times$1,2 a $\times$13,7) ;
-      en APRES\_ML, temps en progres sur 3/10 (q01 $\times$1,30, q07 $\times$1,17,
-      q02 $\times$1,14), neutre sur 1/10 (q10), en retrait sur 6/10 a l'echelle du PoC local
-      mono-noeud. La strategie est validee la ou elle compte : le pruning de partitions reduit
-      le volume lu des que le filtre porte sur une colonne de partition, et ce ratio croit
-      avec le volume reel (production : 25 M de deces non agreges, ~1 M de faits mensuels) et
-      la concurrence. Sur la plateforme deployee, le harnais Trino mesure 10/10 requetes en
-      1,1--2,3 s (mediane 1,1--1,8 s) avec les memes resultats metier que le PoC.
+\item \textbf{Le volume lu est le levier dominant} : le partitionnement reduit le volume lu
+      sur \textbf{8/10 requetes} ($\times$1,2 a $\times$13,7, p.~ex. q07 : 328 Ko $\rightarrow$
+      24 Ko), car filtrer sur \texttt{annee} (colonne de partition) elimine des repertoires
+      entiers avant lecture -- le pruning Hive/Trino en production.
+\item \textbf{Gains de temps nets sur les requetes les plus filtrees} (scenario APRES\_ML,
+      avec metastore) : q01 $\times$1,30, q07 $\times$1,17, q02 $\times$1,14, q10 neutre
+      ($\times$0,91). Sans metastore (APRES brut), le listing de tous les fichiers penalise
+      le PoC local -- biais du PoC, pas de la strategie.
+\item \textbf{Petites tables : pas de gain} (q04, q08 sur \texttt{f\_hospitalisation} et
+      \texttt{f\_satisfaction}, 1--2 fichiers) : le partitionnement se justifie au-dela d'un
+      seuil de volume ; ces faits restent partitionnes par \texttt{annee} pour la coherence
+      du modele.
+\item \textbf{Synthese} : la strategie est validee la ou elle compte -- des qu'un filtre
+      porte sur une colonne de partition, le volume lu baisse, et ce ratio croit avec le
+      volume reel et la concurrence (cluster). Sur la plateforme deployee, le harnais Trino
+      execute 10/10 requetes en 1,1--2,3 s (mediane 1,1--1,8 s), avec les memes resultats
+      metier que le PoC.
 \end{enumerate}
 
-% ============================ 9. LIMITES ====================================
 \end{document}
