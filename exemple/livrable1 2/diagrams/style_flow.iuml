@@ -1,0 +1,28 @@
+' ===== Charte des diagrammes de flux / activité / séquence =====
+!include style.iuml
+skinparam activity {
+  BackgroundColor #FFFFFF
+  BorderColor #6B7785
+  DiamondBackgroundColor #FFF4CC
+  DiamondBorderColor #B8901A
+  StartColor #1F2937
+  EndColor #1F2937
+  BarColor #374151
+}
+skinparam swimlane {
+  BorderColor #9CA3AF
+  TitleFontStyle bold
+  TitleFontSize 13
+}
+skinparam partition {
+  BorderColor #9CA3AF
+}
+skinparam sequence {
+  ParticipantBorderColor #2F6DB5
+  ParticipantBackgroundColor #E8F1FB
+  LifeLineBorderColor #9CA3AF
+  ArrowColor #374151
+  GroupBorderColor #9CA3AF
+  GroupBackgroundColor #F9FAFB
+  BoxBorderColor #9CA3AF
+}

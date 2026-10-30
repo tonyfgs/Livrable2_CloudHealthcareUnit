@@ -1,0 +1,7 @@
+{\small\begin{tabularx}{\linewidth}{@{}L{4.6cm}Y@{}}
+\toprule\entete\textbf{Fait (étoile)} & \textbf{Dimensions référencées (préfixe \code{dim\_}), chacune en N:1}\\\midrule
+\code{fait\_consultation} (10 FK) & \code{date}, \code{patient}, \code{professionnel}, \code{etablissement}, \code{geographie}, \code{diagnostic}, \code{mutuelle}, \code{acte}, \code{sexe}, \code{tranche\_age} \\
+\code{fait\_hospitalisation} (8 FK) & \code{date} $\times$2, \code{patient}, \code{etablissement}, \code{geographie}, \code{diagnostic}, \code{sexe}, \code{tranche\_age} \\
+\code{fait\_deces} (4 FK) & \code{date}, \code{geographie}, \code{sexe}, \code{tranche\_age} \\
+\code{fait\_indicateur\_qualite} (5 FK) & \code{etablissement}, \code{campagne}, \code{indicateur}, \code{date}, \code{geographie} \\
+\bottomrule\end{tabularx}}

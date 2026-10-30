@@ -1,0 +1,22 @@
+@startuml
+!include style_archi.iuml
+skinparam linetype ortho
+skinparam nodesep 16
+skinparam ranksep 30
+title Pseudonymisation et minimisation : frontière de la zone identifiante
+rectangle "Z2 · zone identifiante : HDFS chu/bronze, aucun accès humain nominatif" as Z2 <<zone>> {
+  rectangle "<b>Bronze S1</b>\nId_patient, nom, n° sécu,\nadresse, date de naissance…" as B <<bronze>>
+  rectangle "<b>Job Talend J_SLV_PATIENT</b>\ntJavaRow : normalise « CHU|PATIENT|id »,\nHMAC-SHA-256 (routine) ; tMap :\nsupprime les identifiants ; CP → département" as J <<silver>>
+}
+rectangle "<b>Fichier de contexte protégé</b>\n(hors Git ; coffre en production)\nclé HMAC par domaine, versionnée" as K <<secu>>
+rectangle "Z3 · zone pseudonymisée : HDFS chu/silver et chu/gold" as Z3 <<zone>> {
+  rectangle "<b>Silver</b> slv_patient\npatient_pseudo, sexe,\ndépartement, version de clé\n(date de naissance : restreinte)" as S <<silver>>
+  rectangle "<b>Gold</b> dim_patient + faits\nâge à l'acte, tranche ;\nni date de naissance ni pseudo\nexposés aux profils BI" as G <<gold>>
+}
+rectangle "<b>Vues v_ind_*</b> (C1)\nseuil : 11 patients distincts,\nmasquage secondaire" as V <<gouv>>
+B -right-> J
+K .up.> J : tContextLoad\n(variable de type\nPassword, en mémoire)
+J -down-> S : seule sortie\nde Z2
+S -right-> G
+G -down-> V
+@enduml

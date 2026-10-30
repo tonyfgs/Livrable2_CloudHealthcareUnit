@@ -1,0 +1,122 @@
+% ================= Préambule, Livrable 1 =================
+\usepackage{fontspec}
+\setmainfont{Lato}[UprightFont=*-Regular, BoldFont=*-Bold, ItalicFont=*-Italic, BoldItalicFont=*-BoldItalic]
+\setmonofont{JetBrains Mono}[Scale=0.84,Contextuals=NoAlternate]
+\usepackage[french]{babel}
+\usepackage[a4paper,top=2.4cm,bottom=2.4cm,left=2.3cm,right=2.3cm,headheight=22pt]{geometry}
+\usepackage[table]{xcolor}
+\definecolor{cesi}{HTML}{FFD400}
+\definecolor{ink}{HTML}{1F2937}
+\definecolor{gris}{HTML}{6B7785}
+\definecolor{grisclair}{HTML}{F3F4F6}
+\definecolor{bleu}{HTML}{2F6DB5}
+\definecolor{bleuclair}{HTML}{E8F1FB}
+\definecolor{bronze}{HTML}{A0612B}
+\definecolor{bronzeclair}{HTML}{F6E3D0}
+\definecolor{silverclair}{HTML}{ECEFF3}
+\definecolor{gold}{HTML}{B8901A}
+\definecolor{goldclair}{HTML}{FFF4CC}
+\definecolor{rouge}{HTML}{B03A2E}
+\definecolor{rougeclair}{HTML}{FBE5E3}
+\definecolor{vert}{HTML}{2E7D4F}
+\definecolor{vertclair}{HTML}{E7F5EC}
+\color{ink}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{booktabs,array,multirow,makecell,tabularx,longtable,xltabular}
+\usepackage{enumitem}
+\usepackage{multicol}
+\setlist{itemsep=1pt,topsep=3pt}
+\usepackage{caption}
+\captionsetup{labelsep=colon,font=small,labelfont={bf,color=bleu},format=hang,justification=raggedright,singlelinecheck=false}
+\captionsetup[table]{position=top,skip=4pt}
+\usepackage{afterpage}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{titlesec}
+\titleformat{\chapter}[hang]{\normalfont\bfseries\color{ink}\LARGE}{\colorbox{cesi}{\makebox[0.9cm]{\thechapter}}}{0.5em}{}
+\titlespacing*{\chapter}{0pt}{0pt}{12pt}
+% Les chapitres s'enchaînent sans saut de page forcé (évite les fins de page vides) ;
+% un saut est conservé si moins d'un quart de page reste disponible.
+\usepackage{needspace}
+\makeatletter
+\newcommand\seuilchapitre{0.12}
+\renewcommand\chapter{\FloatBarrier\par\ifdim\pagetotal>\z@\ifdim\dimexpr\pagegoal-\pagetotal\relax<\seuilchapitre\textheight\newpage\else\vspace{14pt}\fi\fi\global\@topnum\z@\@afterindentfalse\secdef\@chapter\@schapter}
+\makeatother
+\titleformat{\section}{\normalfont\Large\bfseries\color{ink}}{\color{bleu}\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries\color{ink}}{\color{bleu}\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries\color{ink}}{\color{bleu}\thesubsubsection}{0.6em}{}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{1}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{gris}CESI, projet Cloud Healthcare Unit}
+\fancyhead[R]{\small\color{gris}Livrable 1 : référentiel de données et architecture}
+\fancyfoot[L]{\small\color{gris}Bloc Stockage et Big Data, PGE A4 FISA / A3 FISE}
+\fancyfoot[R]{\small\color{gris}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{cesi}\leaders\hrule height \headrulewidth\hfill}}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[R]{\small\color{gris}\thepage}\renewcommand{\headrulewidth}{0pt}}
+\usepackage[most]{tcolorbox}
+\usepackage{tikz}
+\newtcolorbox{tablemeta}{colback=grisclair,colframe=grisclair,boxrule=0pt,arc=2pt,left=4pt,right=4pt,top=2pt,bottom=2pt,fontupper=\small,before skip=2pt,after skip=4pt}
+\newtcolorbox{encadre}[2][]{colback=#2!8!white,colframe=#2,boxrule=0.6pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,fonttitle=\bfseries\small,title={#1},fontupper=\small,breakable}
+\newtcolorbox{encadrefixe}[2][]{colback=#2!8!white,colframe=#2,boxrule=0.6pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,fonttitle=\bfseries\small,title={#1},fontupper=\small,unbreakable}
+\newenvironment{hypothese}[1]{\begin{encadre}[Hypothèse #1]{gold}}{\end{encadre}}
+\newenvironment{decision}[1]{\begin{encadrefixe}[#1]{bleu}}{\end{encadrefixe}}
+\newenvironment{alerte}[1]{\begin{encadre}[#1]{rouge}}{\end{encadre}}
+\newenvironment{constat}[1]{\begin{encadrefixe}[#1]{vert}}{\end{encadrefixe}}
+\makeatletter
+\makeatother
+\usepackage{listings}
+\lstdefinestyle{sql}{language=SQL,basicstyle=\ttfamily\small,keywordstyle=\color{bleu}\bfseries,commentstyle=\color{gris}\itshape,stringstyle=\color{bronze},frame=single,rulecolor=\color{silverclair},backgroundcolor=\color{grisclair},breaklines=true,columns=fullflexible,keepspaces=true,showstringspaces=false,aboveskip=6pt,belowskip=6pt,literate={é}{{\'e}}1 {è}{{\`e}}1 {à}{{\`a}}1 {ê}{{\^e}}1 {ç}{{\c c}}1 {ô}{{\^o}}1 {É}{{\'E}}1 {≤}{{$\leq$}}1 {→}{{$\rightarrow$}}1}
+\lstset{style=sql}
+\usepackage{csquotes}
+% Bibliographie supprimée (non demandée dans le livrable 1)
+% \usepackage[backend=biber,style=numeric,sorting=none,maxbibnames=4]{biblatex}
+% \addbibresource{references.bib}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linktoc=all,linkcolor=bleu,urlcolor=bleu,citecolor=bleu,pdftitle={Livrable 1 : référentiel de données et architecture},pdfauthor={Tony Fages, Martin Caparros, David d'Almeida}}
+\usepackage{bookmark}
+\urlstyle{same}
+% Tableaux
+\renewcommand{\arraystretch}{1.08}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\newcommand{\entete}{\rowcolor{silverclair}}
+\newcommand{\dicthead}{\toprule\entete\textbf{Attribut} & \textbf{Type logique} & \textbf{Null} & \textbf{Clé} & \textbf{Description, référence ($\rightarrow$) et règle de dérivation}\\\midrule\endfirsthead
+\toprule\entete\textbf{Attribut} & \textbf{Type logique} & \textbf{Null} & \textbf{Clé} & \textbf{Description, référence ($\rightarrow$) et règle de dérivation}\\\midrule\endhead
+\bottomrule\endfoot}
+\newenvironment{mldlist}{\begin{itemize}[leftmargin=0pt,label={},itemsep=3pt]\small}{\end{itemize}}
+\newcommand{\codeus}{\textunderscore\hspace{0pt}}
+\newcommand{\codesl}{/\hspace{0pt}}
+\DeclareRobustCommand{\code}[1]{{\ttfamily\NoAutoSpacing\let\_\codeus #1}}
+\newcommand{\Hyp}[1]{\textbf{\color{gold}#1}}
+\newcommand{\figwidth}{\linewidth}
+\setlength{\parskip}{3pt plus 1pt}
+\setlength{\parindent}{0pt}
+\sloppy
+\emergencystretch=2em
+
+% Commandes biblatex supprimées avec la bibliographie
+
+% Placement des flottants : pages de flottants seulement si elles sont bien remplies
+\renewcommand{\topfraction}{0.92}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.06}
+\renewcommand{\floatpagefraction}{0.88}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{5}
+\setlength{\textfloatsep}{12pt plus 3pt minus 3pt}
+\setlength{\floatsep}{10pt plus 2pt minus 2pt}
+\setlength{\intextsep}{10pt plus 2pt minus 2pt}
+\usepackage{tocloft}
+\setlength{\cftbeforetoctitleskip}{0pt}\setlength{\cftaftertoctitleskip}{6pt}
+\renewcommand{\cfttoctitlefont}{\normalfont\bfseries\color{ink}\LARGE}
+\setlength{\cftbeforechapskip}{1.5pt}
+\renewcommand{\cftsecfont}{\small}\renewcommand{\cftsecpagefont}{\small}
+\setlength{\cftbeforesecskip}{0pt}
+% Sourcemap biblatex supprimée avec la bibliographie

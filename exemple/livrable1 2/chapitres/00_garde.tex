@@ -1,0 +1,32 @@
+\begin{titlepage}
+\newgeometry{margin=0cm}
+\thispagestyle{empty}
+\noindent\begin{tikzpicture}[remember picture,overlay]
+\fill[ink] (current page.north west) rectangle ([yshift=-9.5cm]current page.north east);
+\fill[cesi] ([yshift=-9.5cm]current page.north west) rectangle ([yshift=-9.9cm]current page.north east);
+\node[anchor=north west,text=white,font=\fontsize{30}{30}\selectfont\bfseries] at ([xshift=2.2cm,yshift=-2cm]current page.north west) {CESI};
+\fill[cesi] ([xshift=2.25cm,yshift=-3.25cm]current page.north west) rectangle ([xshift=4.2cm,yshift=-3.45cm]current page.north west);
+\node[anchor=north west,text=white,font=\small] at ([xshift=2.2cm,yshift=-3.6cm]current page.north west) {ÉCOLE D'INGÉNIEURS};
+\node[anchor=north east,text=white,align=right,font=\large\bfseries] at ([xshift=-2.2cm,yshift=-2.1cm]current page.north east) {Bloc Stockage et Big Data\\[2pt]\normalsize\mdseries PGE A4 FISA / A3 FISE Big Data, promotion 2026-2027};
+\node[anchor=south west,text=cesi,font=\Large\bfseries] at ([xshift=2.2cm,yshift=-8.2cm]current page.north west) {PROJET CLOUD HEALTHCARE UNIT};
+\end{tikzpicture}
+\vspace*{11.2cm}
+\begin{center}
+\begin{minipage}{0.80\paperwidth}
+{\fontsize{14}{16}\selectfont\color{gris}\bfseries Livrable 1 : rapport écrit\par}
+\vspace{6pt}
+{\fontsize{30}{36}\selectfont\bfseries\color{ink} Référentiel de données\\[4pt] et architecture cible\par}
+\vspace{10pt}
+{\large\color{ink} Entrepôt de données décisionnel (EDD) du groupe CHU :\\ modèle conceptuel et logique, architecture Bronze / Silver / Gold sur HDFS et Hive,\\ jobs Talend, spécifications ETL et plan de gouvernance des données de santé\par}
+\vspace{1.1cm}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}L{4.2cm}L{10.6cm}@{}}
+\textbf{Auteurs} & Tony Fages, Martin Caparros, David d'Almeida \\
+\textbf{Version / date} & 2.6 du 26 octobre 2026 (version remise) \\
+\textbf{Destinataires} & Équipe pédagogique du bloc ; maîtrise d'ouvrage (direction du groupe CHU) ; DPO ; RSSI \\
+\textbf{Données analysées} & Dump PostgreSQL \code{DATA2023} (13 tables) et \code{Hospitalisations.csv} ; échantillons de l'annuaire santé ; fichiers HAS e-Satis et IQSS 2014-2020 ; échantillon du fichier INSEE des décès \\
+\end{tabular}
+\end{minipage}
+\end{center}
+\restoregeometry
+\end{titlepage}

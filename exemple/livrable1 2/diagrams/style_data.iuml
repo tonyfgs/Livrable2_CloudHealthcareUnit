@@ -1,0 +1,42 @@
+' ===== Charte des diagrammes de données (MCD / MLD) =====
+!include style.iuml
+hide circle
+hide empty methods
+skinparam classAttributeIconSize 0
+hide stereotype
+skinparam linetype ortho
+skinparam nodesep 40
+skinparam ranksep 50
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #6B7785
+  HeaderBackgroundColor #ECEFF3
+  AttributeFontSize 12
+  FontStyle bold
+  BorderThickness 1.2
+}
+skinparam class<<dim>> {
+  HeaderBackgroundColor #E8F1FB
+  BorderColor #2F6DB5
+}
+skinparam class<<fait>> {
+  HeaderBackgroundColor #FFF4CC
+  BorderColor #B8901A
+}
+skinparam class<<pont>> {
+  HeaderBackgroundColor #ECEFF3
+  BorderColor #6B7785
+}
+skinparam class<<src>> {
+  HeaderBackgroundColor #E8F1FB
+  BorderColor #2F6DB5
+}
+skinparam class<<ident>> {
+  HeaderBackgroundColor #FBE5E3
+  BorderColor #B03A2E
+}
+skinparam usecase {
+  BackgroundColor #FFF4CC
+  BorderColor #B8901A
+  FontSize 12
+}

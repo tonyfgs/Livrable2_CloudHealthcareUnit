@@ -1,0 +1,112 @@
+@startuml
+!include style_data.iuml
+left to right direction
+skinparam linetype ortho
+skinparam ranksep 70
+skinparam nodesep 14
+title Constellation Gold : 4 faits, 12 dimensions (dont 7 conformes)
+
+together {
+entity "fait_consultation" as fait_consultation <<fait>> {
+  {field} <u>consultation_id</u> : BIGINT
+  {field} #date_consultation_sk : INTEGER
+  {field} #patient_sk : BIGINT
+  {field} #professionnel_sk : INTEGER
+  {field} #etablissement_sk : INTEGER
+  {field} #geographie_etablissement_sk : INTEGER
+  {field} #diagnostic_sk : INTEGER
+  {field} #mutuelle_sk : SMALLINT
+  {field} #acte_sk : SMALLINT
+  {field} #sexe_sk : SMALLINT
+  {field} #tranche_age_sk : SMALLINT
+  {field} age_patient : SMALLINT
+  {field} duree_plage_minutes : SMALLINT
+  {field} nb_consultation : SMALLINT
+}
+entity "fait_hospitalisation" as fait_hospitalisation <<fait>> {
+  {field} <u>sejour_id</u> : BIGINT
+  {field} #date_entree_sk : INTEGER
+  {field} #date_sortie_sk : INTEGER
+  {field} #patient_sk : BIGINT
+  {field} #etablissement_sk : INTEGER
+  {field} #geographie_etablissement_sk : INTEGER
+  {field} #diagnostic_sk : INTEGER
+  {field} #sexe_sk : SMALLINT
+  {field} #tranche_age_sk : SMALLINT
+  {field} age_entree : SMALLINT
+  {field} duree_sejour_jours : SMALLINT
+  {field} nb_sejour : SMALLINT
+}
+}
+package "dimensions conformes" as CONFPKG <<Rectangle>> {
+entity "dim_date" as dim_date <<dim>>
+entity "dim_patient" as dim_patient <<dim>>
+entity "dim_etablissement" as dim_etablissement <<dim>>
+entity "dim_diagnostic" as dim_diagnostic <<dim>>
+entity "dim_sexe" as dim_sexe <<dim>>
+entity "dim_tranche_age" as dim_tranche_age <<dim>>
+entity "dim_geographie" as dim_geographie <<dim>>
+}
+entity "dim_professionnel" as dim_professionnel <<dim>>
+entity "dim_mutuelle" as dim_mutuelle <<dim>>
+entity "dim_acte" as dim_acte <<dim>>
+entity "dim_campagne" as dim_campagne <<dim>>
+entity "dim_indicateur" as dim_indicateur <<dim>>
+together {
+entity "fait_deces" as fait_deces <<fait>> {
+  {field} <u>deces_id</u> : CHAR(64)
+  {field} #date_deces_sk : INTEGER
+  {field} #geographie_deces_sk : INTEGER
+  {field} #sexe_sk : SMALLINT
+  {field} #tranche_age_sk : SMALLINT
+  {field} age_deces : SMALLINT
+  {field} nb_deces : SMALLINT
+  {field} annee_deces : SMALLINT
+}
+entity "fait_indicateur_qualite" as fait_indicateur_qualite <<fait>> {
+  {field} <u>#etablissement_sk</u> : INTEGER
+  {field} <u>#campagne_sk</u> : SMALLINT
+  {field} <u>#indicateur_sk</u> : SMALLINT
+  {field} #date_reference_sk : INTEGER
+  {field} #geographie_etablissement_sk : INTEGER
+  {field} valeur : DECIMAL(9,4)
+  {field} effectif_base : INTEGER
+  {field} ic_bas : DECIMAL(9,4)
+  {field} ic_haut : DECIMAL(9,4)
+  {field} classe : VARCHAR(4)
+  {field} est_diffusable : BOOLEAN
+}
+}
+fait_consultation --> dim_date
+fait_consultation --> dim_patient
+fait_consultation --> dim_professionnel
+fait_consultation --> dim_etablissement
+fait_consultation --> dim_geographie
+fait_consultation --> dim_diagnostic
+fait_consultation --> dim_mutuelle
+fait_consultation --> dim_acte
+fait_consultation --> dim_sexe
+fait_consultation --> dim_tranche_age
+fait_hospitalisation --> dim_date : date_entree
+fait_hospitalisation --> dim_date : date_sortie
+fait_hospitalisation --> dim_patient
+fait_hospitalisation --> dim_etablissement
+fait_hospitalisation --> dim_geographie
+fait_hospitalisation --> dim_diagnostic
+fait_hospitalisation --> dim_sexe
+fait_hospitalisation --> dim_tranche_age
+dim_date <-- fait_deces
+dim_geographie <-- fait_deces
+dim_sexe <-- fait_deces
+dim_tranche_age <-- fait_deces
+dim_etablissement <-- fait_indicateur_qualite
+dim_campagne <-- fait_indicateur_qualite
+dim_indicateur <-- fait_indicateur_qualite
+dim_date <-- fait_indicateur_qualite
+dim_geographie <-- fait_indicateur_qualite
+legend bottom
+  <color:#B8901A><b>■</b></color> faits (clés, mesures, dimension dégénérée soulignée)   <color:#2F6DB5><b>■</b></color> dimensions ; cadre : dimensions conformes
+  Chaque lien : (1,1) côté fait, (0,n) côté dimension ; flèche : référençante → référencée
+  fait_hospitalisation : dim_date à double rôle (date_entree, date_sortie)
+endlegend
+@enduml

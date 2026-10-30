@@ -1,0 +1,77 @@
+@startuml
+!include style_data.iuml
+allowmixing
+skinparam linetype polyline
+skinparam nodesep 26
+skinparam ranksep 34
+title MCD (vue 2/2) : référentiels, qualité et décès
+skinparam class {
+  HeaderBackgroundColor #E8F1FB
+  BorderColor #2F6DB5
+}
+entity "ÉTABLISSEMENT" as ETA {
+  {field} <u>identifiant_organisation</u>
+  {field} raison_sociale
+}
+entity "PATIENT" as PAT {
+  {field} <u>id_patient</u>
+}
+entity "CAMPAGNE" as CAM {
+  {field} <u>id_campagne</u>
+  {field} dispositif, annee
+}
+entity "INDICATEUR" as IND {
+  {field} <u>code_indicateur</u>
+  {field} libelle, famille, unite
+}
+entity "COMMUNE" as COM {
+  {field} <u>code_commune</u>
+  {field} libelle
+}
+entity "DÉPARTEMENT" as DEP {
+  {field} <u>code_departement</u>
+  {field} libelle
+}
+entity "RÉGION" as REG {
+  {field} <u>code_region</u>
+  {field} libelle
+}
+entity "PAYS" as PAYS {
+  {field} <u>code_pays</u> (99CCC)
+  {field} libelle
+}
+entity "DÉCÈS" as DEC {
+  {field} <u>deces_id</u>
+  {field} numero_acte, date_deces
+  {field} sexe, date_naissance
+}
+usecase "MESURER\n<size:11>valeur, effectif_base,</size>\n<size:11>ic_bas, ic_haut, classe</size>" as a_mes
+usecase "SITUER" as a_sit
+usecase "RÉSIDER" as a_res
+usecase "INCLURE" as a_inc
+usecase "COMPOSER" as a_comp
+usecase "SURVENIR_EN" as a_sur
+usecase "SURVENIR_HORS" as a_surh
+
+CAM "1,n" -down- a_mes
+IND "1,n" -down- a_mes
+a_mes -down- "0,n" ETA
+ETA "0,1" -down- a_sit
+a_sit -down- "0,n" COM
+PAT "0,1" -down- a_res
+a_res -down- "0,n" DEP
+COM "1,1" -right- a_inc
+a_inc -right- "1,n" DEP
+DEP "1,1" -down- a_comp
+a_comp -down- "1,n" REG
+DEC "0,1" -up- a_sur
+a_sur -up- "0,n" COM
+DEC "0,1" -right- a_surh
+a_surh -right- "0,n" PAYS
+legend bottom
+  DÉCÈS : identifiant artificiel deces_id (empreinte de l'acte, de la date et du lieu, RG-D01) ; le lieu n'est porté
+  que par les associations, avec une contrainte XT entre SURVENIR_EN et SURVENIR_HORS
+  (exactement une des deux associations par décès : commune française ou pays étranger 99CCC)
+  RÉSIDER : adresse généralisée au département (minimisation)
+endlegend
+@enduml

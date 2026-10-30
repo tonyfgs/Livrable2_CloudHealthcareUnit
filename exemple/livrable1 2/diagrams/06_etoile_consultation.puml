@@ -1,0 +1,97 @@
+@startuml
+!include style_data.iuml
+skinparam linetype ortho
+skinparam nodesep 14
+skinparam ranksep 36
+title Étoile détaillée du processus Consultation
+
+entity "fait_consultation" as fait_consultation <<fait>> {
+  {field} <u>consultation_id</u> : BIGINT
+  {field} #date_consultation_sk : INTEGER
+  {field} #patient_sk : BIGINT
+  {field} #professionnel_sk : INTEGER
+  {field} #etablissement_sk : INTEGER
+  {field} #geographie_etablissement_sk : INTEGER
+  {field} #diagnostic_sk : INTEGER
+  {field} #mutuelle_sk : SMALLINT
+  {field} #acte_sk : SMALLINT
+  {field} #sexe_sk : SMALLINT
+  {field} #tranche_age_sk : SMALLINT
+  {field} age_patient : SMALLINT
+  {field} duree_plage_minutes : SMALLINT
+  {field} nb_consultation : SMALLINT
+}
+entity "dim_date" as dim_date <<dim>> {
+  {field} <u>date_sk</u>
+  {field} date_complete (UK)
+  {field} annee
+  {field} semestre
+  {field} <i>+ 13 attributs</i>
+}
+entity "dim_patient" as dim_patient <<dim>> {
+  {field} <u>patient_sk</u>
+  {field} patient_pseudo (UK)
+  {field} code_departement_residence
+  {field} code_region_residence
+}
+entity "dim_professionnel" as dim_professionnel <<dim>> {
+  {field} <u>professionnel_sk</u>
+  {field} professionnel_pseudo
+  {field} type_identifiant
+  {field} profession
+  {field} <i>+ triplet SCD 2</i>
+  {field} <i>+ 5 attributs</i>
+}
+entity "dim_etablissement" as dim_etablissement <<dim>> {
+  {field} <u>etablissement_sk</u>
+  {field} identifiant_organisation
+  {field} type_organisation
+  {field} finess_geographique
+  {field} <i>+ triplet SCD 2</i>
+  {field} <i>+ 11 attributs</i>
+}
+entity "dim_acte" as dim_acte <<dim>> {
+  {field} <u>acte_sk</u>
+  {field} motif
+  {field} famille_motif
+  {field} plage_horaire
+  {field} <i>+ 2 attributs</i>
+}
+entity "dim_mutuelle" as dim_mutuelle <<dim>> {
+  {field} <u>mutuelle_sk</u>
+  {field} id_mutuelle (UK)
+  {field} nom_mutuelle
+}
+entity "dim_diagnostic" as dim_diagnostic <<dim>> {
+  {field} <u>diagnostic_sk</u>
+  {field} code_diag (UK)
+  {field} libelle_diagnostic
+  {field} code_categorie
+  {field} <i>+ 2 attributs</i>
+}
+entity "dim_sexe" as dim_sexe <<dim>> {
+  {field} <u>sexe_sk</u>
+  {field} sexe_code (UK)
+  {field} sexe_libelle
+}
+entity "dim_tranche_age" as dim_tranche_age <<dim>> {
+  {field} <u>tranche_age_sk</u>
+  {field} age_min
+  {field} age_max
+  {field} libelle_tranche (UK)
+  {field} <i>+ 2 attributs</i>
+}
+fait_consultation "1,1" -up-> "0,n" dim_date
+fait_consultation "1,1" -up-> "0,n" dim_patient
+fait_consultation "1,1" -up-> "0,n" dim_professionnel
+fait_consultation "1,1" -left-> "0,n" dim_etablissement
+fait_consultation "1,1" -left-> "0,n" dim_acte
+fait_consultation "1,1" -right-> "0,n" dim_mutuelle
+fait_consultation "1,1" -right-> "0,n" dim_diagnostic
+fait_consultation "1,1" -down-> "0,n" dim_sexe
+fait_consultation "1,1" -down-> "0,n" dim_tranche_age
+legend bottom
+  Grain : une consultation. <u>souligné</u> : clé primaire ; # : clé étrangère ; (UK) : unicité
+  (1,1) côté fait, (0,n) côté dimension ; types et attributs complets : dictionnaire de données
+endlegend
+@enduml

@@ -1,0 +1,82 @@
+@startuml
+!include style_data.iuml
+allowmixing
+skinparam linetype polyline
+skinparam nodesep 26
+skinparam ranksep 34
+title MCD (vue 1/2) : activité de soins
+skinparam class {
+  HeaderBackgroundColor #E8F1FB
+  BorderColor #2F6DB5
+}
+entity "PATIENT" as PAT {
+  {field} <u>id_patient</u>
+  {field} sexe, date_naissance
+}
+entity "CONSULTATION" as CONS {
+  {field} <u>num_consultation</u>
+  {field} date, motif
+  {field} heure_debut, heure_fin
+}
+entity "SÉJOUR" as SEJ {
+  {field} <u>num_hospitalisation</u>
+  {field} date_entree, duree_jours
+}
+entity "PROFESSIONNEL" as PRO {
+  {field} <u>identifiant</u>
+  {field} type_identifiant
+  {field} profession, categorie
+}
+entity "SPÉCIALITÉ" as SPE {
+  {field} <u>code_specialite</u>
+  {field} fonction, libelle
+}
+entity "DIAGNOSTIC" as DIA {
+  {field} <u>code_diag</u>
+  {field} libelle
+}
+entity "MUTUELLE" as MUT {
+  {field} <u>id_mutuelle</u>
+  {field} nom
+}
+entity "ÉTABLISSEMENT" as ETA {
+  {field} <u>identifiant_organisation</u>
+  {field} finess_geo, finess_ej
+  {field} raison_sociale
+}
+usecase "ADHÉRER" as a_adh
+usecase "CONSULTER" as a_cons
+usecase "FINANCER" as a_fin
+usecase "RÉALISER" as a_real
+usecase "DIAGNOSTIQUER" as a_diag
+usecase "POSSÉDER" as a_spe
+usecase "EXERCER\n<size:11>mode_exercice</size>" as a_exe
+usecase "SÉJOURNER" as a_sej
+usecase "MOTIVER" as a_mot
+usecase "ACCUEILLIR" as a_acc
+
+PAT "0,n" -right- a_adh
+a_adh -right- "0,n" MUT
+PAT "0,n" -down- a_cons
+a_cons -down- "1,1" CONS
+MUT "0,n" -down- a_fin
+a_fin -down- "1,1" CONS
+PAT "0,n" -down- a_sej
+a_sej -down- "1,1" SEJ
+CONS "1,1" -down- a_real
+a_real -down- "0,n" PRO
+CONS "1,1" -down- a_diag
+a_diag -down- "0,n" DIA
+SEJ "1,1" -down- a_mot
+a_mot -down- "0,n" DIA
+SEJ "1,1" -down- a_acc
+a_acc -down- "0,n" ETA
+PRO "1,1" -down- a_spe
+a_spe -down- "0,n" SPE
+PRO "0,n" -right- a_exe
+a_exe -right- "0,n" ETA
+legend bottom
+  Rectangle : entité (identifiant <u>souligné</u>) ; ellipse : association (propriétés portées)
+  Cardinalités (min,max) côté entité. ÉTABLISSEMENT est l'entité pivot avec la vue 2/2.
+endlegend
+@enduml

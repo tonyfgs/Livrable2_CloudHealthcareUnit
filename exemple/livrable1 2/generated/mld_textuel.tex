@@ -1,0 +1,18 @@
+\begin{mldlist}
+\item \textbf{fait\_consultation} ( \underline{consultation\_id}, \#date\_consultation\_sk, \#patient\_sk, \#professionnel\_sk, \#etablissement\_sk, \#geographie\_etablissement\_sk, \#diagnostic\_sk, \#mutuelle\_sk, \#acte\_sk, \#sexe\_sk, \#tranche\_age\_sk, age\_patient, duree\_plage\_minutes, nb\_consultation )
+\item \textbf{fait\_hospitalisation} ( \underline{sejour\_id}, \#date\_entree\_sk, \#date\_sortie\_sk, \#patient\_sk, \#etablissement\_sk, \#geographie\_etablissement\_sk, \#diagnostic\_sk, \#sexe\_sk, \#tranche\_age\_sk, age\_entree, duree\_sejour\_jours, nb\_sejour )
+\item \textbf{fait\_deces} ( \underline{deces\_id}, \#date\_deces\_sk, \#geographie\_deces\_sk, \#sexe\_sk, \#tranche\_age\_sk, annee\_deces, age\_deces, nb\_deces )
+\item \textbf{fait\_indicateur\_qualite} ( \underline{\#etablissement\_sk}, \underline{\#campagne\_sk}, \underline{\#indicateur\_sk}, \#date\_reference\_sk, \#geographie\_etablissement\_sk, valeur, effectif\_base, ic\_bas, ic\_haut, classe, evolution, est\_participation\_obligatoire, est\_diffusable )
+\item \textbf{dim\_date} ( \underline{date\_sk}, date\_complete, annee, semestre, trimestre, mois, libelle\_mois, annee\_mois, semaine\_iso, annee\_iso, semaine\_epidemio, jour\_mois, jour\_semaine\_iso, libelle\_jour, est\_week\_end, est\_jour\_ferie, est\_jour\_ouvre )
+\item \textbf{dim\_patient} ( \underline{patient\_sk}, patient\_pseudo, code\_departement\_residence, code\_region\_residence )
+\item \textbf{dim\_sexe} ( \underline{sexe\_sk}, sexe\_code, sexe\_libelle )
+\item \textbf{dim\_tranche\_age} ( \underline{tranche\_age\_sk}, age\_min, age\_max, libelle\_tranche, classe\_age, ordre\_tri )
+\item \textbf{dim\_geographie} ( \underline{geographie\_sk}, code\_commune, libelle\_commune, code\_departement, libelle\_departement, code\_region, libelle\_region, est\_etranger, millesime\_cog )
+\item \textbf{dim\_etablissement} ( \underline{etablissement\_sk}, identifiant\_organisation, type\_organisation, finess\_geographique, finess\_juridique, siret, raison\_sociale, categorie\_libelle, code\_postal, code\_commune, libelle\_commune, code\_departement, code\_region, libelle\_region, est\_groupe\_chu, date\_debut\_validite, date\_fin\_validite, est\_version\_courante )
+\item \textbf{dim\_diagnostic} ( \underline{diagnostic\_sk}, code\_diag, libelle\_diagnostic, code\_categorie, code\_chapitre, libelle\_chapitre )
+\item \textbf{dim\_professionnel} ( \underline{professionnel\_sk}, professionnel\_pseudo, type\_identifiant, profession, categorie\_professionnelle, specialite\_code, specialite\_libelle, fonction, mode\_exercice, date\_debut\_validite, date\_fin\_validite, est\_version\_courante )
+\item \textbf{dim\_mutuelle} ( \underline{mutuelle\_sk}, id\_mutuelle, nom\_mutuelle )
+\item \textbf{dim\_acte} ( \underline{acte\_sk}, motif, famille\_motif, plage\_horaire, heure\_debut, heure\_fin )
+\item \textbf{dim\_campagne} ( \underline{campagne\_sk}, dispositif, annee\_publication, annee\_donnees, fichier\_source )
+\item \textbf{dim\_indicateur} ( \underline{indicateur\_sk}, code\_indicateur, libelle\_indicateur, famille, secteur, unite, sens\_favorable )
+\end{mldlist}

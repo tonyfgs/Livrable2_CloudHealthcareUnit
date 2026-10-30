@@ -1,0 +1,11 @@
+\chapter*{Glossaire}\addcontentsline{toc}{chapter}{Glossaire}\label{chap:glossaire}
+\begin{multicols}{2}\begin{description}[style=unboxed,leftmargin=0pt,font=\normalfont\bfseries,itemsep=1pt]\small
+\item[ADELI / RPPS] Identifiants des professionnels de santé : ADELI (9 chiffres, ancien répertoire) et RPPS (11 chiffres, répertoire partagé).
+\item[Dimension conforme] Dimension partagée par plusieurs faits avec les mêmes clés et les mêmes valeurs, qui rend possibles les analyses croisées.
+\item[Hive] Entrepôt SQL de Hadoop : tables décrites dans un métastore, requêtes HiveQL sur des fichiers HDFS.
+\item[Membre spécial] Ligne de dimension réservée ($-1$ à $-4$) qui remplace une clé étrangère inconnue ou non applicable.
+\item[SCD] \emph{Slowly Changing Dimension} : historisation des changements d'une dimension (type 1 : écrasement ; type 2 : nouvelle version).
+\item[Table externe (Hive)] Table dont Hive ne gère que les métadonnées : les fichiers de son \code{LOCATION} restent en place si la table est supprimée.
+\item[TOS BD] Talend Open Studio for Big Data, outil ETL graphique ; un \emph{job} assemble des composants (\code{tMap}…), un \emph{contexte} porte les variables d'un environnement.
+\item[Write-Audit-Publish] Publication en trois temps : écrire à part, contrôler, puis exposer ; ici, répertoire de chargement, contrôles, puis \code{ALTER TABLE}.
+\end{description}\end{multicols}

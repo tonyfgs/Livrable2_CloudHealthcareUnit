@@ -1,0 +1,186 @@
+{\small\setlength{\tabcolsep}{3pt}\renewcommand{\arraystretch}{1.0}\begin{xltabular}{\linewidth}{@{}L{4.1cm}L{2.3cm}L{0.65cm}L{0.95cm}Y@{}}\dicthead
+\multicolumn{5}{@{}>{\columncolor{bleuclair}}p{\dimexpr\linewidth\relax}@{}}{\textbf{\code{fait\_consultation} : Fait Consultation (transactionnel)}\label{dict:fait_consultation}}\\*
+\multicolumn{5}{@{}p{\linewidth}@{}}{\textbf{Grain} : une consultation (Num\_consultation). \textbf{SCD} : aucune. \textbf{Job} : \code{J\_FAIT\_CONSULTATION}, mensuel. \textbf{Volume} : 1 027 157 (06/2015-03/2023). \textbf{Colonnes communes} : \code{id\_lot}, \code{dt\_chargement} (tableau~\ref{tab:colcommunes}).}\\*\midrule
+\code{consultation\_id} & \code{BIGINT} & NN & PK & Dimension dégénérée : Num\_consultation \\
+\code{date\_consultation\_sk} & \code{INTEGER} & NN & FK & $\rightarrow$ \code{dim\_date}. Consultation.Date \\
+\code{patient\_sk} & \code{BIGINT} & NN & FK & $\rightarrow$ \code{dim\_patient}. Via Id\_patient $\rightarrow$ patient\_pseudo \\
+\code{professionnel\_sk} & \code{INTEGER} & NN & FK & $\rightarrow$ \code{dim\_professionnel}. Id\_prof\_sante \\
+\code{etablissement\_sk} & \code{INTEGER} & NN & FK & $\rightarrow$ \code{dim\_etablissement}. Organisation d'exercice du professionnel, version en vigueur à la date de l'acte \\
+\code{geographie\_etablissement\_sk} & \code{INTEGER} & NN & FK & $\rightarrow$ \code{dim\_geographie}. Rôle « lieu de l'établissement » : code\_commune de la version d'établissement retenue $\rightarrow$ dim\_geographie \\
+\code{diagnostic\_sk} & \code{INTEGER} & NN & FK & $\rightarrow$ \code{dim\_diagnostic}. Code\_diag \\
+\code{mutuelle\_sk} & \code{SMALLINT} & NN & FK & $\rightarrow$ \code{dim\_mutuelle}. Id\_mut de la consultation \\
+\code{acte\_sk} & \code{SMALLINT} & NN & FK & $\rightarrow$ \code{dim\_acte}. Motif $\times$ plage horaire \\
+\code{sexe\_sk} & \code{SMALLINT} & NN & FK & $\rightarrow$ \code{dim\_sexe}. Patient.Sexe transcodé \\
+\code{tranche\_age\_sk} & \code{SMALLINT} & NN & FK & $\rightarrow$ \code{dim\_tranche\_age}. Âge révolu à la date de l'acte \\
+\code{age\_patient} & \code{SMALLINT} & N &  & Âge révolu à la date de l'acte, recalculé depuis la date de naissance \\
+\code{duree\_plage\_minutes} & \code{SMALLINT} & N &  & Heure\_fin - Heure\_debut \\
+\code{nb\_consultation} & \code{SMALLINT} & NN &  & Mesure additive = 1 \\
+\midrule
+\multicolumn{5}{@{}>{\columncolor{bleuclair}}p{\dimexpr\linewidth\relax}@{}}{\textbf{\code{fait\_hospitalisation} : Fait Hospitalisation (séjour)}\label{dict:fait_hospitalisation}}\\*
+\multicolumn{5}{@{}p{\linewidth}@{}}{\textbf{Grain} : un séjour hospitalier (Num\_Hospitalisation). \textbf{SCD} : Rechargement complet à chaque livraison. \textbf{Job} : \code{J\_FAIT\_HOSPITALISATION}, mensuel. \textbf{Volume} : 2 479 (06/2015-06/2021). \textbf{Colonnes communes} : \code{id\_lot}, \code{dt\_chargement} (tableau~\ref{tab:colcommunes}).}\\*\midrule
+\code{sejour\_id} & \code{BIGINT} & NN & PK & Dimension dégénérée : Num\_Hospitalisation \\
+\code{date\_entree\_sk} & \code{INTEGER} & NN & FK & $\rightarrow$ \code{dim\_date}. Date\_Entree (JJ/MM/AAAA) \\
+\code{date\_sortie\_sk} & \code{INTEGER} & NN & FK & $\rightarrow$ \code{dim\_date}. Date\_Entree + Jour\_Hospitalisation \\
+\code{patient\_sk} & \code{BIGINT} & NN & FK & $\rightarrow$ \code{dim\_patient}. Id\_patient \\
+\code{etablissement\_sk} & \code{INTEGER} & NN & FK & $\rightarrow$ \code{dim\_etablissement}. identifiant\_organisation \\
+\code{geographie\_etablissement\_sk} & \code{INTEGER} & NN & FK & $\rightarrow$ \code{dim\_geographie}. Rôle « lieu de l'établissement » : code\_commune de la version d'établissement retenue $\rightarrow$ dim\_geographie \\
+\code{diagnostic\_sk} & \code{INTEGER} & NN & FK & $\rightarrow$ \code{dim\_diagnostic}. Code\_diagnostic \\
+\code{sexe\_sk} & \code{SMALLINT} & NN & FK & $\rightarrow$ \code{dim\_sexe}. Sexe du patient \\
+\code{tranche\_age\_sk} & \code{SMALLINT} & NN & FK & $\rightarrow$ \code{dim\_tranche\_age}. Tranche d'âge à l'entrée \\
+\code{age\_entree} & \code{SMALLINT} & N &  & Âge révolu à l'entrée \\
+\code{duree\_sejour\_jours} & \code{SMALLINT} & NN &  & Jour\_Hospitalisation \\
+\code{nb\_sejour} & \code{SMALLINT} & NN &  & Mesure additive = 1 \\
+\midrule
+\multicolumn{5}{@{}>{\columncolor{bleuclair}}p{\dimexpr\linewidth\relax}@{}}{\textbf{\code{fait\_deces} : Fait Décès (open data INSEE)}\label{dict:fait_deces}}\\*
+\multicolumn{5}{@{}p{\linewidth}@{}}{\textbf{Grain} : un acte de décès (après dédoublonnage). \textbf{SCD} : Ajout mensuel. \textbf{Job} : \code{J\_FAIT\_DECES}, mensuel. \textbf{Volume} : $\approx$ 25,1$\cdot$10\^{}6 (décès depuis 1970 ; échantillon : 1983). \textbf{Colonnes communes} : \code{id\_lot}, \code{dt\_chargement} (tableau~\ref{tab:colcommunes}).}\\*\midrule
+\code{deces\_id} & \code{CHAR(64)} & NN & PK & SHA-256(numero\_acte\_deces | code\_lieu\_deces | date\_deces) : clé de dédoublonnage \\
+\code{date\_deces\_sk} & \code{INTEGER} & NN & FK & $\rightarrow$ \code{dim\_date}. date\_deces ; -1 si partielle ou invalide \\
+\code{geographie\_deces\_sk} & \code{INTEGER} & NN & FK & $\rightarrow$ \code{dim\_geographie}. code\_lieu\_deces $\rightarrow$ commune COG courante \\
+\code{sexe\_sk} & \code{SMALLINT} & NN & FK & $\rightarrow$ \code{dim\_sexe}. sexe (1/2) \\
+\code{tranche\_age\_sk} & \code{SMALLINT} & NN & FK & $\rightarrow$ \code{dim\_tranche\_age}. Tranche de l'âge au décès \\
+\code{annee\_deces} & \code{SMALLINT} & N &  & Année de décès, conservée même si la date est partielle \\
+\code{age\_deces} & \code{SMALLINT} & N &  & Âge révolu au décès \\
+\code{nb\_deces} & \code{SMALLINT} & NN &  & Mesure additive = 1 \\
+\midrule
+\multicolumn{5}{@{}>{\columncolor{bleuclair}}p{\dimexpr\linewidth\relax}@{}}{\textbf{\code{fait\_indicateur\_qualite} : Fait Indicateur qualité \& satisfaction (instantané périodique)}\label{dict:fait_indicateur_qualite}}\\*
+\multicolumn{5}{@{}p{\linewidth}@{}}{\textbf{Grain} : un résultat d'indicateur pour un établissement et une campagne ; unicité aussi testée sur (identifiant\_organisation, campagne, indicateur). \textbf{SCD} : Ajout par campagne. \textbf{Job} : \code{J\_FAIT\_INDICATEUR\_QUALITE}, mensuel. \textbf{Volume} : $\approx$ 10\^{}5 (format long). \textbf{Colonnes communes} : \code{id\_lot}, \code{dt\_chargement} (tableau~\ref{tab:colcommunes}).}\\*\midrule
+\code{etablissement\_sk} & \code{INTEGER} & NN & PK, FK & $\rightarrow$ \code{dim\_etablissement}. finess\_geo (à défaut finess) $\rightarrow$ version en vigueur au 1er janvier de annee\_donnees (date de référence fixe) \\
+\code{campagne\_sk} & \code{SMALLINT} & NN & PK, FK & $\rightarrow$ \code{dim\_campagne}. Millésime du fichier \\
+\code{indicateur\_sk} & \code{SMALLINT} & NN & PK, FK & $\rightarrow$ \code{dim\_indicateur}. Indicateur canonique \\
+\code{date\_reference\_sk} & \code{INTEGER} & NN & FK & $\rightarrow$ \code{dim\_date}. 1er janvier de dim\_campagne.annee\_donnees \\
+\code{geographie\_etablissement\_sk} & \code{INTEGER} & NN & FK & $\rightarrow$ \code{dim\_geographie}. Rôle « lieu de l'établissement » : code\_commune de la version d'établissement retenue $\rightarrow$ dim\_geographie \\
+\code{valeur} & \code{DECIMAL(9,4)} & N &  & Score / taux (virgule ou point décimal normalisés) \\
+\code{effectif\_base} & \code{INTEGER} & N &  & Effectif de base \\
+\code{ic\_bas} & \code{DECIMAL(9,4)} & N &  & Borne basse de l'intervalle de confiance \\
+\code{ic\_haut} & \code{DECIMAL(9,4)} & N &  & Borne haute (*\_ichaut\_etbt) \\
+\code{classe} & \code{VARCHAR(4)} & N &  & A, B, C, D, DI, NR, NV \\
+\code{evolution} & \code{VARCHAR(30)} & N &  & Évolution de classe déclarée par la HAS \\
+\code{est\_participation\_obligatoire} & \code{BOOLEAN} & N &  & participation = « 1- Obligatoire » \\
+\code{est\_diffusable} & \code{BOOLEAN} & NN &  & Faux si classe DI/NR/NV ou valeur absente \\
+\midrule
+\multicolumn{5}{@{}>{\columncolor{bleuclair}}p{\dimexpr\linewidth\relax}@{}}{\textbf{\code{dim\_date} : Dimension Temps (calendrier)}\label{dict:dim_date}}\\*
+\multicolumn{5}{@{}p{\linewidth}@{}}{\textbf{Grain} : un jour calendaire. \textbf{SCD} : Statique (générée). \textbf{Job} : \code{J\_DIM\_DATE}, mensuel. \textbf{Volume} : $\approx$ 24 100 (1970-2035).}\\*\midrule
+\code{date\_sk} & \code{INTEGER} & NN & PK & Clé « intelligente » AAAAMMJJ \\
+\code{date\_complete} & \code{DATE} & N & UK & Date calendaire \\
+\code{annee} & \code{SMALLINT} & N &  & Année civile \\
+\code{semestre} & \code{SMALLINT} & N &  & 1 ou 2 \\
+\code{trimestre} & \code{SMALLINT} & N &  & 1 à 4 \\
+\code{mois} & \code{SMALLINT} & N &  & 1 à 12 \\
+\code{libelle\_mois} & \code{VARCHAR(12)} & N &  & Libellé français \\
+\code{annee\_mois} & \code{CHAR(7)} & N &  & Clé de regroupement AAAA-MM \\
+\code{semaine\_iso} & \code{SMALLINT} & N &  & Numéro de semaine ISO 8601 \\
+\code{annee\_iso} & \code{SMALLINT} & N &  & Année ISO 8601 de la semaine \\
+\code{semaine\_epidemio} & \code{INTEGER} & N &  & Semaine épidémiologique au format AAAASS \\
+\code{jour\_mois} & \code{SMALLINT} & N &  & 1 à 31 \\
+\code{jour\_semaine\_iso} & \code{SMALLINT} & N &  & 1 = lundi … 7 = dimanche \\
+\code{libelle\_jour} & \code{VARCHAR(10)} & N &  & Libellé français du jour \\
+\code{est\_week\_end} & \code{BOOLEAN} & NN &  & Samedi ou dimanche \\
+\code{est\_jour\_ferie} & \code{BOOLEAN} & NN &  & Jour férié légal \\
+\code{est\_jour\_ouvre} & \code{BOOLEAN} & NN &  & Lundi à vendredi hors jour férié \\
+\midrule
+\multicolumn{5}{@{}>{\columncolor{bleuclair}}p{\dimexpr\linewidth\relax}@{}}{\textbf{\code{dim\_patient} : Dimension Patient pseudonymisé}\label{dict:dim_patient}}\\*
+\multicolumn{5}{@{}p{\linewidth}@{}}{\textbf{Grain} : un patient (Id\_patient source). \textbf{SCD} : Type 1. \textbf{Job} : \code{J\_DIM\_PATIENT}, mensuel. \textbf{Volume} : 100 000. \textbf{Colonnes communes} : \code{id\_lot}, \code{dt\_chargement} (tableau~\ref{tab:colcommunes}).}\\*\midrule
+\code{patient\_sk} & \code{BIGINT} & NN & PK & Clé de substitution \\
+\code{patient\_pseudo} & \code{CHAR(64)} & NN & UK & HMAC-SHA-256(clé KMS, « CHU|PATIENT|<Id\_patient> ») en hexadécimal \\
+\code{code\_departement\_residence} & \code{VARCHAR(3)} & N &  & Généralisation de Code\_postal \\
+\code{code\_region\_residence} & \code{CHAR(2)} & N &  & Région COG déduite du département \\
+\midrule
+\multicolumn{5}{@{}>{\columncolor{bleuclair}}p{\dimexpr\linewidth\relax}@{}}{\textbf{\code{dim\_sexe} : Dimension Sexe (conforme)}\label{dict:dim_sexe}}\\*
+\multicolumn{5}{@{}p{\linewidth}@{}}{\textbf{Grain} : une modalité de sexe. \textbf{SCD} : Statique. \textbf{Job} : \code{J\_DIM\_SEXE}, mensuel. \textbf{Volume} : 3.}\\*\midrule
+\code{sexe\_sk} & \code{SMALLINT} & NN & PK & Clé ; -1 = inconnu \\
+\code{sexe\_code} & \code{CHAR(1)} & NN & UK & Code INSEE : 1 = masculin, 2 = féminin, 9 = inconnu \\
+\code{sexe\_libelle} & \code{VARCHAR(20)} & NN &  & Masculin, Féminin, Inconnu \\
+\midrule
+\multicolumn{5}{@{}>{\columncolor{bleuclair}}p{\dimexpr\linewidth\relax}@{}}{\textbf{\code{dim\_tranche\_age} : Dimension Tranche d'âge (conforme)}\label{dict:dim_tranche_age}}\\*
+\multicolumn{5}{@{}p{\linewidth}@{}}{\textbf{Grain} : une tranche quinquennale d'âge révolu. \textbf{SCD} : Statique. \textbf{Job} : \code{J\_DIM\_TRANCHE\_AGE}, mensuel. \textbf{Volume} : 21.}\\*\midrule
+\code{tranche\_age\_sk} & \code{SMALLINT} & NN & PK & Clé ; -1 = âge inconnu ou incohérent \\
+\code{age\_min} & \code{SMALLINT} & N &  & Borne inférieure incluse \\
+\code{age\_max} & \code{SMALLINT} & N &  & Borne supérieure incluse \\
+\code{libelle\_tranche} & \code{VARCHAR(16)} & NN & UK & Ex. « 00-04 ans » \\
+\code{classe\_age} & \code{VARCHAR(20)} & NN &  & 0-17, 18-64, 65 ans et + \\
+\code{ordre\_tri} & \code{SMALLINT} & NN &  & Ordre d'affichage \\
+\midrule
+\multicolumn{5}{@{}>{\columncolor{bleuclair}}p{\dimexpr\linewidth\relax}@{}}{\textbf{\code{dim\_geographie} : Dimension Géographie (COG INSEE)}\label{dict:dim_geographie}}\\*
+\multicolumn{5}{@{}p{\linewidth}@{}}{\textbf{Grain} : une commune du COG courant, ou un pays pour l'étranger. \textbf{SCD} : Type 1 (re-projection sur le COG courant). \textbf{Job} : \code{J\_DIM\_GEOGRAPHIE}, mensuel. \textbf{Volume} : $\approx$ 35 000. \textbf{Colonnes communes} : \code{id\_lot}, \code{dt\_chargement} (tableau~\ref{tab:colcommunes}).}\\*\midrule
+\code{geographie\_sk} & \code{INTEGER} & NN & PK & Clé ; -1 = lieu inconnu, -3 = code absent du COG après reprojection \\
+\code{code\_commune} & \code{CHAR(5)} & NN & UK & Code commune COG, ou 99CCC \\
+\code{libelle\_commune} & \code{VARCHAR(100)} & NN &  & Libellé officiel \\
+\code{code\_departement} & \code{VARCHAR(3)} & N &  & Code département \\
+\code{libelle\_departement} & \code{VARCHAR(60)} & N &  & Libellé département \\
+\code{code\_region} & \code{CHAR(2)} & NN &  & Code région COG \\
+\code{libelle\_region} & \code{VARCHAR(60)} & NN &  & Libellé officiel de la région \\
+\code{est\_etranger} & \code{BOOLEAN} & NN &  & Vrai si code 99CCC \\
+\code{millesime\_cog} & \code{SMALLINT} & NN &  & Millésime COG de référence \\
+\midrule
+\multicolumn{5}{@{}>{\columncolor{bleuclair}}p{\dimexpr\linewidth\relax}@{}}{\textbf{\code{dim\_etablissement} : Dimension Établissement / organisation}\label{dict:dim_etablissement}}\\*
+\multicolumn{5}{@{}p{\linewidth}@{}}{\textbf{Grain} : une version d'une organisation de l'annuaire santé (FINESS géographique ou cabinet SIRET). \textbf{SCD} : Type 2 (raison sociale, commune, entité juridique, catégorie). \textbf{Job} : \code{J\_DIM\_ETABLISSEMENT}, mensuel. \textbf{Volume} : $\approx$ 416 700 organisations. \textbf{Colonnes communes} : triplet SCD~2 ; \code{id\_lot}, \code{dt\_chargement} (tableau~\ref{tab:colcommunes}).}\\*\midrule
+\code{etablissement\_sk} & \code{INTEGER} & NN & PK & Clé (une par version) \\
+\code{identifiant\_organisation} & \code{VARCHAR(20)} & NN &  & Clé naturelle et clé durable, stable entre versions \\
+\code{type\_organisation} & \code{CHAR(1)} & NN &  & F = établissement FINESS \\
+\code{finess\_geographique} & \code{CHAR(9)} & N &  & identifiant\_organisation sans le préfixe F \\
+\code{finess\_juridique} & \code{CHAR(9)} & N &  & finess\_etablissement\_juridique \\
+\code{siret} & \code{CHAR(14)} & N &  & siret\_site \\
+\code{raison\_sociale} & \code{VARCHAR(150)} & NN &  & raison\_sociale\_site \\
+\code{categorie\_libelle} & \code{VARCHAR(100)} & N &  & Catégorie d'établissement \\
+\code{code\_postal} & \code{CHAR(5)} & N &  & code\_postal \\
+\code{code\_commune} & \code{CHAR(5)} & N &  & code\_commune (COG) \\
+\code{libelle\_commune} & \code{VARCHAR(100)} & N &  & Attribut conforme issu de dim\_geographie \\
+\code{code\_departement} & \code{VARCHAR(3)} & N &  & Attribut conforme issu de dim\_geographie \\
+\code{code\_region} & \code{CHAR(2)} & N &  & Attribut conforme issu de dim\_geographie \\
+\code{libelle\_region} & \code{VARCHAR(60)} & N &  & Attribut conforme issu de dim\_geographie \\
+\code{est\_groupe\_chu} & \code{BOOLEAN} & NN &  & Vrai si l'organisation appartient au périmètre du groupe CHU \\
+\midrule
+\multicolumn{5}{@{}>{\columncolor{bleuclair}}p{\dimexpr\linewidth\relax}@{}}{\textbf{\code{dim\_diagnostic} : Dimension Diagnostic (CIM-10)}\label{dict:dim_diagnostic}}\\*
+\multicolumn{5}{@{}p{\linewidth}@{}}{\textbf{Grain} : un code diagnostic. \textbf{SCD} : Type 1. \textbf{Job} : \code{J\_DIM\_DIAGNOSTIC}, mensuel. \textbf{Volume} : 15 490. \textbf{Colonnes communes} : \code{id\_lot}, \code{dt\_chargement} (tableau~\ref{tab:colcommunes}).}\\*\midrule
+\code{diagnostic\_sk} & \code{INTEGER} & NN & PK & Clé ; -1 = non renseigné, -3 = code hors référentiel \\
+\code{code\_diag} & \code{VARCHAR(6)} & NN & UK & Code\_diag (3 à 6 caractères, extensions CIM-10 FR) \\
+\code{libelle\_diagnostic} & \code{VARCHAR(255)} & NN &  & Diagnostic \\
+\code{code\_categorie} & \code{CHAR(3)} & NN &  & 3 premiers caractères \\
+\code{code\_chapitre} & \code{VARCHAR(5)} & N &  & Chapitre CIM-10 \\
+\code{libelle\_chapitre} & \code{VARCHAR(255)} & N &  & Libellé du chapitre \\
+\midrule
+\multicolumn{5}{@{}>{\columncolor{bleuclair}}p{\dimexpr\linewidth\relax}@{}}{\textbf{\code{dim\_professionnel} : Dimension Professionnel de santé}\label{dict:dim_professionnel}}\\*
+\multicolumn{5}{@{}p{\linewidth}@{}}{\textbf{Grain} : une version d'un professionnel. \textbf{SCD} : Type 2 (profession, spécialité, mode d'exercice). \textbf{Job} : \code{J\_DIM\_PROFESSIONNEL}, mensuel. \textbf{Volume} : $\approx$ 1,05$\cdot$10\^{}6 (fichier plafonné à la limite d'Excel). \textbf{Colonnes communes} : triplet SCD~2 ; \code{id\_lot}, \code{dt\_chargement} (tableau~\ref{tab:colcommunes}).}\\*\midrule
+\code{professionnel\_sk} & \code{INTEGER} & NN & PK & Clé (une par version) \\
+\code{professionnel\_pseudo} & \code{CHAR(64)} & NN &  & HMAC-SHA-256 de l'identifiant normalisé \\
+\code{type\_identifiant} & \code{VARCHAR(5)} & NN &  & RPPS ou ADELI \\
+\code{profession} & \code{VARCHAR(60)} & N &  & Profession (Médecin, Infirmier…) \\
+\code{categorie\_professionnelle} & \code{VARCHAR(20)} & N &  & Civil, Militaire, Étudiant \\
+\code{specialite\_code} & \code{VARCHAR(10)} & N &  & Code\_specialite \\
+\code{specialite\_libelle} & \code{VARCHAR(100)} & N &  & Specialites.Specialite \\
+\code{fonction} & \code{VARCHAR(60)} & N &  & Specialites.Fonction \\
+\code{mode\_exercice} & \code{VARCHAR(20)} & N &  & Libéral / Salarié \\
+\midrule
+\multicolumn{5}{@{}>{\columncolor{bleuclair}}p{\dimexpr\linewidth\relax}@{}}{\textbf{\code{dim\_mutuelle} : Dimension Mutuelle (organisme complémentaire)}\label{dict:dim_mutuelle}}\\*
+\multicolumn{5}{@{}p{\linewidth}@{}}{\textbf{Grain} : un organisme complémentaire. \textbf{SCD} : Type 1. \textbf{Job} : \code{J\_DIM\_MUTUELLE}, mensuel. \textbf{Volume} : 254. \textbf{Colonnes communes} : \code{id\_lot}, \code{dt\_chargement} (tableau~\ref{tab:colcommunes}).}\\*\midrule
+\code{mutuelle\_sk} & \code{SMALLINT} & NN & PK & Clé ; -1 = inconnue \\
+\code{id\_mutuelle} & \code{INTEGER} & NN & UK & Id\_Mut source \\
+\code{nom\_mutuelle} & \code{VARCHAR(150)} & NN &  & Nom \\
+\midrule
+\multicolumn{5}{@{}>{\columncolor{bleuclair}}p{\dimexpr\linewidth\relax}@{}}{\textbf{\code{dim\_acte} : Dimension Acte de consultation (junk)}\label{dict:dim_acte}}\\*
+\multicolumn{5}{@{}p{\linewidth}@{}}{\textbf{Grain} : une combinaison motif $\times$ plage horaire. \textbf{SCD} : Statique (alimentée par les valeurs observées). \textbf{Job} : \code{J\_DIM\_ACTE}, mensuel. \textbf{Volume} : $\approx$ 100.}\\*\midrule
+\code{acte\_sk} & \code{SMALLINT} & NN & PK & Clé ; -1 = inconnu \\
+\code{motif} & \code{VARCHAR(60)} & NN &  & Motif source (ex \\
+\code{famille\_motif} & \code{VARCHAR(30)} & NN &  & Regroupement : Consultation, Dentaire, Imagerie, Biologie, Soins \\
+\code{plage\_horaire} & \code{VARCHAR(12)} & NN &  & MATIN (08-12), APRES\_MIDI (13-18), SOIR (20-23), NUIT (20-02) \\
+\code{heure\_debut} & \code{TIME} & NN &  & Heure\_debut de la plage \\
+\code{heure\_fin} & \code{TIME} & NN &  & Heure\_fin de la plage \\
+\midrule
+\multicolumn{5}{@{}>{\columncolor{bleuclair}}p{\dimexpr\linewidth\relax}@{}}{\textbf{\code{dim\_campagne} : Dimension Campagne de mesure (HAS)}\label{dict:dim_campagne}}\\*
+\multicolumn{5}{@{}p{\linewidth}@{}}{\textbf{Grain} : une campagne d'un dispositif de mesure (millésime de fichier). \textbf{SCD} : Statique (une ligne par fichier/millésime). \textbf{Job} : \code{J\_DIM\_CAMPAGNE}, mensuel. \textbf{Volume} : $\approx$ 25.}\\*\midrule
+\code{campagne\_sk} & \code{SMALLINT} & NN & PK & Clé ; -1 = inconnue \\
+\code{dispositif} & \code{VARCHAR(40)} & NN &  & e-Satis 48h MCO, e-Satis MCO CA, IQSS DPA SSR, IQSS RCP MCO… \\
+\code{annee\_publication} & \code{SMALLINT} & NN &  & Année de recueil / publication \\
+\code{annee\_donnees} & \code{SMALLINT} & N &  & Année des données \\
+\code{fichier\_source} & \code{VARCHAR(120)} & NN & UK & Nom du fichier source \\
+\midrule
+\multicolumn{5}{@{}>{\columncolor{bleuclair}}p{\dimexpr\linewidth\relax}@{}}{\textbf{\code{dim\_indicateur} : Dimension Indicateur (canonique)}\label{dict:dim_indicateur}}\\*
+\multicolumn{5}{@{}p{\linewidth}@{}}{\textbf{Grain} : un indicateur canonique, indépendant des noms de colonnes des millésimes. \textbf{SCD} : Type 1. \textbf{Job} : \code{J\_DIM\_INDICATEUR}, mensuel. \textbf{Volume} : $\approx$ 60.}\\*\midrule
+\code{indicateur\_sk} & \code{SMALLINT} & NN & PK & Clé ; -1 = inconnu \\
+\code{code\_indicateur} & \code{VARCHAR(40)} & NN & UK & Ex. ESATIS48H\_SCORE\_GLOBAL, ESATISCA\_SCORE\_GLOBAL, ESATIS48H\_SCORE\_REPAS \\
+\code{libelle\_indicateur} & \code{VARCHAR(200)} & NN &  & Libellé issu des lexiques HAS \\
+\code{famille} & \code{VARCHAR(30)} & NN &  & SATISFACTION, QUALITE\_PRISE\_EN\_CHARGE, SECURITE… \\
+\code{secteur} & \code{VARCHAR(10)} & NN &  & MCO, MCO-CA, SSR, HAD \\
+\code{unite} & \code{VARCHAR(20)} & NN &  & Score /100, \%, ratio O/A \\
+\code{sens\_favorable} & \code{CHAR(1)} & NN &  & « + » si une valeur élevée est favorable, « - » sinon \\
+\end{xltabular}}

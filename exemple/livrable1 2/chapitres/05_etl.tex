@@ -1,0 +1,128 @@
+\chapter{Spécifications fonctionnelles des jobs ETL}\label{chap:etl}
+
+Chaîne de type ELT : chargement brut dans HDFS (Bronze), transformations en Silver, puis chargement dans les tables Gold. Un job Talend par dimension et par fait, orchestré par un job maître mensuel.
+
+\section{Sources, principes et contextes}\label{sec:principes}
+\textbf{Sources} : S1 (PostgreSQL \code{DATA2023}), séjours (CSV \code{Hospitalisations}), S2 (annuaire santé, 3 CSV), S3 (fichiers HAS), S4 (décès INSEE), et référentiels (COG, CIM-10). \textbf{Lot} : variable \code{chargement} = \code{AAAAMM}. \textbf{Idempotence} : écriture en mode \emph{Overwrite} dans \code{<couche>/<table>/chargement=AAAAMM/}. \textbf{Nulls} : jamais de \code{NULL} dans une clé étrangère de fait (membres spéciaux) ; mesure inconnue = \code{NULL}, jamais 0. \textbf{Ordre} : dimensions avant faits.
+
+\subsection{Contextes Talend}\label{sec:contextes}
+Un \textbf{groupe de contextes} \code{CTX\_CHU} porte les trois environnements \code{dev}, \code{rec} et \code{prod}. Les métadonnées de connexion (PostgreSQL, cluster Hadoop, HDFS, Hive) y sont liées par « exporter en tant que contexte ». Chaque job importe le groupe et n'utilise que des variables de contexte.
+
+\begin{table}[!htbp]\small
+\caption{Variables du groupe de contextes \code{CTX\_CHU}}\label{tab:contextes}
+\setlength{\tabcolsep}{4pt}
+\begin{tabularx}{\linewidth}{@{}L{3.9cm}L{1.5cm}YL{2.7cm}@{}}
+\toprule\entete\textbf{Variable} & \textbf{Type} & \textbf{dev (poste et VM QuickStart)} & \textbf{rec, prod}\\\midrule
+\code{pg\_host}, \code{pg\_port}, \code{pg\_base}, \code{pg\_user}, \code{pg\_password} & String, int, Password & \code{localhost}, \code{5432}, \code{DATA2023}, compte local & serveur PostgreSQL du CHU, lecture seule \\
+\code{hdfs\_uri} & String & \code{hdfs://quickstart.cloudera:8020} & NameNode du cluster \\
+\code{hdfs\_racine} & String & \code{/user/cloudera/chu} & \code{/data/chu} (proposé) \\
+\code{hive\_host}, \code{hive\_port}, \code{hive\_base}, \code{hive\_user} & String, int & \code{quickstart.cloudera}, \code{10000}, \code{chu\_gold}, \code{cloudera} & HiveServer2 ; compte de service \\
+\code{ops\_jdbc}, \code{ops\_user}, \code{ops\_password} & String, Password & base \code{ops} locale & base d'exploitation \\
+\code{chargement} & String & \code{AAAAMM}, mois précédent par défaut & idem \\
+\code{hmac\_cle\_patient}, \code{hmac\_cle\_prof} & Password & clé de test & fichier protégé \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Utilisation dans un job.} Le contexte se choisit dans l'onglet \emph{Run} ; \code{tRunJob} transmet celui du job maître (« Transmit whole context »). Exemple : \code{tPostgresqlInput} lit \code{context.pg\_host}, \code{pg\_port}, \code{pg\_base}, \code{pg\_user}, \code{pg\_password} ; \code{tHDFSOutput} écrit dans \code{context.hdfs\_racine + "/gold/dim\_patient/chargement=" + context.chargement}.
+
+\section{Jobs et fréquence d'exécution}\label{sec:jobs}
+\textbf{Fréquence : mensuelle} pour chaque dimension et chaque fait. \code{J\_MASTER}, planifié chaque mois, charge le mois précédent.
+
+\begin{table}[!htbp]\small
+\caption{Jobs Talend : un par source, un par dimension, un par fait}\label{tab:jobs}
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabularx}{\linewidth}{@{}L{3.75cm}L{3.2cm}Y@{}}
+\toprule\entete\textbf{Job} & \textbf{Source $\rightarrow$ répertoire} & \textbf{Traitement}\\\midrule
+\code{J\_ING\_S1} & S1 (PostgreSQL) $\rightarrow$ \code{bronze/s1\_*} & \code{tPostgresqlInput} (colonnes utiles) $\rightarrow$ \code{tHDFSOutput} ; incrémental \\
+\code{J\_ING\_S1H}, \code{J\_ING\_S2} & Séjours, annuaire (3 CSV) & \code{tFileInputDelimited} (CP1252 pour S2) $\rightarrow$ \code{tHDFSOutput} \\
+\code{J\_ING\_S3}, \code{J\_ING\_S4} & HAS, décès INSEE & \code{tFileList}, \code{tFileInputDelimited} / \code{tFileInputExcel} ; S4 : noms non lus \\
+\code{J\_SLV\_*} (6) & Bronze $\rightarrow$ \code{silver/slv\_*} & \code{tHDFSInput}, \code{tMap} (règles RG), \code{tUniqRow}, HMAC, rejets $\rightarrow$ \code{silver/rejet} \\
+\code{J\_DIM\_DATE} & Dates des 4 sources $\rightarrow$ \code{gold/dim\_date} & Mensuel, voir \S\ref{sec:jobs-detail} \\
+\code{J\_DIM\_PATIENT} & \code{slv\_patient} $\rightarrow$ \code{gold/dim\_patient} & Mensuel, type 1, voir \S\ref{sec:jobs-detail} \\
+\code{J\_DIM\_PROFESSIONNEL} & \code{slv\_professionnel} + activités S2 $\rightarrow$ \code{gold/dim\_professionnel} & Mensuel, SCD 2, voir \S\ref{sec:jobs-detail} \\
+\code{J\_DIM\_ETABLISSEMENT} & \code{slv\_etablissement} $\rightarrow$ \code{gold/dim\_etablissement} & SCD 2 \\
+\code{J\_DIM\_DIAGNOSTIC} & S1, séjours, CIM-10 $\rightarrow$ \code{gold/dim\_diagnostic} & Mensuel, voir \S\ref{sec:jobs-detail} \\
+\code{J\_DIM\_GEOGRAPHIE} & COG + lieux des sources $\rightarrow$ \code{gold/dim\_geographie} & Mensuel, voir \S\ref{sec:jobs-detail} \\
+\code{J\_DIM\_MUTUELLE}, \code{J\_DIM\_ACTE} & \code{slv\_mutuelle} ; motifs et plages & \code{tMap}, \code{tUniqRow} ; clé automatique \\
+\code{J\_DIM\_SEXE}, \code{J\_DIM\_TRANCHE\_AGE} & Listes fixes & \code{tFixedFlowInput} ; membres spéciaux \\
+\code{J\_DIM\_CAMPAGNE}, \code{J\_DIM\_INDICATEUR} & Fichiers HAS & \code{tFileList}, \code{tMap} \\
+\code{J\_FAIT\_*} (4) & Silver + dimensions $\rightarrow$ \code{gold/fait\_*} & Voir \S\ref{sec:jobs-detail} \\
+\code{J\_PUB}, \code{J\_MNT} & Tables de travail ; répertoires & \code{tHiveRow} (contrôles, bascule) ; \code{tHDFSDelete} \\
+\code{J\_MASTER} & Enchaînement & Voir \S\ref{sec:master} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Conception des jobs de dimensions et de faits}\label{sec:jobs-detail}
+
+\textbf{Clé de substitution automatique.} Chaque dimension a une clé entière automatique (suffixe \code{\_sk}), distincte de la clé source : un \code{tMap} cherche la clé métier dans la dimension publiée (lookup) et reprend sa clé, sinon \code{max\_sk + Numeric.sequence("sk", 1, 1)}. Une clé n'est jamais réattribuée. Les membres spéciaux ($-1$ à $-4$) sont ajoutés par \code{tFixedFlowInput} et \code{tUnite}.
+
+\textbf{J\_DIM\_PATIENT} (champs pertinents seulement). Lecture de \code{SELECT "Id\_patient", "Sexe", "Date", "Code\_postal" FROM "Patient"}. Calcul du pseudonyme \code{patient\_pseudo} (HMAC-SHA-256). Déduction du département et de la région du code postal. Clé \code{patient\_sk}. Type 1 (écrasement mensuel).
+
+\textbf{J\_DIM\_PROFESSIONNEL} (jointure avec l'annuaire S2). Lecture de \code{Professionnel\_de\_sante} et \code{Specialites} de S1, jointure avec \code{activite\_professionnel\_sante.csv} de l'annuaire sur l'identifiant normalisé (ADELI 9 chiffres, RPPS 11). Récupération des établissements d'exercice et du mode d'exercice. SCD type 2 (§\ref{sec:scd-talend}).
+
+\textbf{J\_DIM\_DIAGNOSTIC} (données de plusieurs sources). Trois flux réunis par \code{tUnite} : table \code{Diagnostic} de S1 (libellé de référence), \code{Code\_diag} des consultations, colonne \code{Code\_diagnostic} du fichier des séjours. Le fichier établissement (S2, annuaire) ne comporte pas de colonne de diagnostic. Normalisation du code (majuscules, sans point). Lookup CIM-10 pour chapitre et catégorie.
+
+\textbf{J\_DIM\_GEOGRAPHIE} (jointure des lieux des sources). Référentiel COG et table de passage. Lieux observés réunis : commune des établissements S2 (situe aussi consultations, séjours et satisfaction), \code{code\_lieu\_deces} de S4, code postal des patients. Si \code{code\_commune} vide : fusion \code{cedex} + \code{commune} rapprochés du COG. Lieu introuvable $\rightarrow$ membre $-3$.
+
+\textbf{J\_DIM\_DATE} (jointure des dates des sources). Dates réunies des quatre sources : consultation, entrée et sortie de séjour, décès, et année des données de satisfaction rattachée au \code{AAAA0101}. Génération de chaque jour jusqu'à la fin de l'année suivante. Calcul de l'année, mois, semaine ISO, jour férié, jour ouvré. Clé \code{date\_sk} = \code{AAAAMMJJ}, plus le membre $-1$.
+
+\textbf{Faits.} Même patron pour les quatre jobs : lecture Silver, \code{tMap} avec un lookup par dimension, clé absente $\rightarrow$ membre spécial, mesures, écriture dans le répertoire du chargement. \textbf{Grain = l'événement.}
+\begin{itemize}[nosep]
+\item \code{J\_FAIT\_CONSULTATION} : consultations du mois, version du professionnel en vigueur à la date de l'acte, établissement, âge et tranche.
+\item \code{J\_FAIT\_HOSPITALISATION} : fichier complet, sortie = entrée + durée, \code{nb\_hospitalisation} = 1.
+\item \code{J\_FAIT\_DECES} : fichier mensuel INSEE, \code{deces\_id} (SHA-256), dédoublonnage contre les actes déjà chargés.
+\item \code{J\_FAIT\_INDICATEUR\_QUALITE} : S3 en clé-valeur, agrégation par (établissement, campagne, indicateur).
+\end{itemize}
+
+\subsection{Historisation SCD 2 dans Talend}\label{sec:scd-talend}
+\code{tPostgresqlSCD} ne gère pas les fichiers HDFS : le SCD 2 de \code{dim\_etablissement} et \code{dim\_professionnel} est une réécriture complète dans un \code{tMap} :
+\begin{enumerate}[nosep]
+\item flux principal : Silver du mois avec empreinte des attributs de type 2 (\code{tAddCRCRow}) ; lookup : versions courantes de la dimension publiée, jointes sur la clé durable ;
+\item sorties : \emph{inchangé} (empreintes égales), \emph{nouveau} (nouvelle clé, début au 1900-01-01), \emph{modifié} (ancienne version close, nouvelle version ouverte au premier jour du mois chargé) ;
+\item les versions déjà closes et les objets absents du mois sont recopiés ; RQ-22 vérifie une seule version courante par clé, sans trou ni chevauchement.
+\end{enumerate}
+
+\subsection{Job maître et gestion des erreurs}\label{sec:master}
+\code{J\_MASTER} : \code{tPrejob} (contexte, lot \code{EN\_COURS}) ; chaîne de \code{tRunJob} (ingestion $\rightarrow$ Silver $\rightarrow$ dimensions $\rightarrow$ faits $\rightarrow$ \code{J\_PUB}) reliés par \emph{OnSubjobOk} ; \code{tPostjob} (statut, courriel). \textbf{Erreur bloquante} : « Die on child error » arrête la chaîne de la source ; \code{J\_PUB} ne bascule que les groupes dont tous les lots sont \code{OK}. \textbf{Rejets} : sorties \emph{reject} $\rightarrow$ \code{silver/rejet} ; exception au-delà du seuil. \textbf{Reprise} : relancer \code{J\_MASTER} pour le même mois ; idempotent.
+
+\section{Règles de transformation}\label{sec:regles}
+\begin{table}[!htbp]\small
+\caption{Règles de transformation par domaine (jobs \code{J\_SLV\_*})}\label{tab:regles}
+\begin{tabularx}{\linewidth}{@{}L{2.3cm}Y@{}}
+\toprule\entete\textbf{Domaine} & \textbf{Règles}\\\midrule
+Patient & \textbf{P01} \code{patient\_pseudo} = HMAC-SHA-256 de \code{Id\_patient} ; \textbf{P02} date de naissance analysée, Silver restreint seulement ; \textbf{P04} sexe $\rightarrow$ 1/2/9 ; \textbf{P05} code postal $\rightarrow$ département, région ; \textbf{P06} identité jamais extraite. \\
+Professionnel & \textbf{R01} identifiant en texte, ADELI sur 9 chiffres, RPPS 11 ; \textbf{R02} pseudonyme HMAC ; \textbf{R03} spécialité ; \textbf{R04} mode d'exercice ; \textbf{R05} orphelin en quarantaine. \\
+Consultation & \textbf{C01} dédoublonnage sur \code{Num\_consultation} ; \textbf{C02} date rejetée si hors période ; \textbf{C03} patient par pseudonyme ; \textbf{C04} établissement déduit de l'activité du professionnel ; \textbf{C05} diagnostic normalisé, hors CIM-10 $\rightarrow$ $-3$, vide $\rightarrow$ $-1$ ; \textbf{C06} âge révolu, hors [0;120] $\rightarrow$ \code{NULL} ; \textbf{C07} mutuelle de l'acte ; \textbf{C08} acte = motif $\times$ plage. \\
+Établissement & \textbf{E01} type et FINESS extraits de l'identifiant ; \textbf{E02} FINESS en texte ; \textbf{E03} commune vide $\rightarrow$ \code{cedex} + \code{commune} rapprochés du COG ; \textbf{E04} catégorie, périmètre ; \textbf{E05} diagnostics = référentiel S1 $\cup$ consultations $\cup$ séjours ; \textbf{E06} lieu = commune de l'établissement. \\
+Séjour, HAS, décès & \textbf{H01 à H04} pseudonyme commun, entrée \code{JJ/MM/AAAA}, sortie = entrée + durée, établissement à l'entrée. \textbf{S01 à S05} dépivotage par \code{map\_colonne\_has}, « F » + \code{finess\_geo}, classes DI/NR/NV, année lue dans le nom, région de l'établissement. \textbf{D01 à D05} \code{deces\_id} = SHA-256, date partielle $\rightarrow$ $-1$, âge hors [0;125] $\rightarrow$ \code{NULL}, commune reprojetée sur le COG, naissance supprimée. \\
+Transverse & \textbf{T01} encodage vérifié et réparé ; \textbf{T02} vides $\rightarrow$ \code{NULL}, NFC ; \textbf{T03} \code{;} et retours à la ligne retirés, dates \code{yyyy-MM-dd}. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{encadre}[RG-C04 : rattachement d'une consultation à un établissement]{bleu}\label{sec:slv03}
+Soit $A(p)$ les activités à organisation renseignée du professionnel $p$ en vigueur à la date de l'acte : $|A(p)| = 0$ $\rightarrow$ $-4$ (non déterminable) ; $|A(p)| = 1$ $\rightarrow$ cette organisation ; $|A(p)| > 1$ $\rightarrow$ ordre déterministe : groupe CHU, puis type F avant C, salarié avant libéral, plus petit identifiant.
+\end{encadre}
+
+\section{Valeurs nulles, doublons, erreurs et rejets}\label{sec:rq}
+\begin{table}[!htbp]\small
+\caption{Catalogue des règles de qualité (B Bronze, S Silver, G Gold avant publication)}\label{tab:rq}
+\begin{tabularx}{\linewidth}{@{}L{2.1cm}L{0.9cm}YL{2.6cm}@{}}
+\toprule\entete\textbf{Règles} & \textbf{Cou.} & \textbf{Contrôle} & \textbf{Sévérité}\\\midrule
+RQ-01 à 06 & B & Fichier déjà reçu ; colonnes conformes ; encodage ; volume $\pm$20\,\% ; fraîcheur & Bloquant lot \\
+RQ-07, 08 & S & Format de date ; clé unique et non nulle & Bloquant ligne \\
+RQ-09 à 12 & S & Cohérence âge/naissance, sexe, mutuelle & Avertissement \\
+RQ-10, 14 & S & Activité orpheline ; identifiant professionnel & Quarantaine ; bloquant ligne \\
+RQ-13, 19 & S & Diagnostic CIM-10 ; commune résolue & Avertissement, $-3$ \\
+RQ-15 à 18 & S & Durée de plage, dates, FINESS/SIRET & Avertissement ; bloquant ligne \\
+RQ-23 à 27 & S & Plages HAS, taux résolution FINESS $\geq$ 95\,\%, unicité décès & Bloquant ligne ; avertissement \\
+RQ-28 & S & Taux de résolution du rattachement établissement & Alerte sous 70\,\% \\
+RQ-20 à 22 & G & Clés étrangères présentes ; types ; SCD 2 sans trou ni chevauchement & Bloquant publication \\
+RQ-29, 30 & B, S, G & Réconciliation des comptes ; aucun identifiant direct & Bloquant publication \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Valeurs nulles} : membres spéciaux pour les clés étrangères, \code{NULL} pour une mesure inconnue. \textbf{Doublons} : fichier déjà reçu ignoré ; ligne identique gardée une fois ; même clé dans un lot, dernière ligne gardée. \textbf{Erreurs et rejets}, trois sévérités : \textbf{bloquant lot} (rien n'est publié pour la source), \textbf{bloquant ligne} (ligne en rejet avec code de règle), \textbf{avertissement} (ligne chargée, anomalie comptée). La table \code{ops.lot} garde par lot les comptes lus, chargés, rejetés et doublons (lus = chargés + rejetés + doublons).

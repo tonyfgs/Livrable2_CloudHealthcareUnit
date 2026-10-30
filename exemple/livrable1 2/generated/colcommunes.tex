@@ -1,0 +1,8 @@
+{\small\begin{tabularx}{\linewidth}{@{}L{3.5cm}L{2.9cm}L{0.6cm}Y@{}}
+\toprule\entete\textbf{Colonne} & \textbf{Type logique} & \textbf{Null} & \textbf{Présence et règle}\\\midrule
+\code{id\_lot} & \code{VARCHAR(36)} & NN & Faits et dimensions non statiques. Identifiant (UUID) du lot de chargement ayant créé/modifié la ligne. \\
+\code{dt\_chargement} & \code{TIMESTAMP} & NN & Faits et dimensions non statiques. Horodatage technique d'insertion/mise à jour dans Gold. \\
+\code{date\_debut\_validite} & \code{DATE} & NN & SCD~2 (\code{dim\_etablissement}, \code{dim\_professionnel}). Date d'effet de la version ; 1900-01-01 pour la première version. \\
+\code{date\_fin\_validite} & \code{DATE} & NN & SCD~2 (\code{dim\_etablissement}, \code{dim\_professionnel}). Fin d'effet (9999-12-31 pour la version courante). \\
+\code{est\_version\_courante} & \code{BOOLEAN} & NN & SCD~2 (\code{dim\_etablissement}, \code{dim\_professionnel}). Vrai pour la seule version en vigueur. \\
+\bottomrule\end{tabularx}}
