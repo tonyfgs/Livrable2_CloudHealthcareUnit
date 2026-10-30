@@ -528,6 +528,7 @@ Deux campagnes de benchmark ont été exécutées (mêmes données, mêmes scén
 
 ```
 Livrable 2/
+├── README.md                             # présentation du dépôt (GitHub)
 ├── livrable2.md                          # ce rapport
 ├── NOTE_INTERNE.md                       # note interne : conteneurs, lancement, vérifications
 ├── A3-Stockage_et_BigData-Grille-Livrable2.xlsx   # grille d'évaluation
