@@ -396,7 +396,7 @@ Captures d'ecran realisees sur la plateforme deployee (conteneurs Docker) :
 % ============================ 5. PARTITIONNEMENT ============================
 \section{Strategie de partitionnement et d'indexation}
 
-\subsection{Partitionnement retenu (justifie par le moteur : Hive/Spark/Trino)}
+\subsection{Partitionnement}
 \begin{table}[H]\centering\small
 \caption{Partitionnement par table et justification}
 \begin{tabular}{p{4.2cm}p{3.6cm}p{7.4cm}}
@@ -414,19 +414,6 @@ Captures d'ecran realisees sur la plateforme deployee (conteneurs Docker) :
 \bottomrule
 \end{tabular}
 \end{table}
-
-\subsection{Pourquoi pas de bucketing (decision technique testee)}
-\texttt{CLUSTERED BY (cle) INTO N BUCKETS} / \texttt{bucketBy(n, cle)} a ete
-\textbf{teste puis retire} : Spark n'ecrit qu'un fichier Parquet par bucket
-\emph{non vide} (avec AQE, une petite partition produit p.~ex. 2 fichiers pour
-32 buckets declares) et \textbf{Trino 484 refuse alors de lire la table} a
-l'execution (\guillemotleft{}number of files (N) does not match declared bucket
-count (32)\guillemotright{} -- verification inconditionnelle dans le chargeur de
-splits Hive). Le schema deploye est donc \textbf{partitionne + trie, sans
-bucketing} : la co-localisation des lignes partageant une cle de jointure est
-obtenue par le \textbf{tri intra-partition} (\texttt{sortWithinPartitions} sur
-\texttt{(id\_etablissement, id\_patient)}), qui produit les statistiques min/max
-par fichier Parquet alimentant le pruning intra-fichier cote Trino.
 
 \subsection{Indexation complementaire}
 \begin{itemize}[leftmargin=*]
