@@ -106,7 +106,7 @@ Caveats honnêtes : testé sur macOS (arm64) — les images de base sont multi-a
 ```bash
 cd scripts
 docker compose down -v          # purge totale (volumes compris)
-docker compose up -d            # 14 conteneurs + 3 one-shots, ~1-2 min
+docker compose up -d --build    # build les images custom chu-* (1re fois), puis 14 conteneurs + 3 one-shots, ~1-2 min
 docker compose ps               # tout doit être Up / healthy
 ```
 

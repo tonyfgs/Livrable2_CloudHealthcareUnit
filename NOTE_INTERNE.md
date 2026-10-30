@@ -517,3 +517,12 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
     `PUT /api/v1/dataset/<id>/refresh`, `POST /api/v1/chart/` avec `params` =
     CHAÎNE JSON, viz_types sûrs `dist_bar`/`pie`/`table`/`echarts_timeseries_line`
     (les anciens `bar`/`line` nvd3 n'existent plus en 4.1).
+36. **Clone frais : `docker compose up -d` seul tente de PULL les images custom
+    (`chu-minio`, `chu-spark`, `chu-airflow`, `chu-superset`, `chu-bench-duckdb`)
+    sur Docker Hub -> « pull access denied ... may require docker login »** : ces
+    images n'existent QUE localement (buildées from source depuis le repo), elles
+    ne seront jamais sur un registry. Fix : `pull_policy: build` posé sur les 6
+    services concernés dans `docker-compose.yml` (Compose v5) -> `up -d` build
+    au lieu de pull (testé : image supprimée, `up -d` sans --build rebuild) ; et
+    runbook écrit `docker compose up -d --build` (marche sur toute version de
+    Compose). Ne JAMAIS publier les `chu-*` sur Docker Hub.

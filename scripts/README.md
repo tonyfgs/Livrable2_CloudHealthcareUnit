@@ -61,7 +61,7 @@ scripts/
 
 ```bash
 cd scripts
-docker compose up -d          # démarre les 17 services (MinIO, Hive Metastore,
+docker compose up -d --build  # build les images custom chu-* (1re fois) puis démarre les 17 services (MinIO, Hive Metastore,
                               # Spark, Trino, Superset, Airflow, S1, benchmark)
                               # dont 3 one-shot : minio-init, hive-metastore-init,
                               # airflow-init

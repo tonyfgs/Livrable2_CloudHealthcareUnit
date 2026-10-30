@@ -557,8 +557,9 @@ Livrable 2/
 ### 12.2 Commandes principales
 
 ```bash
-# Stack complète (depuis scripts/) — from scratch : docker compose down -v && docker compose up -d
-cd scripts && docker compose up -d
+# Stack complète (depuis scripts/) — from scratch : docker compose down -v && docker compose up -d --build
+# (--build obligatoire sur un clone frais : les images chu-* sont buildées localement, jamais pullées)
+cd scripts && docker compose up -d --build
 # Attendre ~2 min que tous les conteneurs soient healthy (docker compose ps)
 # Airflow (http://localhost:8090, admin/admin) — les 2 DAGs démarrent EN PAUSE
 # (AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true) : aucun backfill auto ne peut

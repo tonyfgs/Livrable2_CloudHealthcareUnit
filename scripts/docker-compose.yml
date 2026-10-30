@@ -54,6 +54,7 @@ services:
     # sert plus les binaires (HTTP 410). On compile le serveur MinIO officiel
     # depuis github.com/minio/minio — aucun pull d'image "minio" nécessaire.
     build: ./config/minio
+    pull_policy: build
     image: chu-minio:RELEASE.2025-10-15T17-29-55Z
     container_name: chu-minio
     restart: unless-stopped
@@ -261,6 +262,7 @@ services:
     build:
       context: ./04_benchmark
       dockerfile: Dockerfile.duckdb
+    pull_policy: build
     image: chu-bench-duckdb:latest
     container_name: chu-bench-duckdb
     restart: unless-stopped
@@ -288,6 +290,7 @@ services:
     # image custom = apache/spark:3.5.1 + jars S3A (hadoop-aws 3.3.4 + AWS SDK
     # v1) et JDBC PostgreSQL dans $SPARK_HOME/jars (voir config/spark/Dockerfile)
     build: ./config/spark
+    pull_policy: build
     image: chu-spark:3.5.1-s3a
     container_name: chu-spark-master
     restart: unless-stopped
@@ -305,6 +308,7 @@ services:
 
   spark-worker:
     build: ./config/spark
+    pull_policy: build
     image: chu-spark:3.5.1-s3a
     container_name: chu-spark-worker
     restart: unless-stopped
@@ -378,6 +382,7 @@ services:
     build:
       context: ./06_superset
       dockerfile: Dockerfile
+    pull_policy: build
     image: chu-superset:4.1.1
     container_name: chu-superset
     restart: unless-stopped
@@ -457,6 +462,7 @@ services:
     build:
       context: ./03_airflow
       dockerfile: Dockerfile
+    pull_policy: build
     image: chu-airflow:2.9.3
     container_name: chu-airflow-scheduler
     restart: unless-stopped

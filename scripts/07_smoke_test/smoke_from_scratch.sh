@@ -47,8 +47,8 @@ step "1. docker compose down -v (purge totale) puis up -d"
 # ----------------------------------------------------------------------------
 docker compose down -v >>"$LOG" 2>&1
 log "INFO  | down -v effectue, lancement de up -d..."
-docker compose up -d >>"$LOG" 2>&1
-check "docker compose up -d retourne 0" true
+docker compose up -d --build >>"$LOG" 2>&1
+check "docker compose up -d --build retourne 0" true
 
 # ----------------------------------------------------------------------------
 step "2. Attente que les 14 services long-running soient Up (+ one-shots Exited 0)"
