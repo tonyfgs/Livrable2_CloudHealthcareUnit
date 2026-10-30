@@ -2,14 +2,14 @@
 
 \newcommand{\rowsdqvolumes}{%
 S1.PostgreSQL (dump DATA2023) & Patient & 100000 &  \\
-S1.PostgreSQL (dump DATA2023) & Consultation & 1,02716e+06 & 2015-06-20 -> 2023-03-31 \\
+S1.PostgreSQL (dump DATA2023) & Consultation & 1027157 & 2015-06-20 -> 2023-03-31 \\
 S1.PostgreSQL (dump DATA2023) & Diagnostic & 15490 &  \\
-S1.PostgreSQL (dump DATA2023) & Professionnel\_de\_sante & 1,04858e+06 &  \\
+S1.PostgreSQL (dump DATA2023) & Professionnel\_de\_sante & 1048575 &  \\
 S1.PostgreSQL (dump DATA2023) & Specialites & 93 &  \\
 S1.PostgreSQL (dump DATA2023) & Salle & 201735 &  \\
 S1.PostgreSQL (dump DATA2023) & Adher & 96671 &  \\
 S1.PostgreSQL (dump DATA2023) & Mutuelle & 254 &  \\
-S1.PostgreSQL (dump DATA2023) & Prescription & 1,00384e+06 &  \\
+S1.PostgreSQL (dump DATA2023) & Prescription & 1003845 &  \\
 S1.PostgreSQL (dump DATA2023) & Medicaments & 15455 &  \\
 S1.PostgreSQL (dump DATA2023) & Laboratoire & 677 &  \\
 S1.PostgreSQL (dump DATA2023) & AAAA & 82216 &  \\
@@ -17,10 +17,10 @@ S1.PostgreSQL (dump DATA2023) & date & 82216 &  \\
 S2.Hospitalisations.csv & Hospitalisations.csv & 2479 & 2015-06-21 00:00:00 -> 2021-06-19 00:00:00 \\
 S3/ESATIS & satisfaction\_2019.csv & 1152 & 2019 \\
 S3/ESATIS & satisfaction\_2020.csv & 1143 & 2020 \\
-S4.INSEE & deces.csv & 2,50882e+07 & 1882-10-01 -> 2020-03-30 \\
+S4.INSEE & deces.csv & 25088208 & 1882-10-01 -> 2020-03-30 \\
 Referentiel FINESS & etablissement\_sante.csv & 416665 &  \\
-Referentiel FINESS & professionnel\_sante.csv & 1,04858e+06 &  \\
-Referentiel FINESS & activite\allowbreak\_professionnel\allowbreak\_sante.csv & 1,82359e+06 &  \\
+Referentiel FINESS & professionnel\_sante.csv & 1048575 &  \\
+Referentiel FINESS & activite\allowbreak\_professionnel\allowbreak\_sante.csv & 1823588 &  \\
 }%
 
 \newcommand{\rowsdqcompletude}{%
@@ -34,18 +34,18 @@ S1\_Patient & Sexe & 100000 & 100000 & 100 \\
 S1\_Patient & Date\_naissance & 100000 & 100000 & 100 \\
 S1\_Patient & Age & 100000 & 100000 & 100 \\
 S1\_Patient & Num\_Secu & 100000 & 100000 & 100 \\
-S1\_Consultation & Date & 1,02716e+06 & 1,02716e+06 & 100 \\
-S1\_Consultation & Code\_diag & 1,02716e+06 & 1,02716e+06 & 100 \\
-S1\_Consultation & Id\_prof\_sante & 1,02716e+06 & 1,02716e+06 & 100 \\
-deces & sexe & 2,50882e+07 & 2,50882e+07 & 100 \\
-deces & date\_deces & 2,50882e+07 & 2,50882e+07 & 100 \\
-deces & date\_naissance & 2,50882e+07 & 2,50877e+07 & 100 \\
-deces & code\_lieu\_deces & 2,50882e+07 & 2,50773e+07 & 99,96 \\
+S1\_Consultation & Date & 1027157 & 1027157 & 100 \\
+S1\_Consultation & Code\_diag & 1027157 & 1027157 & 100 \\
+S1\_Consultation & Id\_prof\_sante & 1027157 & 1027157 & 100 \\
+deces & sexe & 25088208 & 25088208 & 100 \\
+deces & date\_deces & 25088208 & 25088208 & 100 \\
+deces & date\_naissance & 25088208 & 25087658 & 100 \\
+deces & code\_lieu\_deces & 25088208 & 25077274 & 99,96 \\
 etablissement & finess\_site & 416665 & 200 & 0,05 \\
 etablissement & finess\_etablissement\_juridique & 416665 & 57692 & 13,85 \\
 etablissement & identifiant\_organisation & 416665 & 416665 & 100 \\
 etablissement & code\_commune & 416665 & 277860 & 66,69 \\
-professionnel\_sante & identifiant & 1,04858e+06 & 1,04858e+06 & 100 \\
+professionnel\_sante & identifiant & 1048575 & 1048575 & 100 \\
 satisfaction\_2019 & score\_all\_rea\_ajust & 1152 & 858 & 74,48 \\
 satisfaction\_2020 & score\_all\_rea\_ajust & 1143 & 832 & 72,79 \\
 satisfaction\_2019 & score\_all\_rea\_ajust normalise (non NULL) & 1152 & 858 & 74,48 \\
@@ -53,15 +53,15 @@ satisfaction\_2020 & score\_all\_rea\_ajust normalise (non NULL) & 1143 & 832 & 
 }%
 
 \newcommand{\rowsdqcompletudefaits}{%
-gold.f\_mesures & annee\_mois & 1,0304e+06 & 1,0304e+06 & 100 \\
-gold.f\_mesures & id\_etablissement & 1,0304e+06 & 1,0304e+06 & 100 \\
-gold.f\_mesures & id\_patient & 1,0304e+06 & 1,0304e+06 & 100 \\
-gold.f\_mesures & id\_localisation & 1,0304e+06 & 1,0304e+06 & 100 \\
-gold.f\_mesures & nbre\_consultation & 1,0304e+06 & 1,0304e+06 & 100 \\
-gold.f\_mesures & nbre\_hospitalisation & 1,0304e+06 & 1,0304e+06 & 100 \\
-gold.f\_mesures & total\_satisfaction & 1,0304e+06 & 33 & 0 \\
-gold.f\_mesures & nbre\_deces & 1,0304e+06 & 1,0304e+06 & 100 \\
-gold.f\_mesures & region & 1,0304e+06 & 1,0304e+06 & 100 \\
+gold.f\_mesures & annee\_mois & 1030402 & 1030402 & 100 \\
+gold.f\_mesures & id\_etablissement & 1030402 & 1030402 & 100 \\
+gold.f\_mesures & id\_patient & 1030402 & 1030402 & 100 \\
+gold.f\_mesures & id\_localisation & 1030402 & 1030402 & 100 \\
+gold.f\_mesures & nbre\_consultation & 1030402 & 1030402 & 100 \\
+gold.f\_mesures & nbre\_hospitalisation & 1030402 & 1030402 & 100 \\
+gold.f\_mesures & total\_satisfaction & 1030402 & 33 & 0 \\
+gold.f\_mesures & nbre\_deces & 1030402 & 1030402 & 100 \\
+gold.f\_mesures & region & 1030402 & 1030402 & 100 \\
 gold.f\_hospitalisation & id\_hospitalisation & 2479 & 2479 & 100 \\
 gold.f\_hospitalisation & id\_temps & 2479 & 2479 & 100 \\
 gold.f\_hospitalisation & id\_patient & 2479 & 2479 & 100 \\
@@ -74,19 +74,19 @@ gold.f\_satisfaction & region & 1960 & 1960 & 100 \\
 gold.f\_satisfaction & score\_satisfaction & 1960 & 1523 & 77,7 \\
 gold.f\_satisfaction & nb\_repondants & 1960 & 1523 & 77,7 \\
 gold.f\_satisfaction & nb\_sites & 1960 & 1960 & 100 \\
-silver.f\_consultation\_detail & id\_consultation & 1,02716e+06 & 1,02716e+06 & 100 \\
-silver.f\_consultation\_detail & id\_temps & 1,02716e+06 & 1,02716e+06 & 100 \\
-silver.f\_consultation\_detail & id\_patient & 1,02716e+06 & 1,02716e+06 & 100 \\
-silver.f\_consultation\_detail & id\_diagnostic & 1,02716e+06 & 1,02716e+06 & 100 \\
-silver.f\_consultation\_detail & id\_professionnel & 1,02716e+06 & 1,02716e+06 & 100 \\
-silver.f\_consultation\_detail & id\_etablissement & 1,02716e+06 & 1,02716e+06 & 100 \\
-silver.f\_consultation\_detail & id\_localisation & 1,02716e+06 & 1,02716e+06 & 100 \\
+silver.f\_consultation\_detail & id\_consultation & 1027157 & 1027157 & 100 \\
+silver.f\_consultation\_detail & id\_temps & 1027157 & 1027157 & 100 \\
+silver.f\_consultation\_detail & id\_patient & 1027157 & 1027157 & 100 \\
+silver.f\_consultation\_detail & id\_diagnostic & 1027157 & 1027157 & 100 \\
+silver.f\_consultation\_detail & id\_professionnel & 1027157 & 1027157 & 100 \\
+silver.f\_consultation\_detail & id\_etablissement & 1027157 & 1027157 & 100 \\
+silver.f\_consultation\_detail & id\_localisation & 1027157 & 1027157 & 100 \\
 }%
 
 \newcommand{\rowsdqvalidite}{%
-deces & date\_deces format ISO AAA-MM-JJ & 2,50882e+07 & 646 & 0,0026 \\
-deces & date\_naissance format ISO & 2,50882e+07 & 89898 & 0,3583 \\
-deces & sexe dans \{1,2\} & 2,50882e+07 & 0 & 0 \\
+deces & date\_deces format ISO AAA-MM-JJ & 25088208 & 646 & 0,0026 \\
+deces & date\_naissance format ISO & 25088208 & 89898 & 0,3583 \\
+deces & sexe dans \{1,2\} & 25088208 & 0 & 0 \\
 Hospitalisations & Date\_Entree format JJ/MM/AAAA & 2479 & 0 & 0 \\
 Hospitalisations & Code\_diagnostic format CIM-10 & 2479 & 368 & 14,8447 \\
 S1\_Patient & Sexe dans \{male,female\} & 100000 & 0 & 0 \\
@@ -100,21 +100,21 @@ satisfaction\_2020 & score\_all\_rea\_ajust decimal (virgule) & 1143 & 0 & 0 \\
 
 \newcommand{\rowsdqdoublons}{%
 Hospitalisations & Num\_Hospitalisation & 2479 & 0 & 0 \\
-S1\_Consultation & Num\_consultation & 1,02716e+06 & 0 & 0 \\
+S1\_Consultation & Num\_consultation & 1027157 & 0 & 0 \\
 S1\_Patient & Id\_patient & 100000 & 0 & 0 \\
 etablissement (finess\_site non vide) & finess\_site & 200 & 0 & 0 \\
 etablissement (toutes cles) & identifiant\_organisation & 416665 & 0 & 0 \\
 satisfaction\_2019 & finess (grain brut) & 1152 & 166 & 14,4097 \\
 satisfaction\_2019 & finess + finess\_geo (grain reel) & 1152 & 0 & 0 \\
 satisfaction\_2020 & finess + finess\_geo (grain reel) & 1143 & 0 & 0 \\
-deces & cle complete (nom, prenom, date\_naissance, date\_deces, lieu, acte) & 2,50882e+07 & 174794 & 0,6967 \\
+deces & cle complete (nom, prenom, date\_naissance, date\_deces, lieu, acte) & 25088208 & 174794 & 0,6967 \\
 }%
 
 \newcommand{\rowsdqdoublonsfaits}{%
-f\_consultation\_detail (fait int\'egr\'e, Silver) & id\_consultation (grain 1 consultation) & 1,02716e+06 & 0 & 0 \\
+f\_consultation\_detail (fait int\'egr\'e, Silver) & id\_consultation (grain 1 consultation) & 1027157 & 0 & 0 \\
 f\_hospitalisation (fait int\'egr\'e, Gold) & id\_hospitalisation (grain 1 hospitalisation) & 2479 & 0 & 0 \\
 f\_satisfaction (fait int\'egr\'e, Gold) & annee + finess (grain etab. juridique x annee) & 1960 & 0 & 0 \\
-f\_mesures (fait consolid\'e, Gold) & annee\_mois + id\_etablissement + id\_patient + sexe + tranche\_age + id\_localisation + region & 1,0304e+06 & 0 & 0 \\
+f\_mesures (fait consolid\'e, Gold) & annee\_mois + id\_etablissement + id\_patient + sexe + tranche\_age + id\_localisation + region & 1030402 & 0 & 0 \\
 }%
 
 \newcommand{\rowsdqreferentiel}{%
@@ -127,14 +127,14 @@ satisfaction\_2019.finess -> etab.finess\_etablissement\_juridique & 1152 & 575 
 satisfaction\_2019.finess\_geo -> etab.finess\_site & 1152 & 0 & 0 \\
 satisfaction\_2020.finess -> etab.finess\_etablissement\_juridique & 1143 & 580 & 50,74 \\
 satisfaction\_2020.finess\_geo -> etab.finess\_site & 1143 & 0 & 0 \\
-activite.identifiant -> pro\_referentiel.identifiant & 1,82359e+06 & 1,04287e+06 & 57,19 \\
-activite.identifiant\_organisation -> etab.identifiant\_organisation & 1,82359e+06 & 1,46477e+06 & 80,32 \\
-S1.Consultation.Id\_prof\_sante -> pro\_referentiel.identifiant & 1,02716e+06 & 1,02716e+06 & 100 \\
-S1.Consultation.Id\_prof\_sante -> activite.identifiant & 1,02716e+06 & 738190 & 71,87 \\
+activite.identifiant -> pro\_referentiel.identifiant & 1823588 & 1042874 & 57,19 \\
+activite.identifiant\_organisation -> etab.identifiant\_organisation & 1823588 & 1464774 & 80,32 \\
+S1.Consultation.Id\_prof\_sante -> pro\_referentiel.identifiant & 1027157 & 1027157 & 100 \\
+S1.Consultation.Id\_prof\_sante -> activite.identifiant & 1027157 & 738190 & 71,87 \\
 satisfaction\_2019.finess -> etab.identifiant\_organisation & 1152 & 0 & 0 \\
 satisfaction\_2020.finess -> etab.identifiant\_organisation & 1143 & 0 & 0 \\
 etablissement.code\_commune -> departement (regle INSEE, non vides) & 277860 & 277127 & 99,74 \\
-deces.code\_lieu\_deces -> departement (regle INSEE, non vides) & 2,50773e+07 & 2,48764e+07 & 99,2 \\
+deces.code\_lieu\_deces -> departement (regle INSEE, non vides) & 25077274 & 24876383 & 99,2 \\
 satisfaction\_2019.region brute -> region normalisee (mapping) & 1152 & 1140 & 98,96 \\
 satisfaction\_2020.region brute -> region normalisee (mapping) & 1143 & 1130 & 98,86 \\
 satisfaction\_2019.region normalisee -> referentiel region & 1140 & 1140 & 100 \\
@@ -144,13 +144,13 @@ satisfaction\_2020: concordance region ESATIS vs region etab (via finess juridiq
 
 \newcommand{\rowsdqintegritefk}{%
 f\_mesures.id\_etablissement -> d\_etablissement.id\_etablissement & 658525 & 658525 & 100 \\
-f\_mesures.id\_patient -> d\_patient.id\_patient & 1,02206e+06 & 1,02206e+06 & 100 \\
+f\_mesures.id\_patient -> d\_patient.id\_patient & 1022064 & 1022064 & 100 \\
 f\_mesures.id\_localisation -> d\_localisation.id\_localisation & 665288 & 665288 & 100 \\
-f\_mesures.id\_temps -> d\_temps.id\_temps & 1,02206e+06 & 1,02206e+06 & 100 \\
-f\_consultation\_detail.id\_patient -> d\_patient.id\_patient & 1,02716e+06 & 1,02716e+06 & 100 \\
-f\_consultation\_detail.id\_etablissement -> d\_etablissement.id\_etablissement & 1,02716e+06 & 656063 & 63,87 \\
-f\_consultation\_detail.id\_diagnostic -> d\_diagnostic.id\_diagnostic & 1,02716e+06 & 1,02716e+06 & 100 \\
-f\_consultation\_detail.id\_professionnel -> d\_professionnel.identifiant & 1,02716e+06 & 1,02716e+06 & 100 \\
+f\_mesures.id\_temps -> d\_temps.id\_temps & 1022064 & 1022064 & 100 \\
+f\_consultation\_detail.id\_patient -> d\_patient.id\_patient & 1027157 & 1027157 & 100 \\
+f\_consultation\_detail.id\_etablissement -> d\_etablissement.id\_etablissement & 1027157 & 656063 & 63,87 \\
+f\_consultation\_detail.id\_diagnostic -> d\_diagnostic.id\_diagnostic & 1027157 & 1027157 & 100 \\
+f\_consultation\_detail.id\_professionnel -> d\_professionnel.identifiant & 1027157 & 1027157 & 100 \\
 f\_consultation\_detail.id\_localisation -> d\_localisation.id\_localisation & 654605 & 654605 & 100 \\
 f\_hospitalisation.id\_patient -> d\_patient.id\_patient & 2479 & 2479 & 100 \\
 f\_hospitalisation.id\_diagnostic -> d\_diagnostic.id\_diagnostic & 2479 & 2479 & 100 \\
@@ -160,8 +160,8 @@ f\_hospitalisation.id\_localisation -> d\_localisation.id\_localisation & 2479 &
 
 \newcommand{\rowsdqtemporel}{%
 Hospitalisations & Date\_Entree dans [2015,2023] & 2479 & 2479 & 100 & 2015-06-21 00:00:00 -> 2021-06-19 00:00:00 \\
-S1\_Consultation & Date dans [2015,2023] & 1,02716e+06 & 1,02716e+06 & 100 & 2015-06-20 -> 2023-03-31 \\
-deces & date\_deces >= date\_naissance & 2,50882e+07 & 2,49971e+07 & 99,64 & 1882-10-01 -> 2020-03-30 \\
+S1\_Consultation & Date dans [2015,2023] & 1027157 & 1027157 & 100 & 2015-06-20 -> 2023-03-31 \\
+deces & date\_deces >= date\_naissance & 25088208 & 24997051 & 99,64 & 1882-10-01 -> 2020-03-30 \\
 S1\_Patient & coherence Age vs date\_naissance (|ecart|<=2 ans) & 100000 & 45998 & 46 & age 0..100 observe \\
 satisfaction\_2019 & score\_all\_rea\_ajust dans [0,100] & 1152 & 858 & 74,48 & scores 0-100 \\
 satisfaction\_2020 & score\_all\_rea\_ajust dans [0,100] & 1143 & 832 & 72,79 & scores 0-100 \\
