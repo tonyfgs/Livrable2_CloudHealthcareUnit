@@ -1,0 +1,314 @@
+Smoke test from scratch — 2026-10-30T06:54:01Z — log: /Users/tonyfages/CESI/4A/Big Data/projet/Livrable 2/scripts/07_smoke_test/results/smoke_20261030T065401Z.log
+
+=== 0. Preflight ===
+29.9.1
+PASS  | docker disponible
+PASS  | DATA Projet présent (sources brutes)
+INFO  | fichiers sources dans DATA Projet: 48
+
+=== 1. docker compose down -v (purge totale) puis up -d ===
+ Container chu-s1-postgres Stopping 
+ Container chu-bench-duckdb Stopping 
+ Container chu-hive-hs2 Stopping 
+ Container chu-superset Stopping 
+ Container chu-minio-init Stopping 
+ Container chu-airflow-webserver Stopping 
+ Container chu-spark-worker Stopping 
+ Container chu-minio-init Stopped 
+ Container chu-minio-init Removing 
+ Container chu-minio-init Removed 
+ Container chu-s1-postgres Stopped 
+ Container chu-s1-postgres Removing 
+ Container chu-s1-postgres Removed 
+ Container chu-spark-worker Stopped 
+ Container chu-spark-worker Removing 
+ Container chu-spark-worker Removed 
+ Container chu-hive-hs2 Stopped 
+ Container chu-hive-hs2 Removing 
+ Container chu-hive-hs2 Removed 
+ Container chu-bench-duckdb Stopped 
+ Container chu-bench-duckdb Removing 
+ Container chu-superset Stopped 
+ Container chu-superset Removing 
+ Container chu-bench-duckdb Removed 
+ Container chu-airflow-webserver Stopped 
+ Container chu-airflow-webserver Removing 
+ Container chu-superset Removed 
+ Container chu-superset-db Stopping 
+ Container chu-trino Stopping 
+ Container chu-superset-db Stopped 
+ Container chu-superset-db Removing 
+ Container chu-superset-db Removed 
+ Container chu-trino Stopped 
+ Container chu-trino Removing 
+ Container chu-trino Removed 
+ Container chu-hive-metastore Stopping 
+ Container chu-minio Stopping 
+ Container chu-airflow-webserver Removed 
+ Container chu-airflow-scheduler Stopping 
+ Container chu-minio Stopped 
+ Container chu-minio Removing 
+ Container chu-minio Removed 
+ Container chu-hive-metastore Stopped 
+ Container chu-hive-metastore Removing 
+ Container chu-hive-metastore Removed 
+ Container chu-hive-metastore-init Stopping 
+ Container chu-hive-metastore-init Stopped 
+ Container chu-hive-metastore-init Removing 
+ Container chu-hive-metastore-init Removed 
+ Container chu-metastore-db Stopping 
+ Container chu-metastore-db Stopped 
+ Container chu-metastore-db Removing 
+ Container chu-metastore-db Removed 
+ Container chu-airflow-scheduler Stopped 
+ Container chu-airflow-scheduler Removing 
+ Container chu-airflow-scheduler Removed 
+ Container chu-airflow-init Stopping 
+ Container chu-spark-master Stopping 
+ Container chu-airflow-init Stopped 
+ Container chu-airflow-init Removing 
+ Container chu-airflow-init Removed 
+ Container chu-airflow-db Stopping 
+ Container chu-airflow-db Stopped 
+ Container chu-airflow-db Removing 
+ Container chu-airflow-db Removed 
+ Container chu-spark-master Stopped 
+ Container chu-spark-master Removing 
+ Container chu-spark-master Removed 
+ Volume chu-l2_s1-data Removing 
+ Volume chu-l2_superset-db-data Removing 
+ Volume chu-l2_airflow-logs Removing 
+ Volume chu-l2_metastore-db-data Removing 
+ Volume chu-l2_minio-data Removing 
+ Network chu-l2_chu-net Removing 
+ Volume chu-l2_airflow-db-data Removing 
+ Volume chu-l2_s1-data Removed 
+ Volume chu-l2_metastore-db-data Removed 
+ Volume chu-l2_superset-db-data Removed 
+ Volume chu-l2_airflow-db-data Removed 
+ Network chu-l2_chu-net Removed 
+ Volume chu-l2_airflow-logs Removed 
+ Volume chu-l2_minio-data Removed 
+INFO  | down -v effectue, lancement de up -d...
+ Volume chu-l2_airflow-db-data Creating 
+ Volume chu-l2_s1-data Creating 
+ Volume chu-l2_s1-data Creating 
+ Volume chu-l2_minio-data Creating 
+ Volume chu-l2_minio-data Creating 
+ Volume chu-l2_airflow-db-data Creating 
+ Network chu-l2_chu-net Creating 
+ Volume chu-l2_airflow-logs Creating 
+ Volume chu-l2_airflow-logs Creating 
+ Network chu-l2_chu-net Creating 
+ Volume chu-l2_metastore-db-data Creating 
+ Volume chu-l2_metastore-db-data Creating 
+ Volume chu-l2_superset-db-data Creating 
+ Volume chu-l2_superset-db-data Creating 
+ Volume chu-l2_s1-data Created 
+ Volume chu-l2_s1-data Created 
+ Volume chu-l2_superset-db-data Created 
+ Volume chu-l2_superset-db-data Created 
+ Volume chu-l2_minio-data Created 
+ Volume chu-l2_minio-data Created 
+ Volume chu-l2_airflow-db-data Created 
+ Volume chu-l2_airflow-db-data Created 
+ Volume chu-l2_metastore-db-data Created 
+ Volume chu-l2_metastore-db-data Created 
+ Volume chu-l2_airflow-logs Created 
+ Volume chu-l2_airflow-logs Created 
+ Network chu-l2_chu-net Created 
+ Network chu-l2_chu-net Created 
+ Container chu-airflow-db Creating 
+ Container chu-spark-master Creating 
+ Container chu-bench-duckdb Creating 
+ Container chu-superset-db Creating 
+ Container chu-s1-postgres Creating 
+ Container chu-minio Creating 
+ Container chu-metastore-db Creating 
+ Container chu-s1-postgres Created 
+ Container chu-spark-master Created 
+ Container chu-spark-worker Creating 
+ Container chu-metastore-db Created 
+ Container chu-hive-metastore-init Creating 
+ Container chu-bench-duckdb Created 
+ Container chu-superset-db Created 
+ Container chu-minio Created 
+ Container chu-minio-init Creating 
+ Container chu-airflow-db Created 
+ Container chu-airflow-init Creating 
+ Container chu-hive-metastore-init Created 
+ Container chu-hive-metastore Creating 
+ Container chu-airflow-init Created 
+ Container chu-airflow-scheduler Creating 
+ Container chu-minio-init Created 
+ Container chu-spark-worker Created 
+ Container chu-hive-metastore Created 
+ Container chu-trino Creating 
+ Container chu-hive-hs2 Creating 
+ Container chu-airflow-scheduler Created 
+ Container chu-airflow-webserver Creating 
+ Container chu-trino Created 
+ Container chu-superset Creating 
+ Container chu-hive-hs2 Created 
+ Container chu-airflow-webserver Created 
+ Container chu-superset Created 
+ Container chu-superset-db Starting 
+ Container chu-s1-postgres Starting 
+ Container chu-minio Starting 
+ Container chu-airflow-db Starting 
+ Container chu-bench-duckdb Starting 
+ Container chu-spark-master Starting 
+ Container chu-metastore-db Starting 
+ Container chu-superset-db Started 
+ Container chu-s1-postgres Started 
+ Container chu-minio Started 
+ Container chu-minio Waiting 
+ Container chu-airflow-db Started 
+ Container chu-airflow-db Waiting 
+ Container chu-bench-duckdb Started 
+ Container chu-spark-master Started 
+ Container chu-spark-worker Starting 
+ Container chu-metastore-db Started 
+ Container chu-metastore-db Waiting 
+ Container chu-spark-worker Started 
+ Container chu-airflow-db Healthy 
+ Container chu-airflow-init Starting 
+ Container chu-airflow-init Started 
+ Container chu-airflow-init Waiting 
+ Container chu-metastore-db Healthy 
+ Container chu-hive-metastore-init Starting 
+ Container chu-hive-metastore-init Started 
+ Container chu-hive-metastore-init Waiting 
+ Container chu-minio Healthy 
+ Container chu-minio-init Starting 
+ Container chu-minio-init Started 
+ Container chu-hive-metastore-init Exited 
+ Container chu-hive-metastore Starting 
+ Container chu-hive-metastore Started 
+ Container chu-minio Waiting 
+ Container chu-hive-metastore-init Waiting 
+ Container chu-hive-metastore-init Exited 
+ Container chu-hive-hs2 Starting 
+ Container chu-minio Healthy 
+ Container chu-trino Starting 
+ Container chu-hive-hs2 Started 
+ Container chu-trino Started 
+ Container chu-superset-db Waiting 
+ Container chu-superset-db Healthy 
+ Container chu-superset Starting 
+ Container chu-superset Started 
+ Container chu-airflow-init Exited 
+ Container chu-airflow-scheduler Starting 
+ Container chu-airflow-scheduler Started 
+ Container chu-airflow-init Waiting 
+ Container chu-airflow-init Exited 
+ Container chu-airflow-webserver Starting 
+ Container chu-airflow-webserver Started 
+PASS  | docker compose up -d retourne 0
+
+=== 2. Attente que les 14 services long-running soient Up (+ one-shots Exited 0) ===
+PASS  | 14 conteneurs running + 3 one-shots exited(0) (après 30s)
+
+=== 3. Endpoints HTTP ===
+PASS  | Airflow :8090 -> 302 (après 20s)
+PASS  | Superset :8088 -> 302 (après 10s)
+PASS  | Trino :8080 -> 303 (après 10s)
+PASS  | MinIO API :9000 -> 403 (après 10s)
+PASS  | MinIO console :9001 -> 200 (après 10s)
+PASS  | Spark master UI :8085 -> 200 (après 10s)
+
+=== 4. DAGs enregistrés EN PAUSE, aucun run auto (fix backfill) ===
+PASS  | 2 DAGs enregistrés
+PASS  | les 2 DAGs sont is_paused=true (pas de backfill auto)
+PASS  | 0 dag_run auto au démarrage
+
+=== 5. lakehouse_init : unpause + trigger + attente 5/5 SUCCESS ===
+/home/airflow/.local/lib/python3.12/site-packages/airflow/configuration.py:764 FutureWarning: The auth_backends setting in [api] has had airflow.api.auth.backend.session added in the running config, which is needed by the UI. Please update your config before Apache Airflow 3.0.
+dag_id         | is_paused
+===============+==========
+lakehouse_init | False    
+                          
+/home/airflow/.local/lib/python3.12/site-packages/airflow/configuration.py:764 FutureWarning: The auth_backends setting in [api] has had airflow.api.auth.backend.session added in the running config, which is needed by the UI. Please update your config before Apache Airflow 3.0.
+[[34m2026-10-30T06:55:17.366+0000[0m] {[34m__init__.py:[0m43} INFO[0m - Loaded API auth backend: airflow.api.auth.backend.basic_auth[0m
+[[34m2026-10-30T06:55:17.367+0000[0m] {[34m__init__.py:[0m43} INFO[0m - Loaded API auth backend: airflow.api.auth.backend.session[0m
+     |                |                      |                      |                      |          |                  | last_scheduling_deci |                       |          |            |       
+conf | dag_id         | dag_run_id           | data_interval_start  | data_interval_end    | end_date | external_trigger | sion                 | logical_date          | run_type | start_date | state 
+=====+================+======================+======================+======================+==========+==================+======================+=======================+==========+============+=======
+{}   | lakehouse_init | manual__2026-10-30T0 | 2026-10-30           | 2026-10-30           | None     | True             | None                 | 2026-10-30            | manual   | None       | queued
+     |                | 6:55:17+00:00        | 06:55:17+00:00       | 06:55:17+00:00       |          |                  |                      | 06:55:17+00:00        |          |            |       
+                                                                                                                                                                                                        
+PASS  | lakehouse_init run = success (après ~80s)
+PASS  | init: 5/5 tâches success
+PASS  | init: 0 tâche failed
+
+=== 6. lakehouse_daily : unpause (run auto, catchup=False) + attente 8/8 SUCCESS ===
+/home/airflow/.local/lib/python3.12/site-packages/airflow/configuration.py:764 FutureWarning: The auth_backends setting in [api] has had airflow.api.auth.backend.session added in the running config, which is needed by the UI. Please update your config before Apache Airflow 3.0.
+dag_id          | is_paused
+================+==========
+lakehouse_daily | False    
+                           
+PASS  | lakehouse_daily run = success (après ~250s)
+PASS  | daily: 8/8 tâches success
+PASS  | daily: 0 tâche failed
+
+=== 7. Données : volumes exacts dans Trino (gold + silver) ===
+PASS  | gold.d_temps = 5844
+PASS  | gold.d_patient = 100000
+PASS  | gold.d_etablissement = 416665
+PASS  | gold.d_localisation = 102
+PASS  | gold.d_diagnostic = 15490
+PASS  | gold.d_professionnel = 1048575
+PASS  | silver.f_consultation_detail = 1027157
+PASS  | gold.f_mesures = 1030402
+PASS  | gold.f_consult_diag_mois = 979797
+PASS  | gold.f_consult_prof_mois = 1001453
+PASS  | gold.f_deces_agg = 69008
+PASS  | gold.f_satisfaction = 1960
+PASS  | gold.f_hospitalisation = 2479
+
+=== 7b. Schéma : 12 tables gold, 9 vues Trino (vues_t) ===
+PASS  | gold: 12 tables
+PASS  | vues_t: 9 vues
+PASS  | v_taux_consultation_mensuel non vide (94 lignes)
+PASS  | v_deces_region_annee non vide (1695 lignes)
+
+=== 8. Data lake MinIO : bucket lake, préfixes, clés normalisées, volume raw ===
+PASS  | bucket s3://lake existe
+PASS  | prefix s3://lake/raw/ non vide (59 objets)
+PASS  | prefix s3://lake/silver/ non vide (19 objets)
+PASS  | prefix s3://lake/gold/ non vide (639 objets)
+PASS  | prefix s3://lake/warehouse/ non vide (3 objets)
+PASS  | clé présente: raw/deces/deces.csv
+PASS  | clé présente: raw/etablissement/etablissement_sante.csv
+PASS  | clé présente: raw/hospitalisation/Hospitalisations.csv
+PASS  | clé présente: raw/satisfaction/ESATIS_2019.csv
+PASS  | clé présente: raw/satisfaction/ESATIS_2020.csv
+PASS  | clé présente: raw/referentiels/activite_professionnel_sante.csv
+PASS  | clé présente: gold/f_mesures/
+PASS  | clé présente: silver/f_consultation_detail/
+PASS  | raw contient >= sources (59 >= 48 objets)
+
+=== 9. Superset : connexion 'Trino CHU' créée par l'init ===
+PASS  | connexion Superset 'Trino CHU' présente
+
+=== 10. Source S1 PostgreSQL peuplée + résultats DQ archivés ===
+PASS  | S1 chu_s1: 13 tables
+PASS  | DQ: 9 fichiers résultats non vides (dont completude_faits + integrite_fk)
+
+=== 11. Re-pause des 2 DAGs (état final propre = démarrage neuf) ===
+/home/airflow/.local/lib/python3.12/site-packages/airflow/configuration.py:764 FutureWarning: The auth_backends setting in [api] has had airflow.api.auth.backend.session added in the running config, which is needed by the UI. Please update your config before Apache Airflow 3.0.
+dag_id         | is_paused
+===============+==========
+lakehouse_init | True     
+                          
+/home/airflow/.local/lib/python3.12/site-packages/airflow/configuration.py:764 FutureWarning: The auth_backends setting in [api] has had airflow.api.auth.backend.session added in the running config, which is needed by the UI. Please update your config before Apache Airflow 3.0.
+dag_id          | is_paused
+================+==========
+lakehouse_daily | True     
+                           
+PASS  | 2 DAGs remis en pause
+
+=== RESULTAT ===
+
+================ SMOKE TEST : 54 PASS / 0 FAIL ================
+100% PASS — from scratch OK, données conformes. Log : /Users/tonyfages/CESI/4A/Big Data/projet/Livrable 2/scripts/07_smoke_test/results/smoke_20261030T065401Z.log
