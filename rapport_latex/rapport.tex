@@ -344,46 +344,46 @@ en 1 960 finess juridiques, moyenne ponderee par les repondants) et
 \subsection{Preuve de fonctionnement (captures)}
 Captures d'ecran realisees sur la plateforme deployee (conteneurs Docker) :
 
-\IfFileExists{figures/shots/airflow_dags.png}{%
+\IfFileExists{ImagesRapport/airflow_dags.png}{%
 \begin{figure}[H]\centering
 \caption{Airflow : DAGs \texttt{lakehouse\_init} et \texttt{lakehouse\_daily}, taches en succes (vert)}
-\includegraphics[width=\textwidth]{figures/shots/airflow_dags.png}
+\includegraphics[width=\textwidth]{ImagesRapport/airflow_dags.png}
 \end{figure}}{}
 
-\IfFileExists{figures/shots/trino_query.png}{%
+\IfFileExists{ImagesRapport/trino_query.png}{%
 \begin{figure}[H]\centering
 \caption{Trino 484 (UI web) : tableau de bord du coordinateur -- workers actifs et requetes recentes (etat, duree, SQL)}
-\includegraphics[width=\textwidth]{figures/shots/trino_query.png}
+\includegraphics[width=\textwidth]{ImagesRapport/trino_query.png}
 \end{figure}}{}
 
-\IfFileExists{figures/shots/minio_buckets.png}{%
+\IfFileExists{ImagesRapport/MInIO.png}{%
 \begin{figure}[H]\centering
 \caption{MinIO (console) : liste des buckets, dont \texttt{lake}}
-\includegraphics[width=\textwidth]{figures/shots/minio_buckets.png}
+\includegraphics[width=\textwidth]{ImagesRapport/MInIO.png}
 \end{figure}}{}
 
-\IfFileExists{figures/shots/minio_bucket_lake.png}{%
+\IfFileExists{ImagesRapport/ManIo2.png}{%
 \begin{figure}[H]\centering
 \caption{MinIO (console) : contenu du bucket \texttt{lake} (zones raw/silver/gold)}
-\includegraphics[width=\textwidth]{figures/shots/minio_bucket_lake.png}
+\includegraphics[width=\textwidth]{ImagesRapport/ManIo2.png}
 \end{figure}}{}
 
-\IfFileExists{figures/shots/superset_dashboards.png}{%
+\IfFileExists{ImagesRapport/probe_dash3.png}{%
 \begin{figure}[H]\centering
-\caption{Superset : liste des tableaux de bord}
-\includegraphics[width=\textwidth]{figures/shots/superset_dashboards.png}
+\caption{Superset : tableau de bord \guillemotleft{}CHU -- Indicateurs metier\guillemotright{} publie (liste de ses graphiques)}
+\includegraphics[width=\textwidth]{ImagesRapport/probe_dash3.png}
 \end{figure}}{}
 
-\IfFileExists{figures/shots/superset_dashboard.png}{%
+\IfFileExists{ImagesRapport/probe_dash4.png}{%
 \begin{figure}[H]\centering
-\caption{Superset : tableau de bord \guillemotleft{}CHU -- Indicateurs metier\guillemotright{}}
-\includegraphics[width=\textwidth]{figures/shots/superset_dashboard.png}
+\caption{Superset : tableau de bord \guillemotleft{}CHU -- Indicateurs metier\guillemotright{} avec graphiques rendus}
+\includegraphics[width=\textwidth]{ImagesRapport/probe_dash4.png}
 \end{figure}}{}
 
-\IfFileExists{figures/shots/superset_chart.png}{%
+\IfFileExists{ImagesRapport/superset_chart.png}{%
 \begin{figure}[H]\centering
 \caption{Superset : detail d'un graphique du tableau de bord}
-\includegraphics[width=\textwidth]{figures/shots/superset_chart.png}
+\includegraphics[width=\textwidth]{ImagesRapport/superset_chart.png}
 \end{figure}}{}
 
 % ============================ 5. PARTITIONNEMENT ============================
