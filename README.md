@@ -2,7 +2,7 @@
 
 Plateforme **lakehouse** complète pour le projet CESI 4A Big Data (sujet « A3 — Stockage et Big Data », livrable 2) : ingestion, stockage, catalogue, traitement, orchestration et visualisation du data lake d'un CHU. **100 % conteneurisée en Docker Compose** — rien n'est installé sur le poste hôte.
 
-Rapport du livrable : `rapport_latex/rapport.pdf` (source LaTeX dans `rapport_latex/rapport.tex`) + `livrable2.md`.
+Rapport du livrable : `rapport.pdf` à la racine du dépôt (source LaTeX dans `rapport_latex/rapport.tex`, PDF compilé aussi disponible dans `rapport_latex/rapport.pdf`).
 
 ## Sommaire
 
@@ -157,7 +157,7 @@ docker compose down -v     # purge totale, volumes compris (retour à l'état in
 
 ```
 ├── README.md                             # ce fichier
-├── livrable2.md                          # rapport complet du livrable
+├── rapport.pdf                           # rapport du livrable (PDF, aussi compilé dans rapport_latex/)
 ├── rapport_latex/                        # rapport LaTeX + PDF compilé + figures + captures
 │   ├── rapport.tex / rapport.pdf
 │   ├── figures/                          # graphiques benchmark (pgfplots) + tables DQ générées
