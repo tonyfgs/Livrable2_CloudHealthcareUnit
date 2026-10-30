@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.10.25)  30 OCT 2026 14:05
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.10.25)  30 OCT 2026 14:31
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1099,13 +1099,8 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <8> on input line 88.
 LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <6> on input line 88.
- [1
-
-
-{/usr/local/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/usr/loc
-al/texlive/2026/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}] (./rapport.toc
-LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 6
-.
+LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 9
+1.
 
 (/usr/local/texlive/2026/texmf-dist/tex/latex/lm/t1lmtt.fd
 File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
@@ -1114,7 +1109,11 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `lmtt' (encoding: T1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
-)
+ [1
+
+
+{/usr/local/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/usr/loc
+al/texlive/2026/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}] (./rapport.toc)
 \tf@toc=\write5
 \openout5 = `rapport.toc'.
 
@@ -1123,7 +1122,7 @@ pdfTeX warning (ext4): destination with the same identifier (name{page.1}) has
 been already used, duplicate ignored
 <to be read again> 
                    \relax 
-l.98 \newpage
+l.99 \newpage
               [1
 
 ]
@@ -1133,436 +1132,436 @@ Package microtype Info: Character `029' is missing
 
 
 LaTeX Font Warning: Font shape `T1/lmr/bx/sc' undefined
-(Font)              using `T1/lmr/bx/n' instead on input line 104.
+(Font)              using `T1/lmr/bx/n' instead on input line 105.
 
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 1
-27.
+28.
 (/usr/local/texlive/2026/texmf-dist/tex/latex/lm/ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
-Underfull \hbox (badness 10000) in paragraph at lines 196--196
+Underfull \hbox (badness 10000) in paragraph at lines 197--197
 []|\T1/lmtt/m/n/9 d_temps \T1/lmr/m/n/9 (+20) (\T1/lmtt/m/n/9 id_temps\T1/lmr/m
 /n/9 (+20) ,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 198--198
+Underfull \hbox (badness 10000) in paragraph at lines 199--199
 []|\T1/lmtt/m/n/9 d_etablissement
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 198--198
+Underfull \hbox (badness 10000) in paragraph at lines 199--199
 \T1/lmr/m/n/9 (+20) (\T1/lmtt/m/n/9 id_etablissement\T1/lmr/m/n/9 (+20) , sur-r
 o-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 199--199
+Underfull \hbox (badness 10000) in paragraph at lines 200--200
 []|\T1/lmtt/m/n/9 d_localisation
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 201--201
+Underfull \hbox (badness 10000) in paragraph at lines 202--202
 []|\T1/lmtt/m/n/9 d_professionnel
  []
 
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <9> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 202.
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 203.
 
-Underfull \hbox (badness 10000) in paragraph at lines 203--203
+Underfull \hbox (badness 10000) in paragraph at lines 204--204
 []|\T1/lmtt/m/n/9 f_consultation_detail
  []
 
 
-Underfull \hbox (badness 3098) in paragraph at lines 203--203
+Underfull \hbox (badness 3098) in paragraph at lines 204--204
 []|\T1/lmr/m/n/9 (+20) consultation ; Sil-ver ; part. \T1/lmtt/m/n/9 annee \T1/
 lmr/m/n/9 (+20) ; tri \T1/lmtt/m/n/9 id_etablissement\T1/lmr/m/n/9 (+20) ,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 204--204
+Underfull \hbox (badness 10000) in paragraph at lines 205--205
 []|\T1/lmtt/m/n/9 f_hospitalisation
  []
 
 
-Underfull \hbox (badness 1237) in paragraph at lines 204--204
+Underfull \hbox (badness 1237) in paragraph at lines 205--205
 []|\T1/lmr/m/n/9 (+20) hospitalisation ; Gold ; part. \T1/lmtt/m/n/9 annee \T1/
 lmr/m/n/9 (+20) ; tri \T1/lmtt/m/n/9 id_etablissement\T1/lmr/m/n/9 (+20) ,
  []
 
 [2{/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}]
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <12> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 212.
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 213.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 215.
+(Font)              <10> on input line 216.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 215.
+(Font)              <7> on input line 216.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 215.
+(Font)              <5> on input line 216.
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 217.
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 218.
 
-Underfull \hbox (badness 10000) in paragraph at lines 219--220
+Underfull \hbox (badness 10000) in paragraph at lines 220--221
 []|\T1/lmr/m/n/10 (+20) mensuel (\T1/lmtt/m/n/10 annee_mois =
  []
 
 
-Underfull \hbox (badness 1038) in paragraph at lines 221--221
+Underfull \hbox (badness 1038) in paragraph at lines 222--222
 []|\T1/lmr/m/n/10 (+20) score moyen ajuste ESA-TIS (0--100),
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 227--232
+Underfull \hbox (badness 10000) in paragraph at lines 228--233
 []\T1/lmr/m/n/10.95 (+20) Conventions : membres ^^SIn-connu^^T (\T1/lmtt/m/n/10
 .95 id_etablissement = -1\T1/lmr/m/n/10.95 (+20) , \T1/lmtt/m/n/10.95 id_patien
 t = -1\T1/lmr/m/n/10.95 (+20) ,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 227--232
+Underfull \hbox (badness 10000) in paragraph at lines 228--233
 \T1/lmtt/m/n/10.95 id_localisation = 'INCONNU'\T1/lmr/m/n/10.95 (+20) , \T1/lmt
 t/m/n/10.95 region = 'INCONNUE'\T1/lmr/m/n/10.95 (+20) , \T1/lmtt/m/n/10.95 sex
 e = 'TOUS'\T1/lmr/m/n/10.95 (+20) , \T1/lmtt/m/n/10.95 tranche_age =
  []
 
 
-Underfull \hbox (badness 1377) in paragraph at lines 227--232
+Underfull \hbox (badness 1377) in paragraph at lines 228--233
 \T1/lmtt/m/n/10.95 'TOUTES'\T1/lmr/m/n/10.95 (+20) ) pour les lignes non rat-ta
 -chables ; sen-ti-nelle \T1/lmtt/m/n/10.95 annee_mois = 'AAAA-00' \T1/lmr/m/n/1
 0.95 (+20) pour les
  []
 
 [3]
-Underfull \hbox (badness 10000) in paragraph at lines 298--299
+Underfull \hbox (badness 10000) in paragraph at lines 304--305
 []|\T1/lmtt/m/n/10 tranche_age \T1/lmr/m/n/10 (+20) (0-14/15-29/30-44/45-59/60-
 
  []
 
 
-Underfull \hbox (badness 4060) in paragraph at lines 299--299
+Underfull \hbox (badness 4060) in paragraph at lines 305--305
 []|\T1/lmr/m/n/10 (+20) Chargement des di-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 300--300
+Underfull \hbox (badness 10000) in paragraph at lines 306--306
 []|\T1/lmtt/m/n/10 f_consultation_detail
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 303--303
+Underfull \hbox (badness 10000) in paragraph at lines 309--309
 []|\T1/lmtt/m/n/10 f_consult_diag_mois\T1/lmr/m/n/10 (+20) ,
  []
 
 [4]
-Underfull \hbox (badness 2671) in paragraph at lines 308--309
+Underfull \hbox (badness 2671) in paragraph at lines 314--315
 []\T1/lmr/m/n/10.95 (+20) Chaque ecri-ture Spark : \T1/lmtt/m/n/10.95 partition
 By(...).sortWithinPartitions(id_etablissement,
  []
 
 [5]
-<ImagesRapport/airflow_dags.png, id=220, 3854.4pt x 2409.0pt>
+<ImagesRapport/airflow_dags.png, id=224, 3854.4pt x 2409.0pt>
 File: ImagesRapport/airflow_dags.png Graphic file (type png)
 <use ImagesRapport/airflow_dags.png>
-Package pdftex.def Info: ImagesRapport/airflow_dags.png  used on input line 358
+Package pdftex.def Info: ImagesRapport/airflow_dags.png  used on input line 364
 .
 (pdftex.def)             Requested size: 472.31595pt x 295.16942pt.
-<ImagesRapport/trino_query.png, id=221, 3854.4pt x 2409.0pt>
+<ImagesRapport/trino_query.png, id=225, 3854.4pt x 2409.0pt>
 File: ImagesRapport/trino_query.png Graphic file (type png)
 <use ImagesRapport/trino_query.png>
-Package pdftex.def Info: ImagesRapport/trino_query.png  used on input line 364.
+Package pdftex.def Info: ImagesRapport/trino_query.png  used on input line 370.
 
 (pdftex.def)             Requested size: 472.31595pt x 295.16942pt.
  [6 <./ImagesRapport/airflow_dags.png>]
-<ImagesRapport/MInIO.png, id=228, 1412.27625pt x 779.91376pt>
+<ImagesRapport/MInIO.png, id=232, 1412.27625pt x 779.91376pt>
 File: ImagesRapport/MInIO.png Graphic file (type png)
 <use ImagesRapport/MInIO.png>
-Package pdftex.def Info: ImagesRapport/MInIO.png  used on input line 370.
+Package pdftex.def Info: ImagesRapport/MInIO.png  used on input line 376.
 (pdftex.def)             Requested size: 472.31595pt x 260.83539pt.
-<ImagesRapport/ManIo2.png, id=230, 1412.27625pt x 796.9775pt>
+<ImagesRapport/ManIo2.png, id=234, 1412.27625pt x 796.9775pt>
 File: ImagesRapport/ManIo2.png Graphic file (type png)
 <use ImagesRapport/ManIo2.png>
-Package pdftex.def Info: ImagesRapport/ManIo2.png  used on input line 376.
+Package pdftex.def Info: ImagesRapport/ManIo2.png  used on input line 382.
 (pdftex.def)             Requested size: 472.31595pt x 266.54219pt.
  [7 <./ImagesRapport/trino_query.png> <./ImagesRapport/MInIO.png>]
-<ImagesRapport/probe_dash3.png, id=238, 3854.4pt x 2409.0pt>
+<ImagesRapport/probe_dash3.png, id=242, 3854.4pt x 2409.0pt>
 File: ImagesRapport/probe_dash3.png Graphic file (type png)
 <use ImagesRapport/probe_dash3.png>
-Package pdftex.def Info: ImagesRapport/probe_dash3.png  used on input line 382.
+Package pdftex.def Info: ImagesRapport/probe_dash3.png  used on input line 388.
 
 (pdftex.def)             Requested size: 472.31595pt x 295.16942pt.
-<ImagesRapport/probe_dash4.png, id=239, 3854.4pt x 4882.24pt>
+<ImagesRapport/probe_dash4.png, id=243, 3854.4pt x 4882.24pt>
 File: ImagesRapport/probe_dash4.png Graphic file (type png)
 <use ImagesRapport/probe_dash4.png>
-Package pdftex.def Info: ImagesRapport/probe_dash4.png  used on input line 388.
+Package pdftex.def Info: ImagesRapport/probe_dash4.png  used on input line 394.
 
 (pdftex.def)             Requested size: 472.31595pt x 598.21002pt.
  [8 <./ImagesRapport/ManIo2.png> <./ImagesRapport/probe_dash3.png>]
-<ImagesRapport/superset_chart.png, id=247, 3854.4pt x 2409.0pt>
+<ImagesRapport/superset_chart.png, id=251, 3854.4pt x 2409.0pt>
 File: ImagesRapport/superset_chart.png Graphic file (type png)
 <use ImagesRapport/superset_chart.png>
-Package pdftex.def Info: ImagesRapport/superset_chart.png  used on input line 3
-94.
+Package pdftex.def Info: ImagesRapport/superset_chart.png  used on input line 4
+00.
 (pdftex.def)             Requested size: 472.31595pt x 295.16942pt.
  [9 <./ImagesRapport/probe_dash4.png>]
-Underfull \hbox (badness 1527) in paragraph at lines 404--404
+Underfull \hbox (badness 1527) in paragraph at lines 410--410
 []|\T1/lmr/bx/sc/10 (+20) Colonnes de par-ti-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 406--406
+Underfull \hbox (badness 10000) in paragraph at lines 412--412
 []|\T1/lmtt/m/n/10 annee\T1/lmr/m/n/10 (+20) , \T1/lmtt/m/n/10 sexe\T1/lmr/m/n/
 10 (+20) ,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 407--407
+Underfull \hbox (badness 10000) in paragraph at lines 413--413
 []|\T1/lmtt/m/n/10 sexe\T1/lmr/m/n/10 (+20) ,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 410--410
+Underfull \hbox (badness 10000) in paragraph at lines 416--416
 []|\T1/lmtt/m/n/10 f_consultation_detail\T1/lmr/m/n/10 (+20) ,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 410--410
+Underfull \hbox (badness 10000) in paragraph at lines 416--416
 \T1/lmtt/m/n/10 f_hospitalisation\T1/lmr/m/n/10 (+20) ,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 410--410
+Underfull \hbox (badness 10000) in paragraph at lines 416--416
 \T1/lmtt/m/n/10 f_consult_diag_mois\T1/lmr/m/n/10 (+20) ,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 413--413
+Underfull \hbox (badness 10000) in paragraph at lines 419--419
 []|\T1/lmtt/m/n/10 d_etablissement\T1/lmr/m/n/10 (+20) ,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 413--413
+Underfull \hbox (badness 10000) in paragraph at lines 419--419
 \T1/lmtt/m/n/10 d_diagnostic\T1/lmr/m/n/10 (+20) ,
  []
 
 [10 <./ImagesRapport/superset_chart.png>] [11]
-Underfull \hbox (badness 2189) in paragraph at lines 453--453
+Underfull \hbox (badness 2189) in paragraph at lines 459--459
 []|\T1/lmr/m/n/10 (+20) score_all_rea_ajust nor-ma-lise
  []
 
 
-Underfull \hbox (badness 2189) in paragraph at lines 453--453
+Underfull \hbox (badness 2189) in paragraph at lines 459--459
 []|\T1/lmr/m/n/10 (+20) score_all_rea_ajust nor-ma-lise
  []
 
 [12]
-Underfull \hbox (badness 10000) in paragraph at lines 483--483
+Underfull \hbox (badness 10000) in paragraph at lines 489--489
 []|\T1/lmr/m/n/10.95 (+20) Date_Entree for-mat
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 483--483
+Underfull \hbox (badness 10000) in paragraph at lines 489--489
 []|\T1/lmr/m/n/10.95 (+20) Date_naissance for-mat
  []
 
 
-Underfull \hbox (badness 4899) in paragraph at lines 483--483
+Underfull \hbox (badness 4899) in paragraph at lines 489--489
 []|\T1/lmr/m/n/10.95 (+20) score_all_rea_ajust de-ci-mal
  []
 
 
-Underfull \hbox (badness 4899) in paragraph at lines 483--483
+Underfull \hbox (badness 4899) in paragraph at lines 489--489
 []|\T1/lmr/m/n/10.95 (+20) score_all_rea_ajust de-ci-mal
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 494--494
+Underfull \hbox (badness 10000) in paragraph at lines 500--500
 []|\T1/lmr/m/n/10 (+20) etablissement (fi-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 494--494
+Underfull \hbox (badness 10000) in paragraph at lines 500--500
 []|\T1/lmr/m/n/10 (+20) cle com-plete (nom, pre-nom,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 494--494
+Underfull \hbox (badness 10000) in paragraph at lines 500--500
 \T1/lmr/m/n/10 (+20) date_naissance, date_deces, lieu,
  []
 
 [13]
-Underfull \hbox (badness 10000) in paragraph at lines 505--505
+Underfull \hbox (badness 10000) in paragraph at lines 511--511
 []|\T1/lmr/m/n/10 (+20) id_consultation (grain 1
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 505--505
+Underfull \hbox (badness 10000) in paragraph at lines 511--511
 []|\T1/lmr/m/n/10 (+20) annee_mois +
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 505--505
+Underfull \hbox (badness 10000) in paragraph at lines 511--511
 \T1/lmr/m/n/10 (+20) id_etablissement +
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 505--505
+Underfull \hbox (badness 10000) in paragraph at lines 511--511
 \T1/lmr/m/n/10 (+20) id_patient + sexe
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 505--505
+Underfull \hbox (badness 10000) in paragraph at lines 511--511
 \T1/lmr/m/n/10 (+20) + tranche_age +
  []
 
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10.95> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 511.
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 517.
 
-Underfull \hbox (badness 10000) in paragraph at lines 536--536
+Underfull \hbox (badness 10000) in paragraph at lines 542--542
 []|\T1/lmr/m/n/10.95 (+20) Hospitalisations.identifiant_organisation ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 536--536
+Underfull \hbox (badness 10000) in paragraph at lines 542--542
 []|\T1/lmr/m/n/10.95 (+20) Hospitalisations.identifiant_organisation ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 536--536
+Underfull \hbox (badness 10000) in paragraph at lines 542--542
 []|\T1/lmr/m/n/10.95 (+20) Hospitalisations.identifiant_organisation ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 536--536
+Underfull \hbox (badness 10000) in paragraph at lines 542--542
 []|\T1/lmr/m/n/10.95 (+20) Hospitalisations.Id_patient ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 536--536
+Underfull \hbox (badness 10000) in paragraph at lines 542--542
 []|\T1/lmr/m/n/10.95 (+20) Hospitalisations.Code_diagnostic ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 536--536
+Underfull \hbox (badness 10000) in paragraph at lines 542--542
 []|\T1/lmr/m/n/10.95 (+20) satisfaction_2019.finess ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 536--536
+Underfull \hbox (badness 10000) in paragraph at lines 542--542
 []|\T1/lmr/m/n/10.95 (+20) satisfaction_2020.finess ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 536--536
+Underfull \hbox (badness 10000) in paragraph at lines 542--542
 []|\T1/lmr/m/n/10.95 (+20) activite.identifiant_organisation ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 536--536
+Underfull \hbox (badness 10000) in paragraph at lines 542--542
 []|\T1/lmr/m/n/10.95 (+20) S1.Consultation.Id_prof_sante ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 536--536
+Underfull \hbox (badness 10000) in paragraph at lines 542--542
 []|\T1/lmr/m/n/10.95 (+20) S1.Consultation.Id_prof_sante -> ac-ti-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 536--536
+Underfull \hbox (badness 10000) in paragraph at lines 542--542
 []|\T1/lmr/m/n/10.95 (+20) satisfaction_2019.finess ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 536--536
+Underfull \hbox (badness 10000) in paragraph at lines 542--542
 []|\T1/lmr/m/n/10.95 (+20) satisfaction_2020.finess ->
  []
 
 [14]
-Underfull \hbox (badness 10000) in paragraph at lines 558--558
+Underfull \hbox (badness 10000) in paragraph at lines 564--564
 []|\T1/lmr/m/n/10.95 (+20) f_mesures.id_etablissement ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 558--558
+Underfull \hbox (badness 10000) in paragraph at lines 564--564
 []|\T1/lmr/m/n/10.95 (+20) f_mesures.id_localisation ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 558--558
+Underfull \hbox (badness 10000) in paragraph at lines 564--564
 []|\T1/lmr/m/n/10.95 (+20) f_consultation_detail.id_patient ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 558--558
+Underfull \hbox (badness 10000) in paragraph at lines 564--564
 []|\T1/lmr/m/n/10.95 (+20) f_consultation_detail.id_etablissement ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 558--558
+Underfull \hbox (badness 10000) in paragraph at lines 564--564
 []|\T1/lmr/m/n/10.95 (+20) f_consultation_detail.id_diagnostic ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 558--558
+Underfull \hbox (badness 10000) in paragraph at lines 564--564
 []|\T1/lmr/m/n/10.95 (+20) f_consultation_detail.id_professionnel ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 558--558
+Underfull \hbox (badness 10000) in paragraph at lines 564--564
 []|\T1/lmr/m/n/10.95 (+20) f_consultation_detail.id_localisation ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 558--558
+Underfull \hbox (badness 10000) in paragraph at lines 564--564
 []|\T1/lmr/m/n/10.95 (+20) f_hospitalisation.id_patient ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 558--558
+Underfull \hbox (badness 10000) in paragraph at lines 564--564
 []|\T1/lmr/m/n/10.95 (+20) f_hospitalisation.id_diagnostic ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 558--558
+Underfull \hbox (badness 10000) in paragraph at lines 564--564
 []|\T1/lmr/m/n/10.95 (+20) f_hospitalisation.id_etablissement ->
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 558--558
+Underfull \hbox (badness 10000) in paragraph at lines 564--564
 []|\T1/lmr/m/n/10.95 (+20) f_hospitalisation.id_localisation ->
  []
 
 [15]
-Underfull \hbox (badness 10000) in paragraph at lines 573--573
+Underfull \hbox (badness 10000) in paragraph at lines 579--579
 []|\T1/lmr/m/n/10 (+20) Date_Entree dans
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 573--573
+Underfull \hbox (badness 10000) in paragraph at lines 579--579
 []|\T1/lmr/m/n/10 (+20) date_deces >=
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 573--573
+Underfull \hbox (badness 10000) in paragraph at lines 579--579
 []|\T1/lmr/m/n/10 (+20) coherence Age vs
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 573--573
+Underfull \hbox (badness 10000) in paragraph at lines 579--579
 \T1/lmr/m/n/10 (+20) date_naissance
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 573--573
+Underfull \hbox (badness 10000) in paragraph at lines 579--579
 []|\T1/lmr/m/n/10 (+20) score_all_rea_ajust
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 573--573
+Underfull \hbox (badness 10000) in paragraph at lines 579--579
 []|\T1/lmr/m/n/10 (+20) score_all_rea_ajust
  []
 
 LaTeX Font Info:    Trying to load font information for TS1+lmtt on input line 
-588.
+594.
 (/usr/local/texlive/2026/texmf-dist/tex/latex/lm/ts1lmtt.fd
 File: ts1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
@@ -1574,163 +1573,163 @@ Package microtype Info: Character `texttrademark ' is missing
 (microtype)             in font `TS1/lmtt/m/n/10'.
 (microtype)             Ignoring protrusion settings for this character.
 
-Underfull \hbox (badness 10000) in paragraph at lines 588--589
+Underfull \hbox (badness 10000) in paragraph at lines 594--595
 []|\T1/lmr/m/n/10 (+20) rattachement \T1/lmtt/m/n/10 Id_prof_sante \TS1/lmtt/m/
 n/10 ^^Y\T1/lmtt/m/n/10 activite (1
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 588--589
+Underfull \hbox (badness 10000) in paragraph at lines 594--595
 \T1/lmtt/m/n/10 org/pro) \TS1/lmtt/m/n/10 ^^Y\T1/lmtt/m/n/10 etablissement \T1/
 lmr/m/n/10 (+20) ; non rat-ta-chees
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 592--593
+Underfull \hbox (badness 10000) in paragraph at lines 598--599
 []|\T1/lmr/m/n/10 (+20) regle IN-SEE \T1/lmtt/m/n/10 dept_of \T1/lmr/m/n/10 (+2
 0) ; non rat-taches
  []
 
 [16]
-Underfull \hbox (badness 6445) in paragraph at lines 612--612
+Underfull \hbox (badness 6445) in paragraph at lines 618--618
 \T1/lmr/m/n/10 (+20) ta-tion par
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 612--612
+Underfull \hbox (badness 10000) in paragraph at lines 618--618
 \T1/lmr/m/n/10 (+20) eta-blis-se-
  []
 
 
-Underfull \hbox (badness 6445) in paragraph at lines 613--613
+Underfull \hbox (badness 6445) in paragraph at lines 619--619
 \T1/lmr/m/n/10 (+20) ta-tion par
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 613--613
+Underfull \hbox (badness 10000) in paragraph at lines 619--619
 \T1/lmr/m/n/10 (+20) diag-nos-tic,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 614--614
+Underfull \hbox (badness 10000) in paragraph at lines 620--620
 \T1/lmr/m/n/10 (+20) d'hos-pi-ta-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 614--614
+Underfull \hbox (badness 10000) in paragraph at lines 620--620
 \T1/lmr/m/n/10 (+20) li-sa-tion,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 614--614
+Underfull \hbox (badness 10000) in paragraph at lines 620--620
 []|\T1/lmtt/m/n/10 nbre_hospitalisation
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 615--615
+Underfull \hbox (badness 10000) in paragraph at lines 621--621
 \T1/lmr/m/n/10 (+20) pi-ta-li-sa-tion
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 616--616
+Underfull \hbox (badness 10000) in paragraph at lines 622--622
 \T1/lmr/m/n/10 (+20) pi-ta-li-sa-tion
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 617--617
+Underfull \hbox (badness 10000) in paragraph at lines 623--623
 []|\T1/lmr/m/n/10 (+20) taux de
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 617--617
+Underfull \hbox (badness 10000) in paragraph at lines 623--623
 \T1/lmr/m/n/10 (+20) consul-ta-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 617--617
+Underfull \hbox (badness 10000) in paragraph at lines 623--623
 \T1/lmr/m/n/10 (+20) tion par
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 617--617
+Underfull \hbox (badness 10000) in paragraph at lines 623--623
 \T1/lmr/m/n/10 (+20) pro-fes-sion-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 617--618
+Underfull \hbox (badness 10000) in paragraph at lines 623--624
 []|\T1/lmr/m/n/10 (+20) professionnel (top
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 619--619
+Underfull \hbox (badness 10000) in paragraph at lines 625--625
 []|\T1/lmr/m/n/10 (+20) satisfaction
  []
 
 
-Underfull \hbox (badness 1895) in paragraph at lines 619--619
+Underfull \hbox (badness 1895) in paragraph at lines 625--625
 \T1/lmr/m/n/10 (+20) par re-gion,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 620--620
+Underfull \hbox (badness 10000) in paragraph at lines 626--626
 []|\T1/lmr/m/n/10 (+20) vue taux
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 620--620
+Underfull \hbox (badness 10000) in paragraph at lines 626--626
 \T1/lmr/m/n/10 (+20) men-suel
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 620--620
+Underfull \hbox (badness 10000) in paragraph at lines 626--626
 \T1/lmr/m/n/10 (+20) (moyenne
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 620--620
+Underfull \hbox (badness 10000) in paragraph at lines 626--626
 \T1/lmr/m/n/10 (+20) mo-bile 3
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 620--620
+Underfull \hbox (badness 10000) in paragraph at lines 626--626
 []|\T1/lmr/m/n/10 (+20) technique -- vue
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 621--621
+Underfull \hbox (badness 10000) in paragraph at lines 627--627
 []|\T1/lmr/m/n/10 (+20) jointure
  []
 
 
-Underfull \hbox (badness 1616) in paragraph at lines 621--621
+Underfull \hbox (badness 1616) in paragraph at lines 627--627
 \T1/lmr/m/n/10 (+20) etoile com-
  []
 
 [17] [18]
-<figures/graph_temps_median.pdf, id=306, 752.8125pt x 436.63126pt>
+<figures/graph_temps_median.pdf, id=310, 752.8125pt x 436.63126pt>
 File: figures/graph_temps_median.pdf Graphic file (type pdf)
 <use figures/graph_temps_median.pdf>
-Package pdftex.def Info: figures/graph_temps_median.pdf  used on input line 701
+Package pdftex.def Info: figures/graph_temps_median.pdf  used on input line 707
 .
 (pdftex.def)             Requested size: 472.31595pt x 273.95319pt.
  [19]
-<figures/graph_volume_lu.pdf, id=312, 752.8125pt x 436.63126pt>
+<figures/graph_volume_lu.pdf, id=316, 752.8125pt x 436.63126pt>
 File: figures/graph_volume_lu.pdf Graphic file (type pdf)
 <use figures/graph_volume_lu.pdf>
-Package pdftex.def Info: figures/graph_volume_lu.pdf  used on input line 706.
+Package pdftex.def Info: figures/graph_volume_lu.pdf  used on input line 712.
 (pdftex.def)             Requested size: 472.31595pt x 273.95319pt.
-<figures/graph_reduction_volume.pdf, id=313, 752.8125pt x 436.63126pt>
+<figures/graph_reduction_volume.pdf, id=317, 752.8125pt x 436.63126pt>
 File: figures/graph_reduction_volume.pdf Graphic file (type pdf)
 <use figures/graph_reduction_volume.pdf>
 Package pdftex.def Info: figures/graph_reduction_volume.pdf  used on input line
- 711.
+ 717.
 (pdftex.def)             Requested size: 472.31595pt x 273.95319pt.
  [20 <./figures/graph_temps_median.pdf> <./figures/graph_volume_lu.pdf
 
 pdfTeX warning: pdflatex (file ./figures/graph_volume_lu.pdf): PDF inclusion: m
 ultiple pdfs with page group included in a single page
 >]
-Package pgfplots info on input line 722: Using 'lua backend=false' for axis: x 
+Package pgfplots info on input line 728: Using 'lua backend=false' for axis: x 
 coord trafo unsupported.
 PGFPlots: reading {figures/bench_synthese.dat}
 PGFPlots: reading {figures/bench_synthese.dat}
@@ -1739,7 +1738,7 @@ PGFPlots: reading {figures/bench_runs_avant.dat}
 PGFPlots: reading {figures/bench_runs_apres_ml.dat}
  [21{/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc} <./figure
 s/graph_reduction_volume.pdf>]
-Package pgfplots info on input line 764: Using 'lua backend=false' for axis: x 
+Package pgfplots info on input line 770: Using 'lua backend=false' for axis: x 
 coord trafo unsupported.
 PGFPlots: reading {figures/bench_trino.dat}
  [22{/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc}{/usr/
@@ -1759,7 +1758,7 @@ Package rerunfilecheck Info: File `rapport.out' has not changed.
 Here is how much of TeX's memory you used:
  40028 strings out of 467050
  904791 string characters out of 5406312
- 1648198 words of memory out of 5000000
+ 1649264 words of memory out of 5000000
  68486 multiletter control sequences out of 15000+600000
  720972 words of font info for 204 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -1774,10 +1773,10 @@ blic/lm/lmr9.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmri
 sr/local/texlive/2026/texmf-dist/fonts/type1/public/lm/lmtk10.pfb></usr/local/t
 exlive/2026/texmf-dist/fonts/type1/public/lm/lmtt10.pfb></usr/local/texlive/202
 6/texmf-dist/fonts/type1/public/lm/lmtt9.pfb>
-Output written on rapport.pdf (24 pages, 2466509 bytes).
+Output written on rapport.pdf (24 pages, 2467651 bytes).
 PDF statistics:
- 470 PDF objects out of 1000 (max. 8388607)
- 391 compressed objects within 4 object streams
+ 474 PDF objects out of 1000 (max. 8388607)
+ 395 compressed objects within 4 object streams
  113 named destinations out of 1000 (max. 500000)
  57647 words of extra memory for PDF output out of 61914 (max. 10000000)
 
