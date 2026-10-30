@@ -7,6 +7,8 @@
 #   2. création des vues métier (Hive + Trino)
 #   3. vérification du déploiement côté Trino (volumes, pruning)
 #   4. connexion Trino dans Superset (base de données + dataset)
+#   5. tableaux de bord Superset (datasets + charts q01-q08 + dashboard
+#      "CHU — Indicateurs métier") via scripts/06_superset/build_dashboards.sh
 #
 # Le DAG quotidien (lakehouse_daily.py) prend le relais pour les charges.
 #
@@ -229,4 +231,28 @@ with DAG(
         bash_command=_verif_sh,
     )
 
-    ddl_hive >> vues_metier >> vues_metier_trino >> verif_trino >> verif_superset
+    # -------------------------------------------------------------------------
+    # 5. Superset : dashboards métier (datasets + charts + dashboard) via
+    #    scripts/06_superset/build_dashboards.sh, idempotent (422 = OK).
+    #    Même piège Airflow 2.9.3 que ci-dessus : le contenu du script est lu
+    #    au parse time (jamais de bash_command qui se termine par ".sh").
+    #    Chemins candidats : conteneur Airflow (scripts montes sur
+    #    /opt/airflow/scripts) puis repo local (scripts/06_superset/...).
+    # -------------------------------------------------------------------------
+    _bd_candidates = [
+        _Path("/opt/airflow/scripts/06_superset/build_dashboards.sh"),
+        _Path(__file__).resolve().parents[2] / "06_superset" / "build_dashboards.sh",
+    ]
+    _bd_path = next((p for p in _bd_candidates if p.is_file()), None)
+    if _bd_path is None:
+        raise FileNotFoundError(
+            "build_dashboards.sh introuvable (candidats: "
+            + ", ".join(str(p) for p in _bd_candidates) + ")"
+        )
+    _bd_sh = _bd_path.read_text()
+    build_dashboards = BashOperator(
+        task_id="build_dashboards",
+        bash_command=_bd_sh,
+    )
+
+    ddl_hive >> vues_metier >> vues_metier_trino >> verif_trino >> verif_superset >> build_dashboards

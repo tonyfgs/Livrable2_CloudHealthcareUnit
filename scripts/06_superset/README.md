@@ -19,7 +19,26 @@ lake MinIO via le Hive Metastore.
 > Trino en direct, aucune donnée n'est copiée dans Superset (cache désactivé
 > dans `config/superset/superset_config.py`).
 
-## Tableaux de bord
+## Tableaux de bord (automatique)
+
+Au from scratch, le DAG `lakehouse_init` exécute la tâche **`build_dashboards`**
+(script `build_dashboards.sh`, API REST idempotente) qui crée directement :
+
+- **17 datasets** : 12 tables physiques (`gold.*`, vues Trino `vues_t.*`) +
+  5 datasets virtuels SQL (jointures agrégées, ex. mesures × établissement) ;
+- **10 charts** : 1 par besoin métier q01-q08 (+ 2 complémentaires), types
+  `dist_bar` / `pie` / `echarts_timeseries_line`, metrics `SUM(...)` sur les
+  vraies colonnes du schéma gold ;
+- **1 dashboard publié « CHU — Indicateurs métier »** (slug
+  `chu-indicateurs-metier`) contenant les 10 charts (association via
+  `json_metadata.positions`, piège n°35).
+
+Vérification : `docker exec chu-superset-db psql -U superset -d superset -c
+"SELECT (SELECT count(*) FROM dashboards), (SELECT count(*) FROM slices),
+(SELECT count(*) FROM tables);"` → 1 / 10 / 17. Le smoke test vérifie ces
+seuils (≥1 dashboard, ≥8 charts, ≥8 datasets, ≥8 charts embarqués).
+
+## Tableaux de bord (manuel, alternative)
 
 Le fichier `charts.sql` contient les **8 requêtes des 8 besoins métier** du
 Livrable 1, prêtes à copier-coller dans SQL Lab. Pour chaque requête :

@@ -2,7 +2,7 @@
 
 Plateforme **lakehouse** complète pour le projet CESI 4A Big Data (sujet « A3 — Stockage et Big Data », livrable 2) : ingestion, stockage, catalogue, traitement, orchestration et visualisation du data lake d'un CHU, **100 % conteneurisée en Docker Compose** (rien n'est installé sur le poste hôte).
 
-![note](https://img.shields.io/badge/évaluation-19%2C44%2F20-brightgreen) ![smoke](https://img.shields.io/badge/smoke%20test-54%2F54%20PASS-brightgreen) ![docker](https://img.shields.io/badge/docker--compose-17%20services-2496ED) ![Trino](https://img.shields.io/badge/Trino-484-DD00A1) ![Spark](https://img.shields.io/badge/Spark-3.5.1-E25A1C) ![Airflow](https://img.shields.io/badge/Airflow-2.9.3-017CEE) ![Superset](https://img.shields.io/badge/Superset-4.1.1-20A6C9) ![MinIO](https://img.shields.io/badge/MinIO-lake-C72E49)
+![note](https://img.shields.io/badge/évaluation-19%2C44%2F20-brightgreen) ![smoke](https://img.shields.io/badge/smoke%20test-58%2F58%20PASS-brightgreen) ![docker](https://img.shields.io/badge/docker--compose-17%20services-2496ED) ![Trino](https://img.shields.io/badge/Trino-484-DD00A1) ![Spark](https://img.shields.io/badge/Spark-3.5.1-E25A1C) ![Airflow](https://img.shields.io/badge/Airflow-2.9.3-017CEE) ![Superset](https://img.shields.io/badge/Superset-4.1.1-20A6C9) ![MinIO](https://img.shields.io/badge/MinIO-lake-C72E49)
 
 ## Sommaire
 
@@ -48,7 +48,7 @@ Tout est livré ici : DDL/DML versionnés, plateforme Docker Compose exécutée 
             ▼
    ┌──────────────────┐        ┌───────────────────────────┐
    │  Superset :8088  │        │  Airflow :8090            │
-   │  dashboards      │        │  lakehouse_init (5 tâches)│── SparkSubmit
+   │  dashboards      │        │  lakehouse_init (6 tâches)│── SparkSubmit
    └──────────────────┘        │  lakehouse_daily (8 tâches, 02:00)
                                └───────────────────────────┘
 ```
@@ -61,7 +61,7 @@ Tout est livré ici : DDL/DML versionnés, plateforme Docker Compose exécutée 
 | Traitement | Spark standalone (master + worker) | `chu-spark:3.5.1-s3a` | **7077**, UI **8085** / worker **8086** | ETL/ELT S1 + CSV → lake |
 | Orchestration | Airflow 2.9.3 (webserver + scheduler + PG) | `chu-airflow:2.9.3` | **8090** (admin/admin) | DAGs `lakehouse_init`, `lakehouse_daily` |
 | Requêtage | Trino | `trinodb/trino:latest` (484) | **8080** | lecture distribuée du lake |
-| Visualisation | Superset | `chu-superset:4.1.1` | **8088** (admin/admin) | connexion « Trino CHU » + dashboards |
+| Visualisation | Superset | `chu-superset:4.1.1` | **8088** (admin/admin) | connexion « Trino CHU » + dashboard « CHU — Indicateurs métier » (10 charts, 17 datasets) créé automatiquement par l'init |
 | Source | PostgreSQL S1 | `postgres:15` | **5432** | dump ChuSimulation restauré |
 | Benchmark/DQ | DuckDB (conteneur jetable) | `chu-bench-duckdb` | — | PoC perf + 9 contrôles qualité |
 
@@ -84,7 +84,7 @@ git clone git@github.com:tonyfgs/Livrable2_CloudHealthcareUnit.git
 #   DATA Projet/                       <- 2,1 Go, 50 fichiers sources (partage Drive/USB)
 cd Livrable2_CloudHealthcareUnit/scripts
 docker compose up -d --build           # build les images custom from source + pull les bases
-./07_smoke_test/smoke_from_scratch.sh; echo $?   # 0 = 54/54 PASS = état identique garanti
+./07_smoke_test/smoke_from_scratch.sh; echo $?   # 0 = 58/58 PASS = état identique garanti
 ```
 
 Ce qui est épinglé pour l'exactitude :
@@ -97,9 +97,9 @@ Ce qui est épinglé pour l'exactitude :
 | `amazon/aws-cli` | épinglé **par digest** = 2.39.1 |
 | Dépendances Python des images | versions épinglées dans les Dockerfiles (ex. `trino==0.330.0`) |
 | Données brutes | **hors git** (`DATA Projet/`, 2,1 Go — `deces.csv` seul dépasse la limite GitHub de 100 Mo/fichier) : à partager à part, dossier frère du clone |
-| État final attendu | vérifiable : smoke test `exit 0` (54/54) + les 13 volumes du tableau [Données et volumes](#données-et-volumes) |
+| État final attendu | vérifiable : smoke test `exit 0` (58/58) + les 13 volumes du tableau [Données et volumes](#données-et-volumes) |
 
-Caveats honnêtes : testé sur macOS (arm64) — les images de base sont multi-arch et les images custom buildées from source, donc Linux fonctionne aussi ; Windows non testé. Il faut un accès Docker Hub (postgres, hive, trino, aws-cli) et une VM Docker avec **≥ 8 Go** de RAM. Le smoke test a été rejoué 4× from scratch (54/54 à chaque fois), mais sur cette machine — le collègue peut se re-vérifier lui-même avec le script ci-dessus.
+Caveats honnêtes : testé sur macOS (arm64) — les images de base sont multi-arch et les images custom buildées from source, donc Linux fonctionne aussi ; Windows non testé. Il faut un accès Docker Hub (postgres, hive, trino, aws-cli) et une VM Docker avec **≥ 8 Go** de RAM. Le smoke test a été rejoué from scratch à chaque commit (54/54 à chaque fois jusqu'à v14, 58/58 depuis v15 avec les contrôles dashboards Superset), mais sur cette machine — le collègue peut se re-vérifier lui-même avec le script ci-dessus.
 
 ## Démarrage from scratch
 
@@ -118,7 +118,7 @@ Interfaces : Airflow http://localhost:8090 (admin/admin) · Superset http://loca
 # 1. init (one-shot) — TOUJOURS unpause AVANT trigger
  docker exec chu-airflow-scheduler airflow dags unpause lakehouse_init
  docker exec chu-airflow-scheduler airflow dags trigger lakehouse_init
-# attendre ~2 min : run = success, 5/5 tâches
+# attendre ~2 min : run = success, 6/6 tâches (dont build_dashboards)
 
 # 2. daily — un seul run auto (catchup=False, max_active_runs=1)
  docker exec chu-airflow-scheduler airflow dags unpause lakehouse_daily
@@ -176,7 +176,7 @@ cd scripts
 ./07_smoke_test/smoke_from_scratch.sh; echo $?    # 0 = 100 % PASS
 ```
 
-From scratch complet (~10 min) : `down -v` → `up -d` → conteneurs → endpoints → DAGs en pause/0 run → init 5/5 → daily 8/8 → 13 volumes Trino exacts → 12 tables + 9 vues → bucket/prefixes/objets MinIO → connexion Superset « Trino CHU » → 13 tables S1 → 9 CSV DQ → re-pause. Résultat : **54 PASS / 0 FAIL** (logs archivés dans `scripts/07_smoke_test/results/`, rejoués 3× dont 2 le 30/10 matin).
+From scratch complet (~10 min) : `down -v` → `up -d` → conteneurs → endpoints → DAGs en pause/0 run → init 6/6 → daily 8/8 → 13 volumes Trino exacts → 12 tables + 9 vues → bucket/prefixes/objets MinIO → connexion Superset « Trino CHU » + dashboard publié + ≥8 charts + ≥8 datasets + ≥8 charts embarqués (base superset-db) → 13 tables S1 → 9 CSV DQ → re-pause. Résultat : **58 PASS / 0 FAIL** (logs archivés dans `scripts/07_smoke_test/results/` ; 54 PASS / 0 FAIL avant v15).
 
 ## Résultat de l'évaluation
 
@@ -198,7 +198,7 @@ Seule déduction : bucketing absent (niveau B), justifié techniquement (incompa
 ```
 ├── README.md                             # ce fichier
 ├── livrable2.md                          # rapport complet du livrable (12 sections)
-├── NOTE_INTERNE.md                       # note interne : conteneurs, lancement, vérifications, 31 pièges
+├── NOTE_INTERNE.md                       # note interne : conteneurs, lancement, vérifications, 35 pièges
 ├── A3-Stockage_et_BigData-Grille-Livrable2.xlsx   # grille d'évaluation
 └── scripts/
     ├── docker-compose.yml                # stack complète (17 services)
@@ -209,15 +209,15 @@ Seule déduction : bucketing absent (niveau B), justifié techniquement (incompa
     ├── 03_airflow/                       # image + DAGs lakehouse_init / lakehouse_daily + connexions
     ├── 04_spark/                         # jobs ETL/ELT (dimensions, faits, agrégats, mesures)
     ├── 05_qualite/                       # dq_checks.sql (9 familles) + staging + résultats CSV
-    ├── 06_superset/                      # image (driver trino) + config
-    ├── 07_smoke_test/                    # smoke_from_scratch.sh + results/ (logs 54/54 PASS)
+    ├── 06_superset/                      # image (driver trino) + build_dashboards.sh + config
+    ├── 07_smoke_test/                    # smoke_from_scratch.sh + results/ (logs 58/58 PASS)
     └── queries/                          # q01–q10 + résultats + harness Trino
 ```
 
 ## Documentation
 
 - **`livrable2.md`** — rapport complet : modèle physique, DDL/DML commentés, partitionnement justifié, 10 requêtes d'analyse, benchmark avant/après, DQ, preuve d'exécution, limites, note et corrections
-- **`NOTE_INTERNE.md`** — comment on lance chaque conteneur, comment on vérifie les résultats, et les **31 pièges** réellement rencontrés et leur contournement (MinIO pull bloqué → build from source, Trino 484, metastore S3A, OOM, DAGs en pause, TemplateNotFound `.sh`, etc.)
+- **`NOTE_INTERNE.md`** — comment on lance chaque conteneur, comment on vérifie les résultats, et les **35 pièges** réellement rencontrés et leur contournement (MinIO pull bloqué → build from source, Trino 484, metastore S3A, OOM, DAGs en pause, TemplateNotFound `.sh`, etc.)
 - **`A3-Stockage_et_BigData-Grille-Livrable2.xlsx`** — grille d'évaluation du sujet
 
 > L'archive livrable prête à rendre est `Livrable2_CloudHealthcareUnit.zip` (racine du dossier projet, hors dépôt git) : elle embarque ce dépôt tel quel. Pour rejouer la plateforme depuis l'archive : dézipper, placer `DATA Projet/` en frère de `Livrable2_CloudHealthcareUnit/`, puis suivre [Démarrage from scratch](#démarrage-from-scratch).

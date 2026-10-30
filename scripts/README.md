@@ -30,7 +30,7 @@ scripts/
 │   └── build_agregats.py         # agrégats pré-calculés (diag/prof x mois)
 ├── 03_airflow/
 │   └── dags/
-│       ├── lakehouse_init.py     # one-shot : DDL + vues + vérifications + Superset
+│       ├── lakehouse_init.py     # one-shot : DDL + vues + vérifications + Superset (connexion + dashboards)
 │       └── lakehouse_daily.py    # quotidien 02:00 : Spark -> DQ -> disponibilité Trino
 ├── 04_benchmark/
 │   ├── 00_init.sql ... 02d_agregats.sql  # build PoC (DuckDB, exécuté)
@@ -47,10 +47,12 @@ scripts/
 │   ├── dq_checks.sql             # 6 familles de contrôles qualité (autonome : lit le lake via httpfs)
 │   ├── staging/                  # CSV staging embarqués (montés dans chu-bench-duckdb)
 │   └── results/                  # dq_*.csv (7 rapports, régénérés par le DAG daily)
-└── 06_superset/
-    ├── 07_smoke_test/                     # smoke test from scratch automatisé (smoke_from_scratch.sh + results/)
-    ├── charts.sql                # 8 requêtes dashboard (SQL Lab)
-    └── README.md                 # connexion Trino + création des charts
+├── 06_superset/
+│   ├── Dockerfile                # image chu-superset:4.1.1 (driver trino + psycopg2)
+│   ├── build_dashboards.sh       # API REST : 17 datasets + 10 charts + dashboard (tâche init, idempotent)
+│   ├── charts.sql                # requêtes de référence des besoins métier (SQL Lab)
+│   └── README.md                 # connexion Trino + dashboards
+└── 07_smoke_test/                # smoke test from scratch automatisé (smoke_from_scratch.sh + results/)
 ```
 
 ## Ordre d'exécution
@@ -67,8 +69,10 @@ docker compose up -d          # démarre les 17 services (MinIO, Hive Metastore,
 # 2. Airflow (http://localhost:8090, admin/admin) :
 #    - déclencher le DAG lakehouse_init      (DDL + vues + vérifications)
 #    - déclencher le DAG lakehouse_daily     (charges Spark + DQ)
-# 3. Superset (http://localhost:8088, admin/admin) : connexion Trino
-#    trino://trino@trino:8080/hive puis créer les 8 charts (06_superset/)
+# 3. Superset (http://localhost:8088, admin/admin) : la connexion Trino
+#    « Trino CHU » ET le dashboard « CHU — Indicateurs métier » (10 charts,
+#    17 datasets) sont créés automatiquement par la tâche build_dashboards
+#    du DAG init (06_superset/build_dashboards.sh, API REST idempotente)
 # 4. Benchmark Trino : cd 04_benchmark && ./harness_trino.sh
 ```
 
@@ -100,5 +104,5 @@ docker exec chu-bench-duckdb sh -c 'cd /opt/l2work && duckdb /tmp/dq.duckdb < /o
 | Traitement | **Apache Spark** | ETL/ELT : S1 (JDBC) + CSV -> Gold/Silver (02_spark/) |
 | Orchestration | **Apache Airflow** | DAGs `lakehouse_init` / `lakehouse_daily` (03_airflow/) |
 | Requêtage | **Trino** | lecture distribuée du lake, pruning, EXPLAIN ANALYZE |
-| Visualisation | **Apache Superset** (localhost:8088) | 8 dashboards des besoins métier (06_superset/) |
+| Visualisation | **Apache Superset** (localhost:8088) | dashboard « CHU — Indicateurs métier » : 10 charts (1/besoin q01-q08) + 17 datasets, créés auto par `build_dashboards.sh` (06_superset/) |
 | Source | **PostgreSQL** (S1) | dump ChuSimulation (13 tables, ~3,7 M lignes = 3 674 384 au total : 11 tables métier = 3 509 952 lignes + 2 tables auxiliaires AAAA/date = 82 216 lignes chacune) |

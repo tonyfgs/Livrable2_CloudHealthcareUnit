@@ -172,10 +172,11 @@ Chaque écriture Spark (`save_gold` dans `common.py`) : `partitionBy(...).sortWi
 
 ### 3.3 Versionning (Git)
 
-Dépôt Git initialisé dans `Livrable 2/` (16 commits thématiques) :
+Dépôt Git initialisé dans `Livrable 2/` (22 commits thématiques) :
 
 ```
-v9 (dernier commit) : fix TemplateNotFound Airflow 2.9.3 — un bash_command qui se termine par `.sh` est traité comme un template Jinja ; le contenu de `verif_superset.sh` est lu au parse time dans le DAG (piège n°31)
+v15 (dernier commit) : Superset auto-suffisant côté visualisation — `scripts/06_superset/build_dashboards.sh` (tâche `build_dashboards` du DAG init, idempotent) crée via l'API REST 17 datasets, 10 charts (1 par besoin métier q01-q08 + 2) et le dashboard « CHU — Indicateurs métier » ; smoke test étendu à 58 vérifications (6/6 init + contrôles dashboards/slices/tables en base superset-db), 58 PASS / 0 FAIL ; pièges n°32-35 documentés
+v9 : fix TemplateNotFound Airflow 2.9.3 — un bash_command qui se termine par `.sh` est traité comme un template Jinja ; le contenu de `verif_superset.sh` est lu au parse time dans le DAG (piège n°31)
 v8 : smoke test from scratch automatisé (`07_smoke_test/smoke_from_scratch.sh`, 54 PASS / 0 FAIL archivé dans `results/`) + connexion Superset « Trino CHU » réparée (driver `trino` dans l'image, cookie+CSRF, attente /health, vérification réelle) + DQ étendus aux faits intégrés (complétude par attribut, intégrité FK) + retry des endpoints web
 v7 : runbook from-scratch finalisé (unpause AVANT trigger, ne jamais pauser un run en cours, catchup=False + max_active_runs=1) — test from scratch réussi : init 5/5 + daily 8/8, volumes Trino conformes
 v6 : DAGs en pause par défaut (DAGS_ARE_PAUSED_AT_CREATION=true) — supprime le backfill auto du daily qui race avec l'init au from scratch (crash récurrent)
@@ -197,7 +198,7 @@ b5bf381 benchmark (10 requêtes, 3 scénarios, résultats + SVG) et DQ (6 famill
 
 La chaîne d'intégration a été exécutée de bout en bout **en PoC** (scripts `scripts/04_benchmark/00_init.sql` → `02d_agregats.sql`, DuckDB dans un conteneur Docker, source S1 dans `chu-s1-postgres`) et a produit les volumes du §2.2, avec **1 027 157 consultations, 2 479 hospitalisations, 3 215 529 décès (2015-2023)** dans `f_mesures` ; la satisfaction est stockée dans `f_satisfaction` au **grain juridique** (2 295 lignes source ESATIS agrégées en **1 960 finess juridiques**, moyenne pondérée par les répondants) et `f_mesures` n'en agrège que **33 lignes régionales** (2 années × régions présentes).
 
-> **Preuve d'exécution — chaîne de production exécutée de bout en bout** : au-delà du PoC DuckDB (même SQL, mêmes règles de transformation, moteur embarqué dans un conteneur jetable), la chaîne de **production** a été exécutée et vérifiée sur la stack Docker : `docker compose up -d` (17 services, MinIO construit from source — aucun pull d'image `minio/*` n'est tenté, voir `NOTE_INTERNE.md` §6.1) → DAG **`lakehouse_init`** (DDL Hive + vues Hive + vues Trino (vues_t) + vérification Trino + connexion Superset : **5/5 tâches SUCCESS**) → DAG **`lakehouse_daily`** (**8/8 tâches SUCCESS** : `load_dimensions`, `load_faits_detail`, `build_f_deces_agg`, `build_f_mesures`, `build_agregats`, `msck_repair_metastore`, `dq_checks`, `dispo_trino_superset`). Les volumes ont été re-vérifiés **dans Trino** (connecteur Hive → MinIO) après `MSCK REPAIR` : d_temps 5 844 ; d_patient 100 000 ; d_etablissement 416 665 ; d_localisation 102 ; d_diagnostic 15 490 ; d_professionnel 1 048 575 ; silver.f_consultation_detail 1 027 157 ; f_hospitalisation 2 479 ; **f_satisfaction 1 960** ; f_deces_agg 69 008 ; f_mesures 1 030 402 ; f_consult_diag_mois 979 797 ; f_consult_prof_mois 1 001 453 — conformes aux attendus. Commandes de re-vérification : `NOTE_INTERNE.md` §5.
+> **Preuve d'exécution — chaîne de production exécutée de bout en bout** : au-delà du PoC DuckDB (même SQL, mêmes règles de transformation, moteur embarqué dans un conteneur jetable), la chaîne de **production** a été exécutée et vérifiée sur la stack Docker : `docker compose up -d` (17 services, MinIO construit from source — aucun pull d'image `minio/*` n'est tenté, voir `NOTE_INTERNE.md` §6.1) → DAG **`lakehouse_init`** (DDL Hive + vues Hive + vues Trino (vues_t) + vérification Trino + connexion Superset + dashboards métier : **6/6 tâches SUCCESS**) → DAG **`lakehouse_daily`** (**8/8 tâches SUCCESS** : `load_dimensions`, `load_faits_detail`, `build_f_deces_agg`, `build_f_mesures`, `build_agregats`, `msck_repair_metastore`, `dq_checks`, `dispo_trino_superset`). Les volumes ont été re-vérifiés **dans Trino** (connecteur Hive → MinIO) après `MSCK REPAIR` : d_temps 5 844 ; d_patient 100 000 ; d_etablissement 416 665 ; d_localisation 102 ; d_diagnostic 15 490 ; d_professionnel 1 048 575 ; silver.f_consultation_detail 1 027 157 ; f_hospitalisation 2 479 ; **f_satisfaction 1 960** ; f_deces_agg 69 008 ; f_mesures 1 030 402 ; f_consult_diag_mois 979 797 ; f_consult_prof_mois 1 001 453 — conformes aux attendus. Commandes de re-vérification : `NOTE_INTERNE.md` §5.
 
 ---
 
@@ -442,7 +443,7 @@ Deux campagnes de benchmark ont été exécutées (mêmes données, mêmes scén
 - **URL** : http://localhost:8088 (admin/admin — à changer)
 - **Image** : `chu-superset:4.1.1` (build local `scripts/06_superset/Dockerfile` : image officielle + `psycopg2-binary`, requis pour la base de métadonnées `superset-db`)
 - **Connexion** : base `Trino CHU`, URI `trino://trino@trino:8080/hive` (catalogue Hive = schéma Gold du lake)
-- **8 tableaux de bord** (1 par besoin métier) : requêtes prêtes dans `scripts/06_superset/charts.sql` (SQL Lab, schéma `gold`), types de graphiques recommandés en commentaire
+- **Dashboard « CHU — Indicateurs métier»** (slug `chu-indicateurs-metier`, publié) créé **automatiquement au from scratch** par la tâche `build_dashboards` du DAG `lakehouse_init` via `scripts/06_superset/build_dashboards.sh` (API REST, idempotent 422=OK) : **17 datasets** (12 tables gold/vues Trino `vues_t` + 5 datasets virtuels SQL), **10 charts** (1 par besoin métier q01-q08 + 2 complémentaires : bar/pie/line/timeseries, metrics `SUM(...)` sur les vraies colonnes), tous embarqués dans le dashboard. Les requêtes SQL de référence restent dans `scripts/06_superset/charts.sql`
 - **Datasets virtuels (SQL)** : les dashboards interrogent Trino **en direct** — aucune copie de données dans Superset, cache désactivé (`scripts/config/superset/superset_config.py`)
 - Notice détaillée : `scripts/06_superset/README.md`
 
@@ -450,7 +451,7 @@ Deux campagnes de benchmark ont été exécutées (mêmes données, mêmes scén
 
 - **URL** : http://localhost:8090 (admin/admin)
 - **Image** : `chu-airflow:2.9.3` (build local `scripts/03_airflow/Dockerfile` : image officielle + client Docker CLI + provider `apache-airflow-providers-apache-spark==3.0.0` — dernière version compatible Airflow 2.9.x)
-- **DAG `lakehouse_init`** (one-shot, manuel) : DDL Hive → vues métier → vérification Trino (volumes, `ANALYZE`, pruning) → connexion Trino dans Superset (API REST) — **exécuté : 5/5 tâches SUCCESS** (dont `vues_metier_trino`)
+- **DAG `lakehouse_init`** (one-shot, manuel) : DDL Hive → vues métier → vérification Trino (volumes, `ANALYZE`, pruning) → connexion Trino dans Superset (API REST) → **dashboards métier** (`build_dashboards.sh`) — **exécuté : 6/6 tâches SUCCESS** (dont `vues_metier_trino`, `build_dashboards`)
 - **DAG `lakehouse_daily`** (quotidien, 02:00) : `SparkSubmitOperator` — `load_dimensions` → `load_faits_detail` ∥ `build_f_deces_agg` → `build_f_mesures` (+ `build_agregats`) → `MSCK REPAIR` (découverte des partitions) → contrôles qualité (DQ, conteneur `chu-bench-duckdb` autonome) → disponibilité Trino pour Superset — **exécuté : 8/8 tâches SUCCESS**, volumes vérifiés dans Trino (§3.4)
 - Ordre garantissant le **peuplement des clés étrangères avant le calcul des mesures** (grille d'évaluation)
 - Le DDL Hive est exécuté via **HiveServer2** (`chu-hive-hs2`, beeline/JDBC 10000) : `beeline -e` statement par statement (le `beeline -f` de l'image `apache/hive:4.2.1` n'exécute pas les scripts en mode non-interactif — contournement documenté dans `NOTE_INTERNE.md`)
@@ -468,7 +469,7 @@ Deux campagnes de benchmark ont été exécutées (mêmes données, mêmes scén
 
 ## 11. Dernière note obtenue et résumé des corrections
 
-**Dernière note : 19,44 / 20** — objectif ≥ 18/20 atteint (grille « A3 informatique — Stockage et Big data — Livrable 2 », notation par sous-agent évaluateur indépendant, itération v4 ; 19,75/20 en v3), **re-confirmée à l'identique (19,44/20, aucune P1, aucune P2 restante) lors de la re-notation indépendante au commit v9** après audit complet du repo et smoke test from scratch 54 PASS / 0 FAIL. Niveaux de la grille : A=20, B=15, C=10, D=5 par critère ; total = Σ(coef × note)/9 ramené sur 20.
+**Dernière note : 19,44 / 20** — objectif ≥ 18/20 atteint (grille « A3 informatique — Stockage et Big data — Livrable 2 », notation par sous-agent évaluateur indépendant, itération v4 ; 19,75/20 en v3), **re-confirmée à l'identique (19,44/20, aucune P1, aucune P2 restante) lors de la re-notation indépendante au commit v9** après audit complet du repo et smoke test from scratch 54 PASS / 0 FAIL (58 PASS / 0 FAIL depuis v15, contrôles dashboards Superset ajoutés). Niveaux de la grille : A=20, B=15, C=10, D=5 par critère ; total = Σ(coef × note)/9 ramené sur 20.
 
 | Critère (grille) | Coef. | Niveau | Note | Commentaire |
 |---|---|---|---|---|
@@ -517,8 +518,9 @@ Deux campagnes de benchmark ont été exécutées (mêmes données, mêmes scén
 2. **Connexion Superset « Trino CHU » jamais créée sans erreur visible** → driver `trino==0.330.0` ajouté à l'image Superset, script dédié `dags/verif_superset.sh` (attente /health 6 min, login + cookie + `X-CSRFToken`, POST idempotent, VÉRIFICATION par GET avec grep — exit 1 si absente), image rebuildée (v8).
 3. **`verification_superset` en échec TemplateNotFound** (Airflow 2.9.3 : tout champ template finissant par `.sh` est traité comme un fichier Jinja) → contenu du script lu au parse time dans le DAG, passé inline (v9, piège n°31).
 4. **DQ étendus aux faits intégrés** : complétude par attribut (`dq_completude_faits.csv`) et intégrité FK faits → dimensions (`dq_integrite_fk.csv`, 13 contrôles dont le taux de rattachement établissement 63,87 % documenté) → **9 CSV DQ** (v8).
-5. **Smoke test from scratch automatisé** `scripts/07_smoke_test/smoke_from_scratch.sh` : `down -v` → `up -d` → 14 conteneurs healthy → endpoints (retry 4 min) → DAGs en pause / 0 run → init 5/5 → daily 8/8 → 13 volumes Trino exacts → 12 tables + 9 vues `vues_t` → bucket/prefixes/objets MinIO → connexion Superset → 13 tables S1 → 9 CSV DQ → re-pause des DAGs ; log archivé dans `07_smoke_test/results/`, exit 0 = 100 % PASS. Résultat : **54 PASS / 0 FAIL** (v8, rejoué à v9).
+5. **Smoke test from scratch automatisé** `scripts/07_smoke_test/smoke_from_scratch.sh` : `down -v` → `up -d` → 14 conteneurs healthy → endpoints (retry 4 min) → DAGs en pause / 0 run → init 6/6 → daily 8/8 → 13 volumes Trino exacts → 12 tables + 9 vues `vues_t` → bucket/prefixes/objets MinIO → connexion Superset + **dashboard publié + ≥8 charts + ≥8 datasets + ≥8 charts embarqués** (base `superset-db`) → 13 tables S1 → 9 CSV DQ → re-pause des DAGs ; log archivé dans `07_smoke_test/results/`, exit 0 = 100 % PASS. Résultat : **58 PASS / 0 FAIL** (v15 ; 54 PASS / 0 FAIL à v8/v9 avant les contrôles dashboards).
 6. **Preuve de données indépendante** : rapprochement Trino ↔ sources (`DATA Projet`, 48 fichiers) ↔ dump S1 par sous-agent dédié (réconciliation en plus du smoke test).
+7. **Superset livré avec 0 dashboard** (seule la connexion « Trino CHU » existait) → `scripts/06_superset/build_dashboards.sh` exécuté par la tâche `build_dashboards` de `lakehouse_init` (contenu lu au parse time, même piège n°31) : crée 17 datasets, 10 charts (besoins q01-q08) et le dashboard « CHU — Indicateurs métier » via l'API REST Superset, idempotent, avec retry si Trino redémarre (OOM) en cours de route ; smoke test vérifie désormais ces objets en base (v15, pièges n°32-35).
 
 ---
 
@@ -549,7 +551,7 @@ Livrable 2/
     ├── 03_airflow/                       # Dockerfile + dags/ (lakehouse_init.py, lakehouse_daily.py)
     ├── 04_benchmark/                     # 10 requêtes, harnais, résultats (CSV + 3 SVG)
     ├── 05_qualite/                       # dq_checks.sql + staging/ (autonome) + 7 rapports CSV
-    └── 06_superset/                      # Dockerfile + charts.sql + README
+    └── 06_superset/                      # Dockerfile + build_dashboards.sh + charts.sql + README
 ```
 
 ### 12.2 Commandes principales
@@ -561,7 +563,7 @@ cd scripts && docker compose up -d
 # Airflow (http://localhost:8090, admin/admin) — les 2 DAGs démarrent EN PAUSE
 # (AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true) : aucun backfill auto ne peut
 # écraser l'init. Ordre strict dans l'UI :
-#   1. unpause lakehouse_init  -> ▶ Trigger  -> attendre 5/5 SUCCESS (~3-5 min)
+#   1. unpause lakehouse_init  -> ▶ Trigger  -> attendre 6/6 SUCCESS (~3-5 min, dont build_dashboards)
 #   2. unpause lakehouse_daily -> le scheduler lance automatiquement le run
 #      (catchup=False, max_active_runs=1 ; le bouton ▶ marche aussi mais file
 #      derrière) -> attendre 8/8 SUCCESS (~10 min)
@@ -570,7 +572,7 @@ cd scripts && docker compose up -d
 #   resterait figé en 'running' avec ses tâches bloquées en 'scheduled').
 # Vérification : docker exec chu-trino trino --server http://localhost:8080 \
 #   --catalog hive --schema gold --execute "SELECT count(*) FROM f_mesures"  # 1030402
-# Superset : http://localhost:8088 -> connexion Trino -> 8 charts (06_superset/charts.sql)
+# Superset : http://localhost:8088 -> dashboard « CHU — Indicateurs métier » déjà créé par l'init (build_dashboards.sh)
 # Benchmark Trino : cd scripts/04_benchmark && ./harness_trino.sh
 # Contrôles qualité seuls : voir scripts/README.md (section C)
 ```
@@ -583,4 +585,4 @@ Ports exposés sur l'hôte : Superset **8088**, Trino **8080**, Airflow **8090**
 - Livrable 1 : `../Livrable 1/L1-rapport-cloud-health-unit.md` (modèle logique, 4 mesures, 8 besoins)
 - Résultats benchmark : `scripts/04_benchmark/results/` (CSV + SVG + résultats métier)
 - Rapport qualité : `scripts/05_qualite/results/` (9 CSV : 7 familles sources + complétude faits intégrés + intégrité FK faits→dimensions)
-- Smoke test from scratch automatisé : `scripts/07_smoke_test/smoke_from_scratch.sh` (down -v → up -d → init 5/5 → daily 8/8 → volumes Trino exacts → endpoints → lake → Superset ; log 100% PASS versionné dans `07_smoke_test/results/`)
+- Smoke test from scratch automatisé : `scripts/07_smoke_test/smoke_from_scratch.sh` (down -v → up -d → init 6/6 → daily 8/8 → volumes Trino exacts → endpoints → lake → Superset : dashboard + ≥8 charts + ≥8 datasets vérifiés en base ; log 100% PASS versionné dans `07_smoke_test/results/`)

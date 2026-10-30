@@ -110,8 +110,9 @@ Airflow `admin/admin` · PostgreSQL internes : `hive/hive`, `chu/chu`,
 3. Déclencher **`lakehouse_init`** (one-shot, manuel) :
    DDL Hive (schéma silver/gold, tables externes) → vues métier →
    vérification Trino (volumes, `ANALYZE`, pruning) → connexion Trino dans
-   Superset (API REST). **Testé : 5/5 tâches SUCCESS** (dont
-   `vues_metier_trino`, voir piège n°22).
+   Superset + dashboards métier (API REST). **Testé : 6/6 tâches SUCCESS** (dont
+   `vues_metier_trino`, voir piège n°22, et `build_dashboards`, voir pièges
+   n°32-35).
 4. Déclencher **`lakehouse_daily`** (quotidien 02:00, déclenchement manuel
    possible) : `SparkSubmitOperator` — `load_dimensions` → `load_faits_detail`
    ∥ `build_f_deces_agg` → `build_f_mesures` (+ `build_agregats`) →
@@ -128,7 +129,10 @@ docker exec chu-airflow-scheduler airflow dags test lakehouse_daily 2026-11-19
 ```
 5. Ouvrir **Superset** : http://localhost:8088 (admin/admin) → connexion
    `Trino CHU` (créée par `lakehouse_init`, URI `trino://trino@trino:8080/hive`)
-   → 8 tableaux de bord (requêtes prêtes dans `scripts/06_superset/charts.sql`).
+   → **dashboard « CHU — Indicateurs métier »** déjà créé par la tâche
+   `build_dashboards` de `lakehouse_init` (17 datasets, 10 charts = 1 par besoin
+   métier q01-q08 + 2 ; script `scripts/06_superset/build_dashboards.sh`, API
+   REST idempotente). Requêtes de référence : `scripts/06_superset/charts.sql`.
 
 ---
 
@@ -416,7 +420,7 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
 | DAGs Airflow | `scripts/03_airflow/dags/*.py` |
 | Benchmark (10 requêtes) | `scripts/04_benchmark/` (+ `results/`) |
 | Contrôles qualité | `scripts/05_qualite/` (+ `results/`) |
-| Dashboards Superset | `scripts/06_superset/charts.sql` |
+| Dashboards Superset | `scripts/06_superset/build_dashboards.sh` (création auto) + `charts.sql` (référence SQL) |
 | Configs (Hive, Trino, Spark, Superset, S1) | `scripts/config/` |
 26. **Splitter SQL du DAG init (`_split_sql_statements`)** : les statements
     étaient joints avec des retours à la ligne puis passés à `beeline -e` —
@@ -443,7 +447,7 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
     tâches en failed, et l'utilisateur voyait "18 failed" dans l'UI.
     Fix : var passée à `"true"` -> les 2 DAGs s'enregistrent EN PAUSE, aucun run
     auto. Runbook from-scratch : `down -v && up -d`, attendre les healthy, unpause
-    `lakehouse_init` -> Trigger -> attendre 5/5 SUCCESS, puis unpause
+    `lakehouse_init` -> Trigger -> attendre 6/6 SUCCESS, puis unpause
     `lakehouse_daily` -> Trigger -> attendre 8/8 SUCCESS (~10 min, jobs Spark).
     IMPORTANT : dans Airflow 2.9.3, `DagRun.next_dagruns_to_examine` filtre
     `DagModel.is_paused == false()` pour TOUS les états y compris QUEUED et
@@ -485,3 +489,31 @@ docker exec chu-trino trino --server http://localhost:8080 --catalog hive --sche
     (`_verif_sh = (Path(__file__).parent / "verif_superset.sh").read_text()` puis
     `bash_command=_verif_sh`) — le contenu inline ne finit pas par `.sh`, plus de
     template. Ne jamais passer `bash_command=".../verif_superset.sh"`.
+    Même traitement pour `build_dashboards.sh` (tâche `build_dashboards`, chemins
+    candidats `/opt/airflow/scripts/06_superset/build_dashboards.sh` puis
+    `<repo>/scripts/06_superset/build_dashboards.sh`) — le contenu inline doit
+    aussi être exempt de séquences Jinja `{{` `{%` `{#` (vérifié par grep).
+32. **API Superset : le cookie de session est préfixé `#HttpOnly_` dans le jar
+    curl** — un `grep -v '^#'` sur le cookie jar le supprime, et sans cookie de
+    session le POST authentifié échoue (400 CSRF / 401). Fix : conserver les
+    lignes `#HttpOnly_` du jar (`curl -c`), n'envoyer que `session` + bearer +
+    `X-CSRFToken`.
+33. **Trino redémarre (OOM, `-Xmx1g`) au milieu des requêtes lourdes des
+    datasets/charts** (refresh de colonnes, agrégats f_mesures) : le conteneur
+    passe `RestartCount +1` et les POST /api/v1/chart renvoient 500. Fix dans
+    `build_dashboards.sh` : gate d'attente Trino via
+    `GET /api/v1/database/<id>/schemas/` et `call_retry` (4 tentatives ; sur 5xx
+    attendre que Trino réponde, 18×10 s) avant chaque appel.
+34. **Datasets virtuels (SQL) Superset : tables/vues ENTIÈREMENT qualifiées**
+    (`hive.gold.f_mesures`, `hive.vues_t.v_...`) — le schéma du dataset n'est
+    PAS un schéma par défaut pour le SQL virtuel. Et agréger AVANT de joindre
+    (ex. agréger `f_mesures` puis joindre `d_etablissement`) : joindre d'abord
+    416 665 établissements à 1 M de lignes fait OOM-killer Trino (piège n°33).
+35. **Dashboard ↔ charts : l'association passe par `json_metadata.positions`**
+    du `PUT /api/v1/dashboard/<pk>` (clés `CHART-<i>` avec `meta.chartId`) —
+    `set_dash_metadata` synchronise `dashboard.slices` depuis ces `chartId` ;
+    un POST dashboard seul laisse le dashboard VIDE (0 chart). Détails API
+    Superset 4.1 testés : `POST /api/v1/dataset/` (201, ou 422 puis GET liste),
+    `PUT /api/v1/dataset/<id>/refresh`, `POST /api/v1/chart/` avec `params` =
+    CHAÎNE JSON, viz_types sûrs `dist_bar`/`pie`/`table`/`echarts_timeseries_line`
+    (les anciens `bar`/`line` nvd3 n'existent plus en 4.1).

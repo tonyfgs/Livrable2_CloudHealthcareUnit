@@ -3,8 +3,9 @@
 # SMOKE TEST FROM SCRATCH — Livrable 2 CHU (lakehouse Docker)
 #
 # Objectif : prouver qu'un démarrage from scratch fonctionne SANS AUCUN BUG :
-#   docker compose down -v && up -d -> DAGs en pause -> init 5/5 -> daily 8/8
-#   -> volumes de données vérifiés un par un dans Trino -> endpoints -> lake.
+#   docker compose down -v && up -d -> DAGs en pause -> init 6/6 -> daily 8/8
+#   -> volumes de données vérifiés un par un dans Trino -> dashboards Superset
+#   -> endpoints -> lake.
 #
 # Usage :   cd scripts && ./07_smoke_test/smoke_from_scratch.sh
 # Durée :   ~20-30 min (compose up ~3 min, init ~4 min, daily ~10 min).
@@ -112,7 +113,7 @@ runs=$(psql_af "SELECT count(*) FROM dag_run;")
 [ "$runs" = "0" ] && pass "0 dag_run auto au démarrage" || fail "0 dag_run auto (runs=$runs)"
 
 # ----------------------------------------------------------------------------
-step "5. lakehouse_init : unpause + trigger + attente 5/5 SUCCESS"
+step "5. lakehouse_init : unpause + trigger + attente 6/6 SUCCESS"
 # ----------------------------------------------------------------------------
 docker exec chu-airflow-scheduler airflow dags unpause lakehouse_init >>"$LOG" 2>&1
 docker exec chu-airflow-scheduler airflow dags trigger lakehouse_init >>"$LOG" 2>&1
@@ -124,7 +125,7 @@ for i in $(seq 1 150); do  # 25 min max
 done
 [ "$init_state" = "success" ] && pass "lakehouse_init run = success (après ~$((i*10))s)" || fail "lakehouse_init run state=$init_state"
 ti=$(psql_af "SELECT count(*) FROM task_instance WHERE dag_id='lakehouse_init' AND state='success';")
-[ "$ti" = "5" ] && pass "init: 5/5 tâches success" || fail "init: tâches success=$ti/5"
+[ "$ti" = "6" ] && pass "init: 6/6 tâches success" || fail "init: tâches success=$ti/6"
 ti=$(psql_af "SELECT count(*) FROM task_instance WHERE dag_id='lakehouse_init' AND state='failed';")
 [ "$ti" = "0" ] && pass "init: 0 tâche failed" || fail "init: tâches failed=$ti"
 
@@ -206,10 +207,19 @@ raw_nb=$(aws s3 ls s3://lake/raw/ --recursive 2>/dev/null | wc -l | tr -d ' ')
 [ "${raw_nb:-0}" -ge "$SRC_NB" ] && pass "raw contient >= sources ($raw_nb >= $SRC_NB objets)" || fail "raw trop petit ($raw_nb < $SRC_NB)"
 
 # ----------------------------------------------------------------------------
-step "9. Superset : connexion 'Trino CHU' créée par l'init"
+step "9. Superset : connexion 'Trino CHU' + dashboards créés par l'init (build_dashboards)"
 # ----------------------------------------------------------------------------
-n=$(docker exec chu-superset-db psql -U superset -d superset -t -A -c "SELECT count(*) FROM dbs WHERE database_name='Trino CHU';" 2>/dev/null | tr -d ' ')
+ssql() { docker exec chu-superset-db psql -U superset -d superset -t -A -c "$1" 2>/dev/null | tr -d ' '; }
+n=$(ssql "SELECT count(*) FROM dbs WHERE database_name='Trino CHU';")
 [ "$n" = "1" ] && pass "connexion Superset 'Trino CHU' présente" || fail "connexion Superset 'Trino CHU' (n=$n)"
+n=$(ssql "SELECT count(*) FROM dashboards WHERE slug='chu-indicateurs-metier' AND published;")
+[ "$n" = "1" ] && pass "dashboard 'CHU — Indicateurs métier' publié (slug chu-indicateurs-metier)" || fail "dashboard chu-indicateurs-metier (n=$n)"
+n=$(ssql "SELECT count(*) FROM slices;")
+[ "${n:-0}" -ge 8 ] && pass "charts (slices): $n >= 8" || fail "charts (slices) seulement $n (<8)"
+n=$(ssql "SELECT count(*) FROM tables;")
+[ "${n:-0}" -ge 8 ] && pass "datasets (tables): $n >= 8" || fail "datasets (tables) seulement $n (<8)"
+n=$(ssql "SELECT count(*) FROM dashboard_slices ds JOIN dashboards d ON d.id=ds.dashboard_id WHERE d.slug='chu-indicateurs-metier';")
+[ "${n:-0}" -ge 8 ] && pass "dashboard contient $n charts (>=8)" || fail "dashboard ne contient que $n charts (<8)"
 
 # ----------------------------------------------------------------------------
 step "10. Source S1 PostgreSQL peuplée + résultats DQ archivés"
