@@ -43,6 +43,13 @@
 \definecolor{starblue}{RGB}{187,214,240}
 \definecolor{factred}{RGB}{240,190,190}
 \definecolor{silvergreen}{RGB}{200,230,200}
+% --- page de garde identique au Livrable 1 (exemple/livrable1 2) --------------
+\definecolor{cesi}{HTML}{FFD400}
+\definecolor{ink}{HTML}{1F2937}
+\definecolor{gris}{HTML}{6B7785}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\codeus}{\textunderscore\hspace{0pt}}
+\DeclareRobustCommand{\code}[1]{{\ttfamily\NoAutoSpacing\let\_\codeus #1}}
 
 \captionsetup{font=small,labelfont=bf}
 \pagestyle{fancy}
@@ -57,34 +64,38 @@
 
 \begin{document}
 
-% ============================ PAGE DE TITRE =================================
+% ============ PAGE DE GARDE (identique au Livrable 1, exemple/livrable1 2) ===
 \begin{titlepage}
-\centering
-\vspace*{2cm}
-{\LARGE \textbf{Projet Cloud Healthcare Unit (CHU)}\\[0.4cm]}
-{\Large Entrepot de donnees decisionnel hospitalier\\[1.2cm]}
-{\Huge \textbf{Livrable 2}\\[0.3cm]}
-{\LARGE Implementation physique et evaluation de performance\\[1.5cm]}
-\rule{0.7\textwidth}{0.5pt}\\[1.2cm]
-{\large
-\begin{tabular}{rl}
+\newgeometry{margin=0cm}
+\thispagestyle{empty}
+\noindent\begin{tikzpicture}[remember picture,overlay]
+\fill[ink] (current page.north west) rectangle ([yshift=-9.5cm]current page.north east);
+\fill[cesi] ([yshift=-9.5cm]current page.north west) rectangle ([yshift=-9.9cm]current page.north east);
+\node[anchor=north west,text=white,font=\fontsize{30}{30}\selectfont\bfseries] at ([xshift=2.2cm,yshift=-2cm]current page.north west) {CESI};
+\fill[cesi] ([xshift=2.25cm,yshift=-3.25cm]current page.north west) rectangle ([xshift=4.2cm,yshift=-3.45cm]current page.north west);
+\node[anchor=north west,text=white,font=\small] at ([xshift=2.2cm,yshift=-3.6cm]current page.north west) {\'ECOLE D'ING\'ENIEURS};
+\node[anchor=north east,text=white,align=right,font=\large\bfseries] at ([xshift=-2.2cm,yshift=-2.1cm]current page.north east) {Bloc Stockage et Big Data\\[2pt]\normalsize\mdseries PGE A4 FISA / A3 FISE Big Data, promotion 2026-2027};
+\node[anchor=south west,text=cesi,font=\Large\bfseries] at ([xshift=2.2cm,yshift=-8.2cm]current page.north west) {PROJET CLOUD HEALTHCARE UNIT};
+\end{tikzpicture}
+\vspace*{11.2cm}
+\begin{center}
+\begin{minipage}{0.80\paperwidth}
+{\fontsize{14}{16}\selectfont\color{gris}\bfseries Livrable 2 : rapport \'ecrit + archive ZIP\par}
+\vspace{6pt}
+{\fontsize{30}{36}\selectfont\bfseries\color{ink} Impl\'ementation physique\\[4pt] et \'evaluation de performance\par}
+\vspace{10pt}
+{\large\color{ink} Entrep\^ot de donn\'ees d\'ecisionnel (EDD) du groupe CHU :\\ mod\`ele physique en sch\'ema en \'etoile, DDL/DML comment\'es,\\ partitionnement et indexation justifi\'es par le moteur, rapport de\\ qualit\'e des donn\'ees int\'egr\'ees, jeu de 10 requ\^etes de benchmark\\ et \'evaluation des temps de r\'eponse avant/apr\`es partitionnement\par}
+\vspace{1.1cm}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{@{}L{4.2cm}L{10.6cm}@{}}
 \textbf{Auteurs} & Tony Fages, Martin Caparros, David d'Almeida \\
-\textbf{Date} & 29 octobre 2026 \\
-\textbf{Format} & Rapport + archive ZIP (format demande par le sujet) \\
-\textbf{Stack} & MinIO (lake) + Hive Metastore + Spark + Airflow \\
- & + Trino + Superset (17 services conteneurises) \\
+\textbf{Version / date} & 1.0 du 30 octobre 2026 (version remise) \\
+\textbf{Destinataires} & \'Equipe p\'edagogique du bloc ; ma\^itrise d'ouvrage (direction du groupe CHU) ; DPO ; RSSI \\
+\textbf{Donn\'ees analys\'ees} & Dump PostgreSQL \code{DATA2023} (13 tables) et \code{Hospitalisations.csv} ; \'echantillons de l'annuaire sant\'e ; fichiers HAS e-Satis et IQSS 2014-2020 ; \'echantillon du fichier INSEE des d\'ec\`es \\
 \end{tabular}
-}\\[1.5cm]
-\rule{0.7\textwidth}{0.5pt}\\[0.8cm]
-{\small
-Ce rapport couvre le \textbf{Livrable 2} du sujet : DDL/DML commentes,
-partitionnement et indexation justifies par le moteur, rapport de qualite des
-donnees integrees, jeu de requetes de benchmark (10 requetes) et evaluation de
-performance avant/apres partitionnement.
-}
-\vfill
-{\footnotesize Tous les chiffres cites proviennent des mesures realisees sur la
-plateforme et des rapports de controles qualite du projet.}
+\end{minipage}
+\end{center}
+\restoregeometry
 \end{titlepage}
 
 \tableofcontents
