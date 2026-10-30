@@ -811,17 +811,4 @@ Les resultats complets des 10 requetes figurent dans l'archive du livrable.
 \end{enumerate}
 
 % ============================ 9. LIMITES ====================================
-\section{Limites et transposition}
-\begin{itemize}[leftmargin=*]
-\item Le benchmark chiffre a ete execute sur un moteur local (DuckDB, single-node, conteneur
-      jetable) : les temps absolus ne prejudent pas des temps cluster, mais les ratios de
-      volume lu et le mecanisme de pruning sont directement transposables ; le harnais de
-      benchmark a ete execute sur la plateforme deployee pour mesurer sur le moteur reel
-      (\S7.3).
-\item \texttt{f\_deces\_agg} au grain annuel (choix justifie \S4.1) : un besoin de
-      mortalite mensuelle necessiterait un fait mensuel (~8,6 M de lignes).
-\item Satisfaction au grain juridique (rattachement site impossible, 0 \,\% en DQ) ;
-      l'enrichissement du referentiel FINESS (\texttt{finess\_geo}) leverait cette limite.
-\end{itemize}
-
 \end{document}
