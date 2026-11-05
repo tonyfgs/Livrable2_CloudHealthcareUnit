@@ -1,0 +1,14 @@
+controle;total;trouves;pct_trouve
+f_mesures.id_etablissement -> d_etablissement.id_etablissement;658525;658525;100.0
+f_mesures.id_patient -> d_patient.id_patient;1022064;1022064;100.0
+f_mesures.id_localisation -> d_localisation.id_localisation;665288;665288;100.0
+f_mesures.id_temps -> d_temps.id_temps;1022064;1022064;100.0
+f_consultation_detail.id_patient -> d_patient.id_patient;1027157;1027157;100.0
+f_consultation_detail.id_etablissement -> d_etablissement.id_etablissement;1027157;656063;63.87
+f_consultation_detail.id_diagnostic -> d_diagnostic.id_diagnostic;1027157;1027157;100.0
+f_consultation_detail.id_professionnel -> d_professionnel.identifiant;1027157;1027157;100.0
+f_consultation_detail.id_localisation -> d_localisation.id_localisation;654605;654605;100.0
+f_hospitalisation.id_patient -> d_patient.id_patient;2479;2479;100.0
+f_hospitalisation.id_diagnostic -> d_diagnostic.id_diagnostic;2479;2479;100.0
+f_hospitalisation.id_etablissement -> d_etablissement.id_etablissement;2479;2479;100.0
+f_hospitalisation.id_localisation -> d_localisation.id_localisation;2479;2479;100.0

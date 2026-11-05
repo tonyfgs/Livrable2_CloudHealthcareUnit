@@ -1,0 +1,10 @@
+9 concordances reussies
+q02 top 10 diagnostics 2019-2021 (code et nombre)
+q03 consultations et hospitalisations par annee
+q03 taux pour 100 consultations (arrondi 2 decimales)
+q04 top 10 diagnostics d'hospitalisation (code, nombre)
+q04 duree moyenne (1 decimale)
+q05 hospitalisations par sexe et tranche d'age
+q06 valeurs du top 10 des professionnels 2020 (nombre de consultations)
+q09 consultations mensuelles depuis 2019 (vue metier)
+q10 consultations 2019, hommes, par region (somme des tranches)

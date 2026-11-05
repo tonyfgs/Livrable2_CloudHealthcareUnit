@@ -9,7 +9,7 @@
 #   d_localisation (101 départements + Inconnu, PARTITIONED BY code_region)
 #   d_diagnostic (S1 PostgreSQL.Diagnostic, pas de partition)
 #   d_professionnel (S1 PostgreSQL.Professionnel_de_sante, pas de partition)
-# Pas de bucketing (incompatible Trino 484, voir livrable2.md §4.2) : le tri
+# Pas de bucketing (incompatible Trino 484, voir rapport.pdf, section partitionnement) : le tri
 # intra-partition sur les clés de jointure remplace la co-localisation.
 #
 # Lancement (dans le conteneur spark, stack docker-compose) :
@@ -70,7 +70,7 @@ d_patient = (
     .select("id_patient", "sexe", "date_naissance", "age_ref",
             "code_postal", "ville", "tranche_age_ref")
 )
-# Partitionnement démographique (sexe, tranche_age_ref) conforme à la grille
+# Partitionnement démographique (sexe, tranche_age_ref) conforme au cahier des charges
 # d'évaluation : sexe + tranche d'âge sur la dimension patient. Pas de
 # bucketing (incompatible Trino 484) : le tri intra-partition sur id_patient
 # (voir save_gold, common.py) remplace la co-localisation pour la jointure

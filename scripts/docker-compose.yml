@@ -52,7 +52,7 @@ services:
     # repos minio/* (docker.io/minio, quay.io/minio, bitnami/minio) sont
     # refusés par certains daemons ("pull access denied"), et dl.min.io ne
     # sert plus les binaires (HTTP 410). On compile le serveur MinIO officiel
-    # depuis github.com/minio/minio — aucun pull d'image "minio" nécessaire.
+    # depuis github.com/minio/minio, aucun pull d'image "minio" nécessaire.
     build: ./config/minio
     pull_policy: build
     image: chu-minio:RELEASE.2025-10-15T17-29-55Z
@@ -342,16 +342,19 @@ services:
       minio:
         condition: service_healthy
     environment:
-      # Plafond JVM explicite (sinon le launcher prend ~80 % de la RAM de la
-      # VM Docker -> OOM-killer pendant les jobs Spark, exit 137)
-      JAVA_OPTS: "-Xmx1g"
+      # Plafond JVM : voir config/trino/jvm.config (JAVA_OPTS n'est pas lu par Trino)
+      JAVA_OPTS: "-Xmx1280m"
     volumes:
       - ./config/trino/config.properties:/etc/trino/config.properties:ro
+      - ./config/trino/jvm.config:/etc/trino/jvm.config:ro
+      - ./config/trino/resource-groups.properties:/etc/trino/resource-groups.properties:ro
+      - ./config/trino/resource-groups.json:/etc/trino/resource-groups.json:ro
       - ./config/trino/catalog:/etc/trino/catalog:ro
       # Scripts montés pour le DAG lakehouse_init (trino-cli via docker exec)
       - .:/opt/scripts:ro
-    # Limite cgroup : avec ce plafond, le tas JVM par defaut resterait sage
-    mem_limit: 1536m
+    # Limite cgroup relevee a 3 Go (Livrable 3) : les jointures de l'etoile servies a Superset
+    # (COUNT DISTINCT sur 1 M de consultations) depassaient 1,5 Go hors tas et tuaient le conteneur
+    mem_limit: 3072m
     ports:
       - "8080:8080"
     networks: [chu-net]
@@ -495,6 +498,10 @@ services:
       - airflow-logs:/opt/airflow/logs
       # Socket Docker : permet au DAG dq_checks d'exécuter le conteneur DuckDB
       - /var/run/docker.sock:/var/run/docker.sock
+    # Linux : le socket est root:docker (660) ; sur Docker Desktop il est ouvert.
+    # DOCKER_GID = gid du groupe proprietaire du socket (voir .env.example)
+    group_add:
+      - "${DOCKER_GID:-0}"
     command: ["scheduler"]
     networks: [chu-net]
 

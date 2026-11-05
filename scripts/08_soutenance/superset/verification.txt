@@ -1,0 +1,119 @@
+118 verifications reussies (mode archive)
+bn_cons = silver.f_consultation_detail
+bn_cons = total S1 (1 027 157)
+bn_hosp = gold.f_hospitalisation
+bn_hosp = 2 479
+bn_pat = d_patient
+bn_deces
+bn_deces = 620 606 (archive 2019)
+volumes raw.deces
+volumes raw.etablissement_sante
+volumes raw.hospitalisations
+volumes raw.satisfaction_2019
+volumes raw.satisfaction_2020
+volumes silver.f_consultation_detail
+volumes gold.d_diagnostic
+volumes gold.d_etablissement
+volumes gold.d_localisation
+volumes gold.d_patient
+volumes gold.d_professionnel
+volumes gold.d_temps
+volumes gold.f_consult_diag_mois
+volumes gold.f_consult_prof_mois
+volumes gold.f_deces_agg
+volumes gold.f_hospitalisation
+volumes gold.f_mesures
+volumes gold.f_satisfaction
+volumes : 3 couches presentes
+line_mensuel : 94 mois
+line_mensuel : toutes les valeurs = d01
+bar_chapitre : toutes les valeurs = d04
+bar_chapitre : total 2019 a 2021 = 396 158
+bar_top10_diag : valeurs = d06
+bar_top10_diag : codes = d06 (hors ex aequo au rang 10)
+bar_distrib_pro = d07c
+bar_top20_etab = q01 campagne complete (20 valeurs)
+bar_top20_etab : de 146 a 371
+bar_taux_annuel 2015 = d02
+bar_taux_annuel 2016 = d02
+bar_taux_annuel 2017 = d02
+bar_taux_annuel 2018 = d02
+bar_taux_annuel 2019 = d02
+bar_taux_annuel 2020 = d02
+bar_taux_annuel 2021 = d02
+bar_hosp_annee = d02
+pie_hosp_sexe F/M = Trino
+pie_hosp_sexe F = 1 425, M = 1 054
+bar_hosp_age_sexe = d03
+bar_taux_age_sexe = d03
+bar_hosp_chapitre = d05 regroupe
+tbl_duree_chapitre Ostéo-articulaire : effectif
+tbl_duree_chapitre Ostéo-articulaire : duree moyenne
+tbl_duree_chapitre Grossesse : effectif
+tbl_duree_chapitre Grossesse : duree moyenne
+tbl_duree_chapitre Traumatismes : effectif
+tbl_duree_chapitre Traumatismes : duree moyenne
+tbl_duree_chapitre Causes externes : effectif
+tbl_duree_chapitre Causes externes : duree moyenne
+tbl_duree_chapitre Facteurs de santé : effectif
+tbl_duree_chapitre Facteurs de santé : duree moyenne
+tbl_duree_chapitre Malformations : effectif
+tbl_duree_chapitre Malformations : duree moyenne
+tbl_duree_chapitre Tumeurs bénignes : effectif
+tbl_duree_chapitre Tumeurs bénignes : duree moyenne
+tbl_duree_chapitre Appareil digestif : effectif
+tbl_duree_chapitre Appareil digestif : duree moyenne
+tbl_duree_chapitre Génito-urinaire : effectif
+tbl_duree_chapitre Génito-urinaire : duree moyenne
+tbl_duree_chapitre Troubles mentaux : effectif
+tbl_duree_chapitre Troubles mentaux : duree moyenne
+tbl_duree_chapitre Tumeurs malignes : effectif
+tbl_duree_chapitre Tumeurs malignes : duree moyenne
+tbl_duree_chapitre Oeil et oreille : effectif
+tbl_duree_chapitre Oeil et oreille : duree moyenne
+tbl_duree_chapitre Appareil circulatoire : effectif
+tbl_duree_chapitre Appareil circulatoire : duree moyenne
+tbl_duree_chapitre Endocrinien : effectif
+tbl_duree_chapitre Endocrinien : duree moyenne
+tbl_duree_chapitre Infectieuses : effectif
+tbl_duree_chapitre Infectieuses : duree moyenne
+tbl_duree_chapitre Système nerveux : effectif
+tbl_duree_chapitre Système nerveux : duree moyenne
+tbl_duree_chapitre Peau : effectif
+tbl_duree_chapitre Peau : duree moyenne
+tbl_duree_chapitre Symptômes et signes : effectif
+tbl_duree_chapitre Symptômes et signes : duree moyenne
+tbl_duree_chapitre Période périnatale : effectif
+tbl_duree_chapitre Période périnatale : duree moyenne
+tbl_duree_chapitre Appareil respiratoire : effectif
+tbl_duree_chapitre Appareil respiratoire : duree moyenne
+tbl_duree_chapitre Codes spéciaux : effectif
+tbl_duree_chapitre Codes spéciaux : duree moyenne
+duree moyenne globale 15,43 j
+map_deces = deces par region (codes ISO de la carte)
+map_deces : IDF + ARA = 24 % des deces
+bar_deces_region : meme total que la carte (hors lieu inconnu)
+bar_satisf = d08 (hors region inconnue)
+map_satisf 2020 = d08
+satisfaction metropole 2020 : 72,6 a 75,0
+bar_fiabilite = dq campagne complete (7 controles)
+bn_rattache = 63,87
+bn_naiss_hosp = 62
+bn_naiss_cons = 24 145
+bn_naiss_cons = Trino
+bench q01 : temps avant / apres / apres+ml
+bench q02 : temps avant / apres / apres+ml
+bench q03 : temps avant / apres / apres+ml
+bench q04 : temps avant / apres / apres+ml
+bench q05 : temps avant / apres / apres+ml
+bench q06 : temps avant / apres / apres+ml
+bench q07 : temps avant / apres / apres+ml
+bench q08 : temps avant / apres / apres+ml
+bench q09 : temps avant / apres / apres+ml
+bench q10 : temps avant / apres / apres+ml
+bench : facteurs de volume
+metrique etoile_consultations.nb_patients
+metrique etoile_consultations.nb_professionnels
+metrique etoile_consultations.part_rattachee_pct
+metrique etoile_hospitalisations.nb_patients_hospitalises
+metrique etoile_mesures.consultations

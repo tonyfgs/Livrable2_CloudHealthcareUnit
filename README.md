@@ -14,6 +14,7 @@ Rapport du livrable : `rapport.pdf` à la racine du dépôt (source LaTeX dans `
 - [Vérifier les données](#vérifier-les-données)
 - [Smoke test (vérification automatisée)](#smoke-test-vérification-automatisée)
 - [Arrêt et nettoyage](#arrêt-et-nettoyage)
+- [Livrable 3 — Soutenance et storytelling](#livrable-3--soutenance-et-storytelling)
 - [Structure du dépôt](#structure-du-dépôt)
 
 ## Architecture
@@ -153,6 +154,17 @@ docker compose down        # arrête et supprime les conteneurs (volumes conserv
 docker compose down -v     # purge totale, volumes compris (retour à l'état initial)
 ```
 
+## Livrable 3 — Soutenance et storytelling
+
+Tout le matériel de la soutenance est dans `scripts/08_soutenance/` (détail dans `scripts/08_soutenance/README_SOUTENANCE.md`) :
+
+- **Tableau de bord Apache Superset** connecté au lac via Trino (couches raw, silver et gold visibles dans SQL Lab), schéma en étoile reconstruit en datasets avec mesures, onglets suivant le récit : contexte → activité → hospitalisations → mortalité → recommandations → annexe ; filtres natifs, version téléphone, liens permanents (`superset/PERMALIENS.md`) jouant le rôle des signets. Provisionnement par script (`superset/provision_lake.py`, `superset/provision.py`) et pas à pas dans `GUIDE_SUPERSET.md`.
+- **Contrôle automatique** : chaque chiffre affiché est confronté aux requêtes Trino (`superset/verify.py`, `superset/concordance_q01_q10.py`).
+- **Visuels et déroulé oral** : 14 visuels générés (`visuels/`), script de l'oral et questions probables (`ORAL_ET_VISUELS.md`).
+- Annexe optionnelle non utilisée en démo : `cloudera/` et `GUIDE_POWERBI_CLOUDERA.md`.
+
+Démonstration : la machine de présentation doit disposer d'environ 8 Go de RAM pour Docker. Les liens permanents changent à chaque nouveau provisionnement de Superset : les relire dans `superset/PERMALIENS.md`.
+
 ## Structure du dépôt
 
 ```
@@ -173,6 +185,7 @@ docker compose down -v     # purge totale, volumes compris (retour à l'état in
     ├── 05_qualite/                       # dq_checks.sql (9 familles de contrôles) + résultats CSV
     ├── 06_superset/                      # image (driver Trino) + build_dashboards.sh + config
     ├── 07_smoke_test/                    # smoke_from_scratch.sh + results/ (logs 58/58 PASS)
+    ├── 08_soutenance/                    # Livrable 3 : dashboard Superset (provisionné par script), visuels, guide, déroulé oral
     └── queries/                          # requêtes q01–q10 + résultats + harnais Trino
 ```
 

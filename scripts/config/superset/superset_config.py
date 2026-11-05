@@ -36,8 +36,13 @@ TRINO_CHU_URI = "trino://trino@trino:8080/hive"
 # ---------------------------------------------------------------------------
 CACHE_CONFIG = {"CACHE_TYPE": "NullCache"}
 DATA_CACHE_CONFIG = {"CACHE_TYPE": "NullCache"}
-FILTER_STATE_CACHE_CONFIG = {"CACHE_TYPE": "NullCache"}
-EXPLORE_FORM_DATA_CACHE_CONFIG = {"CACHE_TYPE": "NullCache"}
+# Etat des filtres natifs et des formulaires Explore : doit PERSISTER pour que les filtres natifs
+# et les liens permanents (permalinks) du storytelling fonctionnent. Les caches de DONNEES restent
+# desactives (dashboards toujours en direct).
+FILTER_STATE_CACHE_CONFIG = {"CACHE_TYPE": "FileSystemCache", "CACHE_DIR": "/tmp/superset_filter_state",
+                             "CACHE_DEFAULT_TIMEOUT": 86400, "CACHE_THRESHOLD": 1000}
+EXPLORE_FORM_DATA_CACHE_CONFIG = {"CACHE_TYPE": "FileSystemCache", "CACHE_DIR": "/tmp/superset_explore_form",
+                                  "CACHE_DEFAULT_TIMEOUT": 86400, "CACHE_THRESHOLD": 1000}
 
 # ---------------------------------------------------------------------------
 # Divers
@@ -52,7 +57,16 @@ ENABLE_TEMPLATE_PROCESSING = True
 FEATURE_FLAGS = {
     "DRILL_TO_DETAIL": True,
     "DYNAMIC_PLUGINS": False,
+    "DASHBOARD_NATIVE_FILTERS": True,
+    "DASHBOARD_CROSS_FILTERS": True,
+    "DASHBOARD_VIRTUALIZATION": False,   # rend tous les graphiques (captures d'ecran fiables)
 }
 
 # Le connecteur Trino est fourni par le package `trino` (driver DBAPI)
 # installé dans l'image apache/superset.
+
+# --- Livrable 3 : presentation en francais, nombres au format francais ---
+BABEL_DEFAULT_LOCALE = "fr"
+D3_FORMAT = {"decimal": ",", "thousands": "\u202f", "grouping": [3], "currency": ["", " \u20ac"]}
+# Les dashboards sont affiches dans des iframes/captures : pas de restriction de contenu pour le Markdown de l'histoire
+TALISMAN_ENABLED = False

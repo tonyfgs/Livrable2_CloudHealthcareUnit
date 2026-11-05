@@ -1,0 +1,314 @@
+{
+ "database": 1,
+ "datasets": {
+  "gold.d_temps": 1,
+  "gold.d_patient": 2,
+  "gold.d_etablissement": 3,
+  "gold.d_localisation": 4,
+  "gold.d_diagnostic": 5,
+  "gold.d_professionnel": 6,
+  "silver.f_consultation_detail": 7,
+  "gold.f_hospitalisation": 8,
+  "gold.f_deces_agg": 9,
+  "gold.f_satisfaction": 10,
+  "gold.f_mesures": 11,
+  "gold.f_consult_diag_mois": 12,
+  "gold.f_consult_prof_mois": 13,
+  "raw.hospitalisations": 14,
+  "raw.etablissement_sante": 15,
+  "raw.deces_sans_identite": 16,
+  "raw.satisfaction_2019": 17,
+  "raw.satisfaction_2020": 18,
+  "etoile_consultations": 19,
+  "etoile_hospitalisations": 20,
+  "taux_hospitalisation_annuel": 21,
+  "taux_hosp_sexe_age": 22,
+  "etoile_satisfaction": 23,
+  "deces_par_region": 24,
+  "top_etablissements": 25,
+  "fiabilite_donnees": 26,
+  "etoile_mesures": 27,
+  "distribution_activite_professionnels": 28,
+  "volumes_du_lac": 29,
+  "benchmark_partitionnement": 30
+ },
+ "mode": "archive",
+ "charts": {
+  "bn_cons": 1,
+  "bn_hosp": 2,
+  "bn_pat": 3,
+  "bn_deces": 4,
+  "tbl_volumes": 5,
+  "line_mensuel": 6,
+  "bar_chapitre": 7,
+  "bar_top10_diag": 8,
+  "bar_distrib_pro": 9,
+  "bar_top20_etab": 10,
+  "bar_taux_annuel": 11,
+  "bar_hosp_annee": 12,
+  "pie_hosp_sexe": 29,
+  "bar_hosp_age_sexe": 14,
+  "bar_taux_age_sexe": 15,
+  "bar_hosp_chapitre": 16,
+  "tbl_duree_chapitre": 17,
+  "map_deces": 27,
+  "bar_deces_region": 18,
+  "bar_fiabilite": 19,
+  "map_satisf": 30,
+  "bar_satisf": 21,
+  "bn_rattache": 22,
+  "bn_naiss_hosp": 23,
+  "bn_naiss_cons": 24,
+  "bar_bench_temps": 25,
+  "bar_bench_volume": 26
+ },
+ "chart_uuids": {
+  "bn_cons": "5bfeeb6e-8e89-4186-82ac-9426ef8c7b25",
+  "bn_hosp": "6f92a377-b9e8-42cb-add1-8613bd880975",
+  "bn_pat": "60bde2ef-1101-4469-850b-8a3196e69208",
+  "bn_deces": "7dd93a11-5921-4909-babd-d4ed895adffb",
+  "tbl_volumes": "1598260f-a7aa-4cca-a84f-91c366b5702c",
+  "line_mensuel": "0fd136fe-e91e-4660-ba91-a0306a4b5de6",
+  "bar_chapitre": "dd944c49-011f-49dc-a739-715c5a05baa2",
+  "bar_top10_diag": "bb553f09-ed65-43f5-abaf-127d06cd6bb2",
+  "bar_distrib_pro": "c4ed9602-4250-4b68-855c-ca8e1ccee44a",
+  "bar_top20_etab": "2544476c-0b71-4bf8-8711-9f2740cfa442",
+  "bar_taux_annuel": "8b8d9cee-4e68-4092-a619-5100d3d3ae46",
+  "bar_hosp_annee": "6f8f040a-f652-42a9-a023-063ae01d760b",
+  "pie_hosp_sexe": "fdf2f9df-73e1-4810-b853-b49f27ec350f",
+  "bar_hosp_age_sexe": "18b0fcc0-a380-4fbb-afce-bab429c71021",
+  "bar_taux_age_sexe": "0bb40d9e-6251-4043-b1b2-b043392fd525",
+  "bar_hosp_chapitre": "2f234672-0f80-4ade-96d5-25f67a84ee70",
+  "tbl_duree_chapitre": "b40f2955-394c-4c14-99c1-2a80b9ca0f9e",
+  "map_deces": "6ef3ab81-606b-4a2f-a76b-0d7d870166ee",
+  "bar_deces_region": "a5d6d19f-ae9b-4d24-b468-03949a7933c7",
+  "bar_fiabilite": "fef1e402-2a7d-47ed-98cf-8b3b255a14ec",
+  "map_satisf": "d7908f03-d9c4-4b12-b133-646f3b68a8fb",
+  "bar_satisf": "ceed10f3-25ee-48dd-8414-950e3f966cd1",
+  "bn_rattache": "4706e066-5089-4c38-9ec0-cbc9be3e23eb",
+  "bn_naiss_hosp": "42432bcf-720d-44a8-bc98-c7c6987d01d7",
+  "bn_naiss_cons": "a5897f62-52ec-451a-bc46-0e13fd365785",
+  "bar_bench_temps": "fbcaf3dd-ddf9-40f7-a394-d5e56e7499ad",
+  "bar_bench_volume": "00f6a90d-0880-48d9-8a62-205d6c7270fe"
+ },
+ "tabs": {
+  "bureau": {
+   "contexte": "TAB-contexte",
+   "activite": "TAB-activite",
+   "hospit": "TAB-hospit",
+   "mortalite": "TAB-mortalite",
+   "reco": "TAB-reco",
+   "annexe": "TAB-annexe"
+  },
+  "mobile": {
+   "contexte": "TAB-contexte",
+   "activite": "TAB-activite",
+   "hospit": "TAB-hospit",
+   "mortalite": "TAB-mortalite",
+   "reco": "TAB-reco",
+   "annexe": "TAB-annexe"
+  }
+ },
+ "dashboard": 1,
+ "dashboard_mobile": 2,
+ "permaliens": [
+  {
+   "etape": 1,
+   "titre": "Contexte",
+   "mobile": false,
+   "key": "R8WVMVgvgGx",
+   "url": "http://localhost:8088/superset/dashboard/p/R8WVMVgvgGx/",
+   "tab": "contexte",
+   "filtre": null,
+   "accroche": "Le CHU, ses données, les trois couches du lac."
+  },
+  {
+   "etape": 2,
+   "titre": "Activité",
+   "mobile": false,
+   "key": "yBpP509MD0x",
+   "url": "http://localhost:8088/superset/dashboard/p/yBpP509MD0x/",
+   "tab": "activite",
+   "filtre": null,
+   "accroche": "Une activité irrégulière, sans concentration."
+  },
+  {
+   "etape": 3,
+   "titre": "Zoom sur l'année 2019",
+   "mobile": false,
+   "key": "z8pVAbpMjgr",
+   "url": "http://localhost:8088/superset/dashboard/p/z8pVAbpMjgr/",
+   "tab": "activite",
+   "filtre": [
+    "annee",
+    2019
+   ],
+   "accroche": "Le filtre Année recalcule les graphiques ; les classements à année fixe restent inchangés."
+  },
+  {
+   "etape": 4,
+   "titre": "Hospitalisations",
+   "mobile": false,
+   "key": "GOwXAmV5e3p",
+   "url": "http://localhost:8088/superset/dashboard/p/GOwXAmV5e3p/",
+   "tab": "hospit",
+   "filtre": null,
+   "accroche": "Peu d'hospitalisations, un taux stable, des femmes plus nombreuses."
+  },
+  {
+   "etape": 5,
+   "titre": "Zoom sur les femmes",
+   "mobile": false,
+   "key": "3Owm59LAl8Z",
+   "url": "http://localhost:8088/superset/dashboard/p/3Owm59LAl8Z/",
+   "tab": "hospit",
+   "filtre": [
+    "sexe",
+    "F"
+   ],
+   "accroche": "Le filtre Sexe : le profil par âge des femmes hospitalisées."
+  },
+  {
+   "etape": 6,
+   "titre": "Mortalité et qualité",
+   "mobile": false,
+   "key": "zQDEMYVvGpg",
+   "url": "http://localhost:8088/superset/dashboard/p/zQDEMYVvGpg/",
+   "tab": "mortalite",
+   "filtre": null,
+   "accroche": "Où l'on meurt, où l'on est satisfait, et ce que valent les données."
+  },
+  {
+   "etape": 7,
+   "titre": "Zoom sur l'Île-de-France",
+   "mobile": false,
+   "key": "ZRQYAjzAXwz",
+   "url": "http://localhost:8088/superset/dashboard/p/ZRQYAjzAXwz/",
+   "tab": "mortalite",
+   "filtre": [
+    "region",
+    "Île-de-France"
+   ],
+   "accroche": "Le filtre Région : la satisfaction et les volumes d'une seule région."
+  },
+  {
+   "etape": 8,
+   "titre": "Recommandations",
+   "mobile": false,
+   "key": "6akzMO1A9ZN",
+   "url": "http://localhost:8088/superset/dashboard/p/6akzMO1A9ZN/",
+   "tab": "reco",
+   "filtre": null,
+   "accroche": "Ce que le CHU doit faire."
+  },
+  {
+   "etape": 9,
+   "titre": "Annexe technique",
+   "mobile": false,
+   "key": "LloEv3BM9Wj",
+   "url": "http://localhost:8088/superset/dashboard/p/LloEv3BM9Wj/",
+   "tab": "annexe",
+   "filtre": null,
+   "accroche": "Étoile, benchmark, preuves pour les questions."
+  },
+  {
+   "etape": 1,
+   "titre": "Contexte",
+   "mobile": true,
+   "key": "k14zvngAqG9",
+   "url": "http://localhost:8088/superset/dashboard/p/k14zvngAqG9/",
+   "tab": "contexte",
+   "filtre": null,
+   "accroche": "Le CHU, ses données, les trois couches du lac."
+  },
+  {
+   "etape": 2,
+   "titre": "Activité",
+   "mobile": true,
+   "key": "Jm3DMlo5Kpb",
+   "url": "http://localhost:8088/superset/dashboard/p/Jm3DMlo5Kpb/",
+   "tab": "activite",
+   "filtre": null,
+   "accroche": "Une activité irrégulière, sans concentration."
+  },
+  {
+   "etape": 3,
+   "titre": "Zoom sur l'année 2019",
+   "mobile": true,
+   "key": "doxy529A9JX",
+   "url": "http://localhost:8088/superset/dashboard/p/doxy529A9JX/",
+   "tab": "activite",
+   "filtre": [
+    "annee",
+    2019
+   ],
+   "accroche": "Le filtre Année recalcule les graphiques ; les classements à année fixe restent inchangés."
+  },
+  {
+   "etape": 4,
+   "titre": "Hospitalisations",
+   "mobile": true,
+   "key": "okYn5enMNXb",
+   "url": "http://localhost:8088/superset/dashboard/p/okYn5enMNXb/",
+   "tab": "hospit",
+   "filtre": null,
+   "accroche": "Peu d'hospitalisations, un taux stable, des femmes plus nombreuses."
+  },
+  {
+   "etape": 5,
+   "titre": "Zoom sur les femmes",
+   "mobile": true,
+   "key": "jrzK5LaMyRe",
+   "url": "http://localhost:8088/superset/dashboard/p/jrzK5LaMyRe/",
+   "tab": "hospit",
+   "filtre": [
+    "sexe",
+    "F"
+   ],
+   "accroche": "Le filtre Sexe : le profil par âge des femmes hospitalisées."
+  },
+  {
+   "etape": 6,
+   "titre": "Mortalité et qualité",
+   "mobile": true,
+   "key": "baBPAzbAgJp",
+   "url": "http://localhost:8088/superset/dashboard/p/baBPAzbAgJp/",
+   "tab": "mortalite",
+   "filtre": null,
+   "accroche": "Où l'on meurt, où l'on est satisfait, et ce que valent les données."
+  },
+  {
+   "etape": 7,
+   "titre": "Zoom sur l'Île-de-France",
+   "mobile": true,
+   "key": "eyr8MWDv34B",
+   "url": "http://localhost:8088/superset/dashboard/p/eyr8MWDv34B/",
+   "tab": "mortalite",
+   "filtre": [
+    "region",
+    "Île-de-France"
+   ],
+   "accroche": "Le filtre Région : la satisfaction et les volumes d'une seule région."
+  },
+  {
+   "etape": 8,
+   "titre": "Recommandations",
+   "mobile": true,
+   "key": "jeY0vKe5JNp",
+   "url": "http://localhost:8088/superset/dashboard/p/jeY0vKe5JNp/",
+   "tab": "reco",
+   "filtre": null,
+   "accroche": "Ce que le CHU doit faire."
+  },
+  {
+   "etape": 9,
+   "titre": "Annexe technique",
+   "mobile": true,
+   "key": "Rg3YAkd5aBO",
+   "url": "http://localhost:8088/superset/dashboard/p/Rg3YAkd5aBO/",
+   "tab": "annexe",
+   "filtre": null,
+   "accroche": "Étoile, benchmark, preuves pour les questions."
+  }
+ ]
+}

@@ -5,5 +5,5 @@ FROM f_mesures f
 JOIN d_etablissement e ON f.id_etablissement = e.id_etablissement
 WHERE f.annee = 2019 AND f.nbre_consultation > 0
 GROUP BY 1,2,3
-ORDER BY nbre_consultations DESC
+ORDER BY nbre_consultations DESC, e.raison_sociale_site, e.code_commune
 LIMIT 20;

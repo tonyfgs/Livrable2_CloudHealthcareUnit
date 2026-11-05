@@ -9,9 +9,12 @@
 FROM apache/airflow:2.9.3
 
 USER root
+# Miroir APT surchargeable (certains reseaux/proxys refusent deb.debian.org)
+ARG DEBIAN_MIRROR=http://deb.debian.org
+RUN sed -i "s#http://deb.debian.org#${DEBIAN_MIRROR}#g" /etc/apt/sources.list.d/debian.sources
 # docker.io : client Docker CLI (les DAGs pilotent beeline/trino/duckdb via
 # `docker exec`, socket monté dans le scheduler).
-# default-jre-headless : JRE indispensable au SparkSubmitOperator — le
+# default-jre-headless : JRE indispensable au SparkSubmitOperator, le
 # provider appelle `spark-submit` (embarqué par le package pyspark), qui
 # exige JAVA_HOME (échec « JAVA_HOME is not set » sans JRE).
 RUN apt-get update \

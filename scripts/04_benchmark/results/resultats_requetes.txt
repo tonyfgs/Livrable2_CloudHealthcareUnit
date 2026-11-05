@@ -1,4 +1,4 @@
-===== q01 — Q01 (métier 1) : taux de consultation par établissement et par période - top 20 établissements, 2019
+===== q01, Q01 (métier 1) : taux de consultation par établissement et par période - top 20 établissements, 2019
 ┌─────────────────────────────────────────┬──────────────┬────────────────────────────┬────────────────────┐
 │           raison_sociale_site           │ code_commune │           region           │ nbre_consultations │
 │                 varchar                 │   varchar    │          varchar           │       int128       │
@@ -27,7 +27,7 @@
   20 rows                                                                                        4 columns
 Run Time (s): real 0.119 user 0.106390 sys 0.092748
 
-===== q02 — Q02 (métier 2) : taux de consultation par diagnostic - top 10, 2019-2021
+===== q02, Q02 (métier 2) : taux de consultation par diagnostic - top 10, 2019-2021
 ┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┬────────────────────┐
 │                                                                              libelle_diagnostic                                                                               │ nbre_consultations │
 │                                                                                    varchar                                                                                    │       int128       │
@@ -46,7 +46,7 @@ Run Time (s): real 0.119 user 0.106390 sys 0.092748
   10 rows                                                                                                                                                                                  2 columns
 Run Time (s): real 0.049 user 0.064387 sys 0.041721
 
-===== q03 — Q03 (métier 3) : taux global d'hospitalisation sur la période 2015-2021
+===== q03, Q03 (métier 3) : taux global d'hospitalisation sur la période 2015-2021
 ┌───────┬───────────────────────┬────────────────────┬─────────────────────────────────────────────┐
 │ annee │ nbre_hospitalisations │ nbre_consultations │ taux_hospitalisation_pour_100_consultations │
 │ int64 │        int128         │       int128       │                   double                    │
@@ -61,7 +61,7 @@ Run Time (s): real 0.049 user 0.064387 sys 0.041721
 └───────┴───────────────────────┴────────────────────┴─────────────────────────────────────────────┘
 Run Time (s): real 0.080 user 0.032312 sys 0.047325
 
-===== q04 — Q04 (métier 4) : hospitalisation par diagnostic - top 10, 2015-2021
+===== q04, Q04 (métier 4) : hospitalisation par diagnostic - top 10, 2015-2021
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────┬───────────────────────┬─────────────────────┐
 │                                         libelle_diagnostic                                          │ nbre_hospitalisations │ duree_moyenne_jours │
 │                                               varchar                                               │         int64         │       double        │
@@ -80,7 +80,7 @@ Run Time (s): real 0.080 user 0.032312 sys 0.047325
   10 rows                                                                                                                                 3 columns
 Run Time (s): real 0.015 user 0.017412 sys 0.015365
 
-===== q05 — Q05 (métier 5) : hospitalisation par sexe et tranche d'âge, 2015-2021
+===== q05, Q05 (métier 5) : hospitalisation par sexe et tranche d'âge, 2015-2021
 ┌─────────┬─────────────┬───────────────────────┐
 │  sexe   │ tranche_age │ nbre_hospitalisations │
 │ varchar │   varchar   │        int128         │
@@ -101,7 +101,7 @@ Run Time (s): real 0.015 user 0.017412 sys 0.015365
   12 rows                             3 columns
 Run Time (s): real 0.081 user 0.032565 sys 0.043193
 
-===== q06 — Q06 (métier 6) : consultation par professionnel - top 10, 2020
+===== q06, Q06 (métier 6) : consultation par professionnel - top 10, 2020
 ┌─────────────┬──────────┬──────────────────┬────────────┬────────────┬────────────────────┐
 │ identifiant │ civilite │       nom        │   prenom   │ profession │ nbre_consultations │
 │   varchar   │ varchar  │     varchar      │  varchar   │  varchar   │       int128       │
@@ -120,7 +120,7 @@ Run Time (s): real 0.081 user 0.032565 sys 0.043193
   10 rows                                                                        6 columns
 Run Time (s): real 0.163 user 0.264006 sys 0.193352
 
-===== q07 — Q07 (métier 7) : nombre de décès par région sur 2019
+===== q07, Q07 (métier 7) : nombre de décès par région sur 2019
 ┌────────────────────────────┬────────────┐
 │           region           │ nbre_deces │
 │          varchar           │   int128   │
@@ -148,7 +148,7 @@ Run Time (s): real 0.163 user 0.264006 sys 0.193352
   19 rows                       2 columns
 Run Time (s): real 0.064 user 0.032492 sys 0.019155
 
-===== q08 — Q08 (métier 8) : taux global de satisfaction par région sur 2020
+===== q08, Q08 (métier 8) : taux global de satisfaction par région sur 2020
 ┌────────────────────────────┬─────────────────────┬──────────────────────────┬──────────────────┐
 │           region           │ nbre_etablissements │ score_moyen_satisfaction │ total_repondants │
 │          varchar           │        int64        │          double          │      double      │
@@ -173,7 +173,7 @@ Run Time (s): real 0.064 user 0.032492 sys 0.019155
   16 rows                                                                              4 columns
 Run Time (s): real 0.027 user 0.012364 sys 0.022549
 
-===== q09 — Q09 (technique) : requête sur vue métier v_taux_consultation_mensuel
+===== q09, Q09 (technique) : requête sur vue métier v_taux_consultation_mensuel
 ┌───────┬────────────┬────────────────────┬──────────────────────┐
 │ annee │ annee_mois │ nbre_consultations │ moyenne_mobile_3mois │
 │ int64 │  varchar   │       int128       │        double        │
@@ -225,7 +225,7 @@ Run Time (s): real 0.027 user 0.012364 sys 0.022549
   51 rows (40 shown)                                   4 columns
 Run Time (s): real 0.125 user 0.077180 sys 0.067635
 
-===== q10 — Q10 (technique) : jointure étoile complète (fait + 4 dimensions), filtre croisé
+===== q10, Q10 (technique) : jointure étoile complète (fait + 4 dimensions), filtre croisé
 ┌────────────────────────────┬─────────────┬───────┬────────────────────┐
 │           region           │ tranche_age │ annee │ nbre_consultations │
 │          varchar           │   varchar   │ int64 │       int128       │

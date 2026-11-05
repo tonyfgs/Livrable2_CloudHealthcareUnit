@@ -20,7 +20,7 @@ AWS_VERSION="2.24.6"
 # Connecteur S3A (Hadoop)
 curl -fsSL -O "${MAVEN}/org/apache/hadoop/hadoop-aws/${HADOOP_VERSION}/hadoop-aws-${HADOOP_VERSION}.jar"
 
-# AWS SDK v2 (modules individuels — le bundle officiel fait 558 Mo)
+# AWS SDK v2 (modules individuels, le bundle officiel fait 558 Mo)
 AWS_MODULES="
 sdk-core
 aws-core

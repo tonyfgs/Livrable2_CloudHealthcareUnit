@@ -1,7 +1,7 @@
 -- ============================================================
 -- Scénario APRES : tables partitionnées (style Hive) + tri sur les clés de
 -- jointure (le bucketing a été retiré du schéma déployé : Trino 484 refuse de
--- lire les tables bucketées écrites par Spark — voir livrable2.md §4.2).
+-- lire les tables bucketées écrites par Spark, voir rapport.pdf, section partitionnement).
 -- Lecture par glob avec hive_partitioning -> pruning des partitions.
 -- ============================================================
 CREATE OR REPLACE VIEW f_mesures AS SELECT * FROM read_parquet('poc/apres/f_mesures/**/*.parquet', hive_partitioning=true);
