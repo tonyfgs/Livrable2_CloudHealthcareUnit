@@ -1,0 +1,6 @@
+/* Tableau de bord CHU : lisibilite sur telephone (Superset 4.1 n'a pas de vue mobile native).
+   En dessous de 768 px, chaque ligne de la mise en page devient une colonne unique : un chiffre ou un graphique par ecran,
+   dans l'ordre de l'histoire (les gros chiffres viennent en premier dans chaque onglet). */
+.dashboard-markdown h2 { font-size: 24px; margin-top: 4px; }
+.dashboard-markdown h3 { font-size: 19px; margin-top: 4px; }
+.dashboard-markdown ul { margin-bottom: 4px; }

@@ -128,7 +128,7 @@ def age_revolu(event_col, naissance_col):
 
 
 def tranche_age(age_col):
-    """Tranche d'âge (grille du projet) à partir d'un âge révolu.
+    """Tranche d'âge (tranches du projet) à partir d'un âge révolu.
 
     Équivalent de la macro DuckDB tranche_of_age du PoC :
     NULL -> 'INCONNUE', <15 -> '0-14', <30 -> '15-29', <45 -> '30-44',

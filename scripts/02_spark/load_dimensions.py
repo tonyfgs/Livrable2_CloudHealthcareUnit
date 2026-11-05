@@ -70,7 +70,7 @@ d_patient = (
     .select("id_patient", "sexe", "date_naissance", "age_ref",
             "code_postal", "ville", "tranche_age_ref")
 )
-# Partitionnement démographique (sexe, tranche_age_ref) conforme à la grille
+# Partitionnement démographique (sexe, tranche_age_ref) conforme au cahier des charges
 # d'évaluation : sexe + tranche d'âge sur la dimension patient. Pas de
 # bucketing (incompatible Trino 484) : le tri intra-partition sur id_patient
 # (voir save_gold, common.py) remplace la co-localisation pour la jointure

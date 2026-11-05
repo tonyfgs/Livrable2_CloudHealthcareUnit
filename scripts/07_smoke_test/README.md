@@ -1,4 +1,4 @@
-# 07_smoke_test — Test from scratch automatisé
+# 07_smoke_test, Test from scratch automatisé
 
 `smoke_from_scratch.sh` prouve qu'un démarrage from scratch fonctionne sans bug :
 
@@ -12,7 +12,7 @@ Enchaînement testé (exit 0 = 100% PASS, exit 1 = au moins un FAIL) :
 2. 14 conteneurs `running` + 3 one-shots `exited(0)` (minio-init, hive-metastore-init, airflow-init)
 3. Endpoints HTTP : Airflow 8090, Superset 8088, Trino 8080, MinIO 9000/9001, Spark UI 8085
 4. Les 2 DAGs sont enregistrés **en pause** avec **0 run auto** (le backfill ne peut plus
-   rimer avec l'init — fix `DAGS_ARE_PAUSED_AT_CREATION=true`)
+   rimer avec l'init, fix `DAGS_ARE_PAUSED_AT_CREATION=true`)
 5. `lakehouse_init` : unpause + trigger → run `success`, **5/5 tâches success, 0 failed**
 6. `lakehouse_daily` : unpause → run auto (`catchup=False`, `max_active_runs=1`) →
    run `success`, **8/8 tâches success, 0 failed**

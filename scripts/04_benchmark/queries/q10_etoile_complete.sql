@@ -9,5 +9,5 @@ JOIN d_etablissement e ON f.id_etablissement = e.id_etablissement
 JOIN d_localisation l ON f.id_localisation = l.id_localisation
 WHERE f.annee = 2019 AND f.sexe = 'M' AND f.nbre_consultation > 0
 GROUP BY 1,2,3
-ORDER BY nbre_consultations DESC
+ORDER BY nbre_consultations DESC, region, tranche_age, t.annee
 LIMIT 20;

@@ -7,7 +7,7 @@ lake MinIO via le Hive Metastore.
 ## Connexion
 
 1. Démarrer la stack : `docker compose -f scripts/docker-compose.yml up -d`
-2. Ouvrir **http://localhost:8088** (admin / admin — à changer en production)
+2. Ouvrir **http://localhost:8088** (admin / admin, à changer en production)
 3. Créer la connexion base de données : **Settings > Database Connections > + Database**
    - Display name : `Trino CHU`
    - SQLAlchemy URI : `trino://trino@trino:8080/hive`

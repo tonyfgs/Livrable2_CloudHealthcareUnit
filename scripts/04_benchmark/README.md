@@ -24,7 +24,7 @@ sur le poste) : DuckDB et node tournent dans l'image du projet
 automatiquement via `docker compose build bench-duckdb`), la source S1 est le
 conteneur PostgreSQL `chu-s1-postgres` (service `s1-postgres`).
 Les sources brutes sont lues au point de montage fixe `/data-projet` (bind du
-dossier `DATA Projet`, variable `DATA_PROJET` de `run-duckdb.sh` — même
+dossier `DATA Projet`, variable `DATA_PROJET` de `run-duckdb.sh` : même
 convention dans le service `bench-duckdb` du docker-compose).
 
 ### 1. Préparer le workspace (une fois)

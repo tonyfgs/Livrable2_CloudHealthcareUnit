@@ -21,7 +21,7 @@ SET s3_secret_access_key='minioadmin';
 -- Limites mémoire/threads : le conteneur tourne dans une VM Docker dont la RAM
 -- est partagée avec Spark/Postgres -> plafond volontaire pour éviter le OOM-kill
 -- (exit 137) constaté avec les défauts (memory_limit = 80% RAM hôte, 8 threads)
-SET memory_limit='2GB';
+SET memory_limit='5GB';
 SET threads=4;
 CREATE OR REPLACE VIEW src_hosp AS SELECT * FROM read_csv('/data-projet/Hospitalisation/Hospitalisations.csv', header=true, delim=';', nullstr='', all_varchar=true);
 CREATE OR REPLACE VIEW src_etab AS SELECT * FROM read_csv('/data-projet/Etablissement de SANTE/etablissement_sante.csv', header=true, delim=';', nullstr='', all_varchar=true, max_line_size=10000000);

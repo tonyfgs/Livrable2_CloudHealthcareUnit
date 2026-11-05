@@ -49,7 +49,7 @@ JOBS = "/opt/spark/jobs"
 # le bundle AWS SDK (280 Mo) vers les workers et la soumission échouerait.
 # Ils sont embarqués dans les images : chu-spark:3.5.1-s3a ($SPARK_HOME/jars,
 # voir config/spark/Dockerfile) et chu-airflow:2.9.3 (pyspark/jars, voir
-# 03_airflow/Dockerfile) — hadoop-aws 3.3.4 + aws-java-sdk-bundle 1.12.262
+# 03_airflow/Dockerfile) : hadoop-aws 3.3.4 + aws-java-sdk-bundle 1.12.262
 # + postgresql 42.7.3.
 
 # Variables d'environnement communes à tous les jobs Spark (cf. 02_spark/common.py)

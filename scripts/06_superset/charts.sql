@@ -20,7 +20,7 @@ FROM gold.f_mesures f
 JOIN gold.d_etablissement e ON f.id_etablissement = e.id_etablissement
 WHERE f.annee = 2019 AND f.nbre_consultation > 0
 GROUP BY 1, 2, 3
-ORDER BY nbre_consultations DESC
+ORDER BY nbre_consultations DESC, e.raison_sociale_site, e.code_commune
 LIMIT 20;
 
 -- ---------------------------------------------------------------------------
@@ -28,13 +28,13 @@ LIMIT 20;
 -- (s'appuie sur l'agrégat pré-calculé f_consult_diag_mois)
 -- Type recommandé : Bar chart | X = nbre_consultations | Y = libelle_diagnostic
 -- ---------------------------------------------------------------------------
-SELECT d.libelle_diagnostic,
+SELECT d.code_diag, d.libelle_diagnostic,
        SUM(f.nbre_consultation) AS nbre_consultations
 FROM gold.f_consult_diag_mois f
 JOIN gold.d_diagnostic d ON f.id_diagnostic = d.id_diagnostic
 WHERE f.annee BETWEEN 2019 AND 2021
-GROUP BY 1
-ORDER BY nbre_consultations DESC
+GROUP BY 1, 2
+ORDER BY nbre_consultations DESC, d.code_diag
 LIMIT 10;
 
 -- ---------------------------------------------------------------------------
@@ -47,7 +47,9 @@ SELECT f.annee,
        ROUND(100.0 * SUM(f.nbre_hospitalisation) / NULLIF(SUM(f.nbre_consultation), 0), 2)
          AS taux_hospitalisation_pour_100_consultations
 FROM gold.f_mesures f
-WHERE f.annee BETWEEN 2015 AND 2021
+-- fenetre d'observation commune : les hospitalisations couvrent 2015-06 a 2021-06 ;
+-- diviser par les consultations de 2021 entier donnerait un taux sous-estime (0,13 au lieu de 0,21 a la maille mois, 0,22 a la maille jour)
+WHERE f.annee_mois BETWEEN '2015-06' AND '2021-06'
 GROUP BY f.annee
 ORDER BY f.annee;
 
@@ -55,14 +57,14 @@ ORDER BY f.annee;
 -- Chart 4 (besoin 4) : hospitalisations par diagnostic - top 10, 2015-2021
 -- Type recommandé : Bar chart | X = nbre_hospitalisations | Y = libelle_diagnostic
 -- ---------------------------------------------------------------------------
-SELECT d.libelle_diagnostic,
+SELECT d.code_diag, d.libelle_diagnostic,
        COUNT(*) AS nbre_hospitalisations,
        ROUND(AVG(f.duree_jours), 1) AS duree_moyenne_jours
 FROM gold.f_hospitalisation f
 JOIN gold.d_diagnostic d ON f.id_diagnostic = d.id_diagnostic
 WHERE f.annee BETWEEN 2015 AND 2021
-GROUP BY 1
-ORDER BY nbre_hospitalisations DESC
+GROUP BY 1, 2
+ORDER BY nbre_hospitalisations DESC, d.code_diag
 LIMIT 10;
 
 -- ---------------------------------------------------------------------------
@@ -92,7 +94,7 @@ FROM gold.f_consult_prof_mois f
 JOIN gold.d_professionnel p ON f.id_professionnel = p.identifiant
 WHERE f.annee = 2020
 GROUP BY 1, 2, 3, 4, 5
-ORDER BY nbre_consultations DESC
+ORDER BY nbre_consultations DESC, p.identifiant
 LIMIT 10;
 
 -- ---------------------------------------------------------------------------

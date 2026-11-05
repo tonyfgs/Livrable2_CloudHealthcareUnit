@@ -6,5 +6,5 @@ FROM f_consult_prof_mois f
 JOIN d_professionnel p ON f.id_professionnel = p.identifiant
 WHERE f.annee = 2020
 GROUP BY 1,2,3,4,5
-ORDER BY nbre_consultations DESC
+ORDER BY nbre_consultations DESC, p.identifiant
 LIMIT 10;

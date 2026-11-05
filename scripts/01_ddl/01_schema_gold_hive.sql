@@ -15,7 +15,7 @@
 -- Justification du partitionnement (cf. rapport §Partitionnement) :
 --   f_mesures          PARTITIONED BY (annee, sexe, tranche_age)
 --                      -> pruning temporel (annee) + démographique (sexe,
---                         tranche_age) ; conforme à la grille du livrable.
+--                         tranche_age) ; conforme au cahier des charges.
 --   f_consultation_detail PARTITIONED BY (annee) -> pruning temporel.
 --   f_hospitalisation  PARTITIONED BY (annee).
 --   f_deces_agg        PARTITIONED BY (annee) SEULEMENT : un partitionnement par
@@ -29,9 +29,9 @@
 --                      régions contiennent espaces/accents/apostrophes, que
 --                      Hive refuse dans les noms de répertoires de partitions.
 --   d_temps            PARTITIONED BY (annee)    (grain jour, 2015-2030,
---                      couvre le périmètre 2015-2021 de la grille + marge).
+--                      couvre le périmètre 2015-2021 du projet + marge).
 --   d_patient          PARTITIONED BY (sexe, tranche_age_ref) : partitionnement
---                      démographique (grille : sexe + tranche d'âge sur la
+--                      démographique (cahier des charges : sexe + tranche d'âge sur la
 --                      dimension patient).
 --   d_localisation     PARTITIONED BY (code_region) (grain département, 101 +
 --                      Inconnu ; code_region car les noms de régions contiennent
@@ -46,7 +46,7 @@
 -- declared bucket count"), même avec hive.validate-bucketing=false. Le schéma
 -- retenu est donc : PARTITIONNEMENT Hive (pruning par partition côté Trino) +
 -- tri intra-fichier sur les clés de jointure (pruning intra-fichier via les
--- statistiques min/max Parquet) — combinaison supportée nativement et robuste.
+-- statistiques min/max Parquet) : combinaison supportée nativement et robuste.
 -- ============================================================================
 
 CREATE DATABASE IF NOT EXISTS silver

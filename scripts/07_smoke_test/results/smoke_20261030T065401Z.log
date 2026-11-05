@@ -1,4 +1,4 @@
-Smoke test from scratch — 2026-10-30T06:54:01Z — log: /Users/tonyfages/CESI/4A/Big Data/projet/Livrable 2/scripts/07_smoke_test/results/smoke_20261030T065401Z.log
+Smoke test from scratch, 2026-10-30T06:54:01Z, log: /Users/tonyfages/CESI/4A/Big Data/projet/Livrable 2/scripts/07_smoke_test/results/smoke_20261030T065401Z.log
 
 === 0. Preflight ===
 29.9.1
@@ -311,4 +311,4 @@ PASS  | 2 DAGs remis en pause
 === RESULTAT ===
 
 ================ SMOKE TEST : 54 PASS / 0 FAIL ================
-100% PASS — from scratch OK, données conformes. Log : /Users/tonyfages/CESI/4A/Big Data/projet/Livrable 2/scripts/07_smoke_test/results/smoke_20261030T065401Z.log
+100% PASS, from scratch OK, données conformes. Log : /Users/tonyfages/CESI/4A/Big Data/projet/Livrable 2/scripts/07_smoke_test/results/smoke_20261030T065401Z.log

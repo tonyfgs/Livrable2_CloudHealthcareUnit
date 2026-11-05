@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================================
-# SMOKE TEST FROM SCRATCH — Livrable 2 CHU (lakehouse Docker)
+# SMOKE TEST FROM SCRATCH, Livrable 2 CHU (lakehouse Docker)
 #
 # Objectif : prouver qu'un démarrage from scratch fonctionne SANS AUCUN BUG :
 #   docker compose down -v && up -d -> DAGs en pause -> init 5/5 -> daily 8/8
@@ -30,7 +30,7 @@ step() { log ""; log "=== $* ==="; }
 check() { local desc="$1"; shift; if "$@" >>"$LOG" 2>&1; then pass "$desc"; else fail "$desc"; fi; }
 
 cd "$SCRIPTS_DIR"
-log "Smoke test from scratch — $(date -u +%Y-%m-%dT%H:%M:%SZ) — log: $LOG"
+log "Smoke test from scratch, $(date -u +%Y-%m-%dT%H:%M:%SZ) : log: $LOG"
 
 # ----------------------------------------------------------------------------
 step "0. Preflight"
@@ -238,5 +238,5 @@ if [ "$FAIL" -gt 0 ]; then
   log "Log complet : $LOG"
   exit 1
 fi
-log "100% PASS — from scratch OK, données conformes. Log : $LOG"
+log "100% PASS, from scratch OK, données conformes. Log : $LOG"
 exit 0
