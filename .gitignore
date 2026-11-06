@@ -9,3 +9,4 @@ scripts/04_benchmark/results/_*
 .DS_Store
 __pycache__/
 *.pyc
+!Dockerfile.duckdb

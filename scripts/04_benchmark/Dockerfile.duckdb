@@ -1,0 +1,22 @@
+# ============================================================================
+# Livrable 2 - CHU - Image du conteneur "tooling" bench-duckdb
+# (CLI DuckDB + node, utilises par run-duckdb.sh, run-node.sh, run_bench*.sh,
+#  synthese.js, gen_listes.js et les controles qualite du DAG lakehouse_daily).
+# Construite par : docker compose build bench-duckdb
+# ============================================================================
+FROM node:20-bookworm-slim
+ARG DUCKDB_VERSION=1.3.2
+# amd64 (PC) ou arm64 (Mac Apple Silicon) selon la machine qui construit
+ARG TARGETARCH
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl unzip \
+ && curl -fsSL -o /tmp/duckdb.zip \
+      "https://github.com/duckdb/duckdb/releases/download/v${DUCKDB_VERSION}/duckdb_cli-linux-${TARGETARCH:-amd64}.zip" \
+ && unzip -q /tmp/duckdb.zip -d /usr/local/bin \
+ && chmod +x /usr/local/bin/duckdb \
+ && rm -f /tmp/duckdb.zip \
+ && rm -rf /var/lib/apt/lists/* \
+ && mkdir -p /opt/l2work /data-projet
+WORKDIR /opt/l2work
+# Le conteneur reste disponible (docker exec) : la commande est fournie par le compose
+CMD ["sleep", "infinity"]
