@@ -9,7 +9,7 @@
 #   d_localisation (101 départements + Inconnu, PARTITIONED BY code_region)
 #   d_diagnostic (S1 PostgreSQL.Diagnostic, pas de partition)
 #   d_professionnel (S1 PostgreSQL.Professionnel_de_sante, pas de partition)
-# Pas de bucketing (incompatible Trino 484, voir rapport.pdf, section partitionnement) : le tri
+# Pas de bucketing (Trino 484 refuse de lire les tables bucketées écrites par Spark) : le tri
 # intra-partition sur les clés de jointure remplace la co-localisation.
 #
 # Lancement (dans le conteneur spark, stack docker-compose) :

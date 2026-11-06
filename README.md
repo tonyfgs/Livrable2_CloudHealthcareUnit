@@ -163,6 +163,17 @@ Tout le matériel de la soutenance est dans `scripts/08_soutenance/` (détail da
 - **Visuels et déroulé oral** : 14 visuels générés (`visuels/`), script de l'oral et questions probables (`ORAL_ET_VISUELS.md`).
 - Annexe optionnelle non utilisée en démo : `cloudera/` et `GUIDE_POWERBI_CLOUDERA.md`.
 
+Ordre conseillé (étape optionnelle, **après** le smoke test du socle, qui reste inchangé) :
+
+```bash
+./07_smoke_test/smoke_from_scratch.sh            # socle : dashboard chu-indicateurs-metier, 58/58 PASS
+cd 08_soutenance/superset
+python3 provision_lake.py && python3 provision.py --mode archive   # ou --mode live
+python3 verify.py && python3 concordance_q01_q10.py
+```
+
+Le dashboard du socle (`chu-indicateurs-metier`, créé par `lakehouse_init`) est conservé ; la soutenance ouvre `chu-histoire` (bureau) ou `chu-histoire-mobile` (téléphone). Les deux provisionnements partagent les datasets physiques gold : celui du Livrable 3 n'ajoute que ses propres métriques et ne supprime ni n'écrase rien de ce qui existe.
+
 Démonstration : la machine de présentation doit disposer d'environ 8 Go de RAM pour Docker. Les liens permanents changent à chaque nouveau provisionnement de Superset : les relire dans `superset/PERMALIENS.md`.
 
 ## Structure du dépôt

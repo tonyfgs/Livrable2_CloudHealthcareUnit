@@ -46,7 +46,9 @@ def ensure_dataset(ss, db_id, schema, table, sql=None):
 
 
 def configure_dataset(ss, ds_id, description, metrics, labels):
-    """Metriques (remplacees), libelles de colonnes, colonne temporelle."""
+    """Metriques (ajoutees ou mises a jour par nom, les autres sont conservees), libelles de colonnes.
+    Les datasets physiques gold sont partages avec 06_superset/build_dashboards.sh (dashboard
+    chu-indicateurs-metier) : rien de ce qui existe deja n'est supprime ni ecrase sans necessite."""
     ss.req("PUT", f"dataset/{ds_id}/refresh")
     cur = ss.req("GET", f"dataset/{ds_id}")["result"]
     by_name = {m["metric_name"]: m for m in cur["metrics"]}
@@ -57,16 +59,21 @@ def configure_dataset(ss, ds_id, description, metrics, labels):
         if name in by_name:
             m["id"] = by_name[name]["id"]
         out.append(m)
-    for name, m in by_name.items():  # on conserve le comptage par defaut s'il n'est pas redefini
-        if name not in wanted and name == "count":
-            out.append({"id": m["id"], "metric_name": "count", "verbose_name": "Nombre de lignes", "expression": "COUNT(*)"})
+    for name, m in by_name.items():  # metriques existantes non redefinies : conservees telles quelles
+        if name not in wanted:
+            keep = {k: m.get(k) for k in ("id", "metric_name", "verbose_name", "expression", "d3format",
+                                           "metric_type", "description", "warning_text") if m.get(k) is not None}
+            if name == "count" and not keep.get("verbose_name"):
+                keep["verbose_name"] = "Nombre de lignes"
+            out.append(keep)
     cols = []
     for c in cur["columns"]:
         n = c["column_name"]
         cols.append({"id": c["id"], "column_name": n, "verbose_name": labels.get(n, c.get("verbose_name")),
                      "type": c.get("type"), "is_dttm": c.get("is_dttm", False), "filterable": True, "groupby": True,
                      "expression": c.get("expression"), "description": c.get("description")})
-    ss.req("PUT", f"dataset/{ds_id}", json={"description": description, "metrics": out, "columns": cols})
+    desc = cur.get("description") or description  # description deja renseignee (ex. par Tony) : conservee
+    ss.req("PUT", f"dataset/{ds_id}", json={"description": desc, "metrics": out, "columns": cols})
 
 
 def provision_datasets(ss, mode):
