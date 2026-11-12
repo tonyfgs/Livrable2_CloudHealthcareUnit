@@ -158,7 +158,13 @@ with DAG(
     dq_checks = BashOperator(
         task_id="dq_checks",
         bash_command=(
+            # DB jetable à chaque run : un run précédent tué (ex. OOM-kill)
+            # peut laisser un verrou sur /tmp/dq.duckdb ("Conflicting lock")
+            # ou un WAL corrompu, ce qui ferait échouer tous les retries.
+            # /tmp/duckdb_tmp = temp_directory de dq_checks.sql (spill disque).
             "docker exec chu-bench-duckdb sh -c '"
+            "rm -f /tmp/dq.duckdb /tmp/dq.duckdb.wal && "
+            "rm -rf /tmp/dq.duckdb.tmp /tmp/duckdb_tmp && mkdir -p /tmp/duckdb_tmp && "
             "cd /opt/l2work && duckdb /tmp/dq.duckdb < /opt/l2work/dq/dq_checks.sql"
             "' && echo 'DQ OK - résultats dans 05_qualite/results/'"
         ),

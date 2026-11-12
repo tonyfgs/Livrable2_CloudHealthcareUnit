@@ -148,6 +148,23 @@ dimensions : \texttt{id\_temps} (AAAAMMJJ), \texttt{id\_patient},
 (code departement), \texttt{id\_diagnostic} (\texttt{row\_number}),
 \texttt{identifiant} (professionnel).
 
+\medskip
+\textbf{Choix de perimetre sur la source S1 (13 tables analysees).} Le dump
+DATA2023 compte 13 tables, toutes analysees et inventoriees avec leurs volumes
+dans le rapport de qualite (\S5). Seules 4 sont integrees dans le lake :
+\texttt{Patient}, \texttt{Consultation}, \texttt{Diagnostic} et
+\texttt{Professionnel\_de\_sante}, car elles seules alimentent les tables de
+faits et dimensions exiges par le sujet (faits : Consultations, Hospitalisations,
+Deces, Satisfaction ; dimensions : Temps, Etablissement, Patient, Diagnostic,
+Professionnel, Region) et les 8 besoins utilisateurs recenses. Les 9 autres
+tables (\texttt{Prescription}, \texttt{Medicaments}, \texttt{Salle},
+\texttt{Adher}, \texttt{Mutuelle}, \texttt{Specialites}, \texttt{Laboratoire},
+\texttt{AAAA}, \texttt{date}) sont volontairement exclues : hors besoins metier,
+et pour la plupart des donnees de sante sensibles ou nominatives (ex.
+\texttt{AAAA} contient nom, prenom et adresse en clair), ce qui releve de la
+minimisation des donnees imposee par le RGPD. Elles sont citees comme
+perspectives d'evolution (nouvelles sources) dans la soutenance (Livrable 3).
+
 \begin{figure}[H]\centering
 \caption{Schema en etoile deploye (couches Gold/Silver)}
 \resizebox{\textwidth}{!}{%

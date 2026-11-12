@@ -17,6 +17,12 @@ RUN apt-get update \
  && rm -f /tmp/duckdb.zip \
  && rm -rf /var/lib/apt/lists/* \
  && mkdir -p /opt/l2work /data-projet
+# Extensions figées dans l'image : dq_checks.sql fait "INSTALL postgres/httpfs"
+# à chaque exécution (tâche dq_checks du DAG lakehouse_daily). Le conteneur
+# étant recréé à chaque "docker compose up", le cache ~/.duckdb n'est pas
+# persisté : sans réseau au moment du run, la tâche échouerait. Les préinstaller
+# rend le DAG autonome du réseau.
+RUN duckdb -c "INSTALL postgres; INSTALL httpfs;"
 WORKDIR /opt/l2work
 # Le conteneur reste disponible (docker exec) : la commande est fournie par le compose
 CMD ["sleep", "infinity"]

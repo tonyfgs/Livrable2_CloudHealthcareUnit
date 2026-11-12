@@ -238,13 +238,17 @@ for schema, table, sql in DATASETS:
 # 3. Charts : 1 par besoin metier q01-q08 + 2 complementaires (vues)
 # ---------------------------------------------------------------------------
 def agg(col, fn, label):
-    return {"expressionType": "SIMPLE", "column": col, "aggregate": fn, "label": label}
+    # Superset 4.x exige un OBJET column {"column_name": ...} : une simple
+    # string fait planter /dashboard/<slug>/datasets en 500
+    # ('str' object has no attribute 'get' dans data_for_slices)
+    return {"expressionType": "SIMPLE", "column": {"column_name": col}, "aggregate": fn, "label": label}
 
 def sqlmetric(expr, label):
     return {"expressionType": "SQL", "sqlExpression": expr, "label": label}
 
 def flt(col, op, val):
-    return {"expressionType": "SIMPLE", "col": col, "op": op, "val": val}
+    # filtre adhoc : subject/operator/comparator (+clause WHERE), pas col/op/val
+    return {"expressionType": "SIMPLE", "clause": "WHERE", "subject": col, "operator": op, "comparator": val}
 
 CHARTS = [
     ("Q01 - Consultations par etablissement (top 20, 2019)", "dist_bar",
@@ -281,7 +285,9 @@ CHARTS = [
      "v_deces_region_annee",
      {"viz_type": "pie", "metrics": [agg("nbre_deces", "SUM", "SUM(nbre_deces)")],
       "groupby": ["region"], "adhoc_filters": [flt("annee", "==", 2019)],
-      "row_limit": 25, "order_desc": True}),
+      # pie exige sort_by_metric (tri sur la metrique) : sans, l'orderby est
+      # null -> "Field may not be null" cote backend
+      "sort_by_metric": True, "row_limit": 25, "order_desc": True}),
     ("Q08 - Satisfaction moyenne par region (2020, ponderee)", "dist_bar",
      "v_satisfaction_region_annee",
      {"viz_type": "dist_bar", "metrics": [sqlmetric(
@@ -302,19 +308,21 @@ CHARTS = [
 ]
 
 chart_ids = []
+existing_charts = {c.get("slice_name"): c["id"] for c in list_all("/api/v1/chart/").get("result", [])}
 for name, viz, ds_table, params in CHARTS:
     body = {"slice_name": name, "viz_type": viz,
             "datasource_id": ds_ids[ds_table], "datasource_type": "table",
             "params": json.dumps(params)}
-    code, resp = call_retry("POST", "/api/v1/chart/", body, db_id=db_id)
-    cid = None
-    if code == 201:
-        cid = resp["id"]
-    elif code == 422:
-        for c in list_all("/api/v1/chart/").get("result", []):
-            if c.get("slice_name") == name:
-                cid = c["id"]
-                break
+    if name in existing_charts:
+        # idempotent : un chart de ce nom existe deja -> on ECRASE (PUT) ses
+        # params au lieu de creer un doublon (repare aussi un ancien
+        # provisionnement au format d'adhoc metric invalide)
+        cid = existing_charts[name]
+        code, resp = call_retry("PUT", "/api/v1/chart/%d" % cid, body, db_id=db_id)
+        print("chart existant %-50s id=%s -> PUT HTTP %s" % (name, cid, code))
+    else:
+        code, resp = call_retry("POST", "/api/v1/chart/", body, db_id=db_id)
+        cid = resp["id"] if code == 201 else None
     if cid is None:
         print("ERREUR chart", name, "HTTP", code, resp)
         sys.exit(1)
@@ -322,9 +330,10 @@ for name, viz, ds_table, params in CHARTS:
     chart_ids.append(cid)
 
 # ---------------------------------------------------------------------------
-# 4. Dashboard "CHU — Indicateurs metier" + association des charts via
-#    json_metadata.positions (set_dash_metadata synchronise dashboard.slices
-#    depuis les meta.chartId des positions)
+# 4. Dashboard "CHU — Indicateurs metier" + layout des charts en position_json
+#    FORMAT V2 (DASHBOARD_ROOT -> GRID -> ROWS -> CHARTS) : Superset 4.x rend
+#    position_json en v2 ; l'ancien format "positions" v1 (json_metadata)
+#    laissait le dashboard SANS layout -> charts invisibles, dashboard vide.
 # ---------------------------------------------------------------------------
 DASH_TITLE = "CHU — Indicateurs métier"
 DASH_SLUG = "chu-indicateurs-metier"
@@ -343,18 +352,57 @@ if dash_id is None:
     sys.exit(1)
 print("dashboard '%s' id=%s" % (DASH_TITLE, dash_id))
 
-positions = {}
-for i, cid in enumerate(chart_ids, 1):
-    key = "CHART-" + str(i)
-    positions[key] = {"type": "CHART", "id": key, "meta": {"chartId": cid}, "children": []}
+import uuid as _uuid
+per_row = 2  # grille 12 colonnes -> 2 charts de width 6 par ligne
+# Layout v2 : constantes reelles du front 4.1.1 (constants.ts) :
+#   DASHBOARD_ROOT_ID = 'ROOT_ID', DASHBOARD_GRID_ID = 'GRID_ID',
+#   BACKGROUND_TRANSPARENT = 'BACKGROUND_TRANSPARENT'
+# (de mauvaises valeurs plantent le rendu : layout['ROOT_ID'] introuvable ->
+# undefined.children ; meta.background inconnu -> backgroundStyle undefined
+# -> undefined.value dans Row.jsx). Pour ROW/CHART, cle = id = meta.uuid.
+layout = {
+    "DASHBOARD_VERSION_KEY": "v2",
+    "ROOT_ID": {"type": "DASHBOARD_ROOT_TYPE", "id": "ROOT_ID",
+                "children": ["GRID_ID"], "meta": {"background": "BACKGROUND_TRANSPARENT"}},
+    "GRID_ID": {"type": "DASHBOARD_GRID_TYPE", "id": "GRID_ID",
+                "parents": ["ROOT_ID"], "children": [], "meta": {"background": "BACKGROUND_TRANSPARENT"}},
+}
+rows = [chart_ids[i:i + per_row] for i in range(0, len(chart_ids), per_row)]
+for row_charts in rows:
+    row_id = str(_uuid.uuid4())
+    layout["GRID_ID"]["children"].append(row_id)
+    layout[row_id] = {"type": "ROW", "id": row_id, "parents": ["GRID_ID"],
+                      "children": [], "meta": {"background": "BACKGROUND_TRANSPARENT"}}
+    for cid in row_charts:
+        key = str(_uuid.uuid4())
+        layout[row_id]["children"].append(key)
+        layout[key] = {"type": "CHART", "id": key, "parents": [row_id], "children": [],
+                       "meta": {"chartId": cid, "height": 50, "width": 12 // per_row,
+                                "uuid": key}}
+# json_metadata.positions (v1) sert a la synchro serveur de dashboard.slices
+# (DashboardDAO.set_dash_metadata lit data["positions"]) ; position_json (v2)
+# sert au rendu front. Il faut envoyer LES DEUX dans le PUT.
+positions = {"CHART-%d" % cid: {"type": "CHART", "id": "CHART-%d" % cid,
+                                 "meta": {"chartId": cid}, "children": []}
+             for cid in chart_ids}
 meta = {"positions": positions, "color_scheme": "supersetColors", "label_colors": {},
-        "chart_configuration": {}, "native_filter_configuration": [],
-        "cross_filters_enabled": False}
+        "chart_configuration": {}, "native_filter_configuration": [], "cross_filters_enabled": False}
+# PUT 1 : json_metadata.positions (v1) -> synchro serveur de dashboard.slices
+#         (set_dash_metadata ne se declenche que si json_metadata est present)
 code, resp = call_retry("PUT", "/api/v1/dashboard/%d" % dash_id,
                   {"json_metadata": json.dumps(meta), "published": True}, db_id=db_id)
-print("PUT /api/v1/dashboard/%d -> HTTP %s" % (dash_id, code))
+print("PUT json_metadata /api/v1/dashboard/%d -> HTTP %s" % (dash_id, code))
 if code != 200:
-    print("ERREUR PUT dashboard:", resp)
+    print("ERREUR PUT json_metadata:", resp)
+    sys.exit(1)
+# PUT 2 : position_json v2 SEUL -> layout front (ROOT_ID/GRID_ID) ; si on
+#         envoyait json_metadata au meme appel, le serveur ecraserait
+#         position_json avec le v1. Les slices du PUT 1 sont conserves.
+code, resp = call_retry("PUT", "/api/v1/dashboard/%d" % dash_id,
+                  {"position_json": json.dumps(layout)}, db_id=db_id)
+print("PUT position_json /api/v1/dashboard/%d -> HTTP %s" % (dash_id, code))
+if code != 200:
+    print("ERREUR PUT position_json:", resp)
     sys.exit(1)
 
 # ---------------------------------------------------------------------------

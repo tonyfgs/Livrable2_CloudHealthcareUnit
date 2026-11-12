@@ -13,8 +13,8 @@ S1_Consultation;Date;1027157;1027157;100.0
 S1_Consultation;Code_diag;1027157;1027157;100.0
 S1_Consultation;Id_prof_sante;1027157;1027157;100.0
 deces;sexe;25088208;25088208;100.0
-deces;date_deces;25088208;25088208;100.0
-deces;date_naissance;25088208;25087658;100.0
+deces;date_deces;25088208;25087562;100.0
+deces;date_naissance;25088208;24997760;99.64
 deces;code_lieu_deces;25088208;25077274;99.96
 etablissement;finess_site;416665;200;0.05
 etablissement;finess_etablissement_juridique;416665;57692;13.85

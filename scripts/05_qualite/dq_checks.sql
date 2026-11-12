@@ -18,13 +18,24 @@ SET s3_url_style='path';
 SET s3_use_ssl=false;
 SET s3_access_key_id='minioadmin';
 SET s3_secret_access_key='minioadmin';
--- Limites mémoire/threads : le conteneur tourne dans une VM Docker dont la RAM
--- est partagée avec Spark/Postgres -> plafond volontaire pour éviter le OOM-kill
--- (exit 137) constaté avec les défauts (memory_limit = 80% RAM hôte, 8 threads)
-SET memory_limit='5GB';
-SET threads=4;
+-- Limites mémoire/threads : le conteneur tourne dans une VM Docker de 8 Go dont
+-- la RAM est partagée avec Spark/Trino/Postgres/Hive (~5,5 Go consommés quand
+-- toute la stack tourne). Un plafond DuckDB à 5GB garantissait le OOM-kill
+-- (exit 137) par le noyau -> tâche dq_checks en échec. On bride à 2 Go / 2
+-- threads : au-delà, DuckDB spill sur disque (temp_directory) au lieu de se
+-- faire tuer. preserve_insertion_order=false réduit encore la mémoire des
+-- grosses agrégations parallèles.
+SET memory_limit='2GB';
+SET threads=2;
+SET preserve_insertion_order=false;
+SET temp_directory='/tmp/duckdb_tmp';
+SET max_temp_directory_size='20GB';
 CREATE OR REPLACE VIEW src_hosp AS SELECT * FROM read_csv('/data-projet/Hospitalisation/Hospitalisations.csv', header=true, delim=';', nullstr='', all_varchar=true);
-CREATE OR REPLACE VIEW src_etab AS SELECT * FROM read_csv('/data-projet/Etablissement de SANTE/etablissement_sante.csv', header=true, delim=';', nullstr='', all_varchar=true, max_line_size=10000000);
+-- Matérialisée (comme t_deces) : la section D la scanne dans ~7 branches d'un
+-- même UNION ALL ; en vue directe sur le CSV de 203 Mo, chaque branche
+-- re-parse le fichier en parallèle et fait déborder le memory_limit.
+CREATE OR REPLACE TABLE t_etab AS SELECT * FROM read_csv('/data-projet/Etablissement de SANTE/etablissement_sante.csv', header=true, delim=';', nullstr='', all_varchar=true, max_line_size=10000000);
+CREATE OR REPLACE VIEW src_etab AS SELECT * FROM t_etab;
 CREATE OR REPLACE VIEW src_pro AS SELECT * FROM read_csv('staging/professionnel_sante_utf8.csv', header=true, delim=';', nullstr='', all_varchar=true);
 CREATE OR REPLACE VIEW src_act AS SELECT * FROM read_csv('staging/activite_professionnel_sante_utf8.csv', header=true, delim=';', nullstr='', all_varchar=true);
 CREATE OR REPLACE VIEW src_sat19 AS SELECT * FROM read_csv('staging/satisfaction_2019.csv', header=true, delim=';', nullstr='', all_varchar=true);
@@ -35,7 +46,19 @@ CREATE OR REPLACE VIEW src_sat20 AS SELECT * FROM read_csv('staging/satisfaction
 CREATE OR REPLACE TABLE t_hosp AS SELECT * FROM src_hosp;
 CREATE OR REPLACE TABLE t_sat19 AS SELECT * FROM src_sat19;
 CREATE OR REPLACE TABLE t_sat20 AS SELECT * FROM src_sat20;
-CREATE OR REPLACE TABLE t_deces AS SELECT * FROM read_csv('/data-projet/DECES EN FRANCE/deces.csv', header=true, delim=',', quote='"', nullstr='', all_varchar=true);
+-- Typage AU CHARGEMENT (jamais dans read_csv : un cast poussé dans le lecteur
+-- provoque une erreur dure) : 25M lignes en DATE/INTEGER/BIGINT au lieu de
+-- VARCHAR divise par ~3 la taille de la table en mémoire. En full VARCHAR, les
+-- jointures de la section D sur les 25M lignes débordaient le memory_limit.
+CREATE OR REPLACE TABLE t_deces AS
+SELECT nom, prenom,
+       try_cast(sexe AS INTEGER)             AS sexe,
+       try_cast(date_naissance AS DATE)      AS date_naissance,
+       code_lieu_naissance, lieu_naissance, pays_naissance,
+       try_cast(date_deces AS DATE)          AS date_deces,
+       code_lieu_deces,
+       try_cast(numero_acte_deces AS BIGINT) AS numero_acte_deces
+FROM read_csv('/data-projet/DECES EN FRANCE/deces.csv', header=true, delim=',', quote='"', nullstr='', all_varchar=true);
 CREATE OR REPLACE VIEW src_deces AS SELECT * FROM t_deces;
 -- vues typées sûres : le cast s'applique sur une table DuckDB, jamais dans le lecteur CSV
 CREATE OR REPLACE VIEW v_deces_d AS SELECT *, try_cast(date_deces AS DATE) AS d_deces, try_cast(date_naissance AS DATE) AS d_naissance FROM t_deces;
@@ -81,9 +104,9 @@ COPY (
   UNION ALL SELECT 'S1_Consultation','Date',COUNT(*),COUNT("Date"),ROUND(100.0*COUNT("Date")/COUNT(*),2) FROM s1.public."Consultation"
   UNION ALL SELECT 'S1_Consultation','Code_diag',COUNT(*),COUNT(NULLIF(TRIM("Code_diag"),'')),ROUND(100.0*COUNT(NULLIF(TRIM("Code_diag"),''))/COUNT(*),2) FROM s1.public."Consultation"
   UNION ALL SELECT 'S1_Consultation','Id_prof_sante',COUNT(*),COUNT(NULLIF(TRIM("Id_prof_sante"),'')),ROUND(100.0*COUNT(NULLIF(TRIM("Id_prof_sante"),''))/COUNT(*),2) FROM s1.public."Consultation"
-  UNION ALL SELECT 'deces','sexe',COUNT(*),COUNT(NULLIF(TRIM(sexe),'')),ROUND(100.0*COUNT(NULLIF(TRIM(sexe),''))/COUNT(*),2) FROM src_deces
-  UNION ALL SELECT 'deces','date_deces',COUNT(*),COUNT(NULLIF(TRIM(date_deces),'')),ROUND(100.0*COUNT(NULLIF(TRIM(date_deces),''))/COUNT(*),2) FROM src_deces
-  UNION ALL SELECT 'deces','date_naissance',COUNT(*),COUNT(NULLIF(TRIM(date_naissance),'')),ROUND(100.0*COUNT(NULLIF(TRIM(date_naissance),''))/COUNT(*),2) FROM src_deces
+  UNION ALL SELECT 'deces','sexe',COUNT(*),COUNT(sexe),ROUND(100.0*COUNT(sexe)/COUNT(*),2) FROM src_deces
+  UNION ALL SELECT 'deces','date_deces',COUNT(*),COUNT(date_deces),ROUND(100.0*COUNT(date_deces)/COUNT(*),2) FROM src_deces
+  UNION ALL SELECT 'deces','date_naissance',COUNT(*),COUNT(date_naissance),ROUND(100.0*COUNT(date_naissance)/COUNT(*),2) FROM src_deces
   UNION ALL SELECT 'deces','code_lieu_deces',COUNT(*),COUNT(NULLIF(TRIM(code_lieu_deces),'')),ROUND(100.0*COUNT(NULLIF(TRIM(code_lieu_deces),''))/COUNT(*),2) FROM src_deces
   UNION ALL SELECT 'etablissement','finess_site',COUNT(*),COUNT(NULLIF(TRIM(finess_site),'')),ROUND(100.0*COUNT(NULLIF(TRIM(finess_site),''))/COUNT(*),2) FROM src_etab
   UNION ALL SELECT 'etablissement','finess_etablissement_juridique',COUNT(*),COUNT(NULLIF(TRIM(finess_etablissement_juridique),'')),ROUND(100.0*COUNT(NULLIF(TRIM(finess_etablissement_juridique),''))/COUNT(*),2) FROM src_etab
@@ -98,9 +121,9 @@ COPY (
 
 -- ============ B. VALIDITE DES FORMATS ============
 COPY (
-  SELECT 'deces' AS fichier, 'date_deces format ISO AAA-MM-JJ' AS controle, COUNT(*) AS total, COUNT(*) FILTER (WHERE d_deces IS NULL AND NULLIF(TRIM(date_deces),'') IS NOT NULL) AS invalides, ROUND(100.0*COUNT(*) FILTER (WHERE d_deces IS NULL AND NULLIF(TRIM(date_deces),'') IS NOT NULL)/COUNT(*),4) AS pct_invalide FROM v_deces_d
-  UNION ALL SELECT 'deces','date_naissance format ISO',COUNT(*),COUNT(*) FILTER (WHERE d_naissance IS NULL AND NULLIF(TRIM(date_naissance),'') IS NOT NULL),ROUND(100.0*COUNT(*) FILTER (WHERE d_naissance IS NULL AND NULLIF(TRIM(date_naissance),'') IS NOT NULL)/COUNT(*),4) FROM v_deces_d
-  UNION ALL SELECT 'deces','sexe dans {1,2}',COUNT(*),COUNT(*) FILTER (WHERE sexe NOT IN ('1','2')),ROUND(100.0*COUNT(*) FILTER (WHERE sexe NOT IN ('1','2'))/COUNT(*),4) FROM src_deces
+  SELECT 'deces' AS fichier, 'date_deces format ISO AAA-MM-JJ' AS controle, COUNT(*) AS total, COUNT(*) FILTER (WHERE d_deces IS NULL AND date_deces IS NOT NULL) AS invalides, ROUND(100.0*COUNT(*) FILTER (WHERE d_deces IS NULL AND date_deces IS NOT NULL)/COUNT(*),4) AS pct_invalide FROM v_deces_d
+  UNION ALL SELECT 'deces','date_naissance format ISO',COUNT(*),COUNT(*) FILTER (WHERE d_naissance IS NULL AND date_naissance IS NOT NULL),ROUND(100.0*COUNT(*) FILTER (WHERE d_naissance IS NULL AND date_naissance IS NOT NULL)/COUNT(*),4) FROM v_deces_d
+  UNION ALL SELECT 'deces','sexe dans {1,2}',COUNT(*),COUNT(*) FILTER (WHERE sexe NOT IN (1,2)),ROUND(100.0*COUNT(*) FILTER (WHERE sexe NOT IN (1,2))/COUNT(*),4) FROM src_deces
   UNION ALL SELECT 'Hospitalisations','Date_Entree format JJ/MM/AAAA',COUNT(*),COUNT(*) FILTER (WHERE d_entree IS NULL),ROUND(100.0*COUNT(*) FILTER (WHERE d_entree IS NULL)/COUNT(*),4) FROM v_hosp_d
   UNION ALL SELECT 'Hospitalisations','Code_diagnostic format CIM-10',COUNT(*),COUNT(*) FILTER (WHERE "Code_diagnostic" !~ '^[A-Z][0-9][0-9][A-Z0-9]?[A-Z0-9]?$'),ROUND(100.0*COUNT(*) FILTER (WHERE "Code_diagnostic" !~ '^[A-Z][0-9][0-9][A-Z0-9]?[A-Z0-9]?$')/COUNT(*),4) FROM src_hosp
   UNION ALL SELECT 'S1_Patient','Sexe dans {male,female}',COUNT(*),COUNT(*) FILTER (WHERE "Sexe" NOT IN ('male','female')),ROUND(100.0*COUNT(*) FILTER (WHERE "Sexe" NOT IN ('male','female'))/COUNT(*),4) FROM s1.public."Patient"
@@ -125,7 +148,7 @@ COPY (
   -- COALESCE sur chaque champ : en DuckDB, NULL || 'x' = NULL, une clé avec un
   -- champ NULL serait exclue du COUNT(DISTINCT) et gonflerait artificiellement
   -- le nombre de doublons (les décès ont des champs facultatifs : acte, lieu).
-  UNION ALL SELECT 'deces','cle complete (nom,prenom,date_naissance,date_deces,lieu,acte)',COUNT(*),COUNT(*)-COUNT(DISTINCT COALESCE(nom,'')||'|'||COALESCE(prenom,'')||'|'||COALESCE(date_naissance,'')||'|'||COALESCE(date_deces,'')||'|'||COALESCE(code_lieu_deces,'')||'|'||COALESCE(numero_acte_deces,'')),ROUND(100.0*(COUNT(*)-COUNT(DISTINCT COALESCE(nom,'')||'|'||COALESCE(prenom,'')||'|'||COALESCE(date_naissance,'')||'|'||COALESCE(date_deces,'')||'|'||COALESCE(code_lieu_deces,'')||'|'||COALESCE(numero_acte_deces,'')))/COUNT(*),4) FROM src_deces
+  UNION ALL SELECT 'deces','cle complete (nom,prenom,date_naissance,date_deces,lieu,acte)',COUNT(*),COUNT(*)-COUNT(DISTINCT COALESCE(nom,'')||'|'||COALESCE(prenom,'')||'|'||COALESCE(CAST(date_naissance AS VARCHAR),'')||'|'||COALESCE(CAST(date_deces AS VARCHAR),'')||'|'||COALESCE(code_lieu_deces,'')||'|'||COALESCE(CAST(numero_acte_deces AS VARCHAR),'')),ROUND(100.0*(COUNT(*)-COUNT(DISTINCT COALESCE(nom,'')||'|'||COALESCE(prenom,'')||'|'||COALESCE(CAST(date_naissance AS VARCHAR),'')||'|'||COALESCE(CAST(date_deces AS VARCHAR),'')||'|'||COALESCE(code_lieu_deces,'')||'|'||COALESCE(CAST(numero_acte_deces AS VARCHAR),'')))/COUNT(*),4) FROM src_deces
 ) TO 'dq/results/dq_doublons.csv' (HEADER, DELIMITER ';');
 
 -- ============ C2. DOUBLONS SUR LES FAITS INTÉGRÉS (lake Gold/Silver) ============

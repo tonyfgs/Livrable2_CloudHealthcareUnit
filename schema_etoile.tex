@@ -1,0 +1,62 @@
+\documentclass[tikz,border=2mm]{standalone}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\def\pgfsysdriver{pgfsys-dvisvgm.def}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
+\definecolor{starblue}{RGB}{187,214,240}
+\definecolor{factred}{RGB}{240,190,190}
+\definecolor{factlight}{RGB}{248,214,214}
+\definecolor{silvergreen}{RGB}{200,230,200}
+\definecolor{aggorange}{RGB}{250,215,160}
+\definecolor{ink}{HTML}{1F2937}
+\pagestyle{empty}
+\begin{document}
+\begin{tikzpicture}[
+  every node/.style={text=ink, inner sep=4pt},
+  dim/.style={draw=ink!70, fill=starblue, rounded corners=3pt, minimum width=3.4cm, minimum height=1.1cm, align=center, font=\small},
+  fact/.style={draw=ink!70, fill=factred, rounded corners=4pt, minimum width=7.4cm, minimum height=2.9cm, align=center, font=\small},
+  sat/.style={draw=ink!70, fill=factlight, rounded corners=3pt, minimum width=5.6cm, minimum height=1.1cm, align=center, font=\small},
+  sil/.style={draw=ink!70, fill=silvergreen, rounded corners=3pt, minimum width=5.2cm, minimum height=1.5cm, align=center, font=\small},
+  agg/.style={draw=ink!70, fill=aggorange, rounded corners=3pt, minimum width=5.6cm, minimum height=1.1cm, align=center, font=\small},
+  arr/.style={-{Stealth[length=2.2mm]}, thick, draw=ink!80},
+  darr/.style={-{Stealth[length=2mm]}, thick, dashed, draw=ink!55}
+]
+\node[font=\Large\bfseries, text=ink] at (0,7.4) {Schéma en étoile déployé -- Cloud Healthcare Unit (Silver/Gold, 13 tables externes)};
+\node[font=\small, text=ink!80] at (0,6.7) {6 dimensions (bleu) -- 5 faits (rouge) -- 1 fait de détail Silver (vert) -- 2 agrégats pré-calculés (orange)};
+\node[fact] (fm) at (0,0) {\textbf{f\_mesures} -- \emph{fait consolidé} (Gold)\\
+  grain : annee\_mois x etab x patient\\
+  x sexe x tranche\_age x loc\\
+  \textbf{4 mesures} : consultations,\\
+  hospitalisations, satisfaction, décès\\
+  1 030 402 lignes -- part. annee, sexe, tranche\_age};
+\node[dim] (dt) at (0,5.0) {\textbf{d\_temps}\\5 844 jours (2015--2030)\\id\_temps = AAAAMMJJ\\part. annee};
+\node[dim] (dp) at (-9.4,0) {\textbf{d\_patient}\\100 000 patients\\id\_patient (clé de sub.)\\part. sexe, tranche\_age\_ref};
+\node[dim] (de) at (9.4,0) {\textbf{d\_etablissement}\\416 665 sites FINESS\\id\_etablissement (surrogate)};
+\node[dim] (dl) at (0,-5.4) {\textbf{d\_localisation}\\102 dép. (+ INCONNU)\\id\_localisation = code dép.\\part. code\_region};
+\node[sil] (fc) at (-9.4,-5.4) {\textbf{f\_consultation\_detail} (Silver)\\1 027 157 consultations\\grain : 1 consultation\\FK : temps, patient, diag,\\pro, etab, loc};
+\node[dim] (dd) at (-16.2,-5.4) {\textbf{d\_diagnostic}\\15 490 codes CIM-10\\id\_diagnostic (surrogate)};
+\node[dim] (pr) at (-9.4,-9.0) {\textbf{d\_professionnel}\\1 048 575 pros\\identifiant (clé naturelle)};
+\node[sat] (fh) at (15.8,5.0) {\textbf{f\_hospitalisation} -- fait\\2 479 séjours -- part. annee};
+\node[sat] (fs) at (15.8,3.1) {\textbf{f\_satisfaction} -- fait\\1 960 lig. -- grain FINESS\\juridique x annee};
+\node[sat] (fd) at (15.8,1.2) {\textbf{f\_deces\_agg} -- fait agrégé (INSEE)\\69 008 lig. -- grain annuel\\x sexe x âge x dép.};
+\node[agg] (fa1) at (15.8,-1.2) {\textbf{f\_consult\_diag\_mois} -- agrégat\\979 797 lig. -- mois x diagnostic\\x etab};
+\node[agg] (fa2) at (15.8,-3.1) {\textbf{f\_consult\_prof\_mois} -- agrégat\\1 001 453 lig. -- mois x pro};
+\draw[arr] (dt) -- (fm);
+\draw[arr] (dp) -- (fm);
+\draw[arr] (de) -- (fm);
+\draw[arr] (dl) -- (fm);
+\draw[darr] (fc) -- (fm);
+\draw[arr] (dd) -- (fc);
+\draw[arr] (pr) -- (fc);
+\draw[darr] (fh.west) -- (fm.north east);
+\draw[darr] (fs.west) -- (fm.north east);
+\draw[darr] (fd.west) -- (fm.north east);
+\draw[darr] (fa1.west) -- (fm.south east);
+\draw[darr] (fa2.west) -- (fm.south east);
+\node[font=\footnotesize, align=left, draw=ink!50, rounded corners=3pt, fill=gray!8, inner sep=5pt] at (7.0,-8.4)
+  {Légende : bleu = dimension, rouge = fait, vert = fait de détail (Silver), orange = agrégat pré-calculé.\\
+   Flèche pleine = clé étrangère vers la dimension ; tiret = fait dérivé de \texttt{f\_mesures}.};
+\end{tikzpicture}
+\end{document}

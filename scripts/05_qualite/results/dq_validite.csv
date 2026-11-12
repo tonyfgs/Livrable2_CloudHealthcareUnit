@@ -1,6 +1,6 @@
 fichier;controle;total;invalides;pct_invalide
-deces;date_deces format ISO AAA-MM-JJ;25088208;646;0.0026
-deces;date_naissance format ISO;25088208;89898;0.3583
+deces;date_deces format ISO AAA-MM-JJ;25088208;0;0.0
+deces;date_naissance format ISO;25088208;0;0.0
 deces;sexe dans {1,2};25088208;0;0.0
 Hospitalisations;Date_Entree format JJ/MM/AAAA;2479;0;0.0
 Hospitalisations;Code_diagnostic format CIM-10;2479;368;14.8447

@@ -1,23 +1,6 @@
 # ============================================================================
 # Livrable 2 - Cloud Healthcare Unit (CHU) - Module commun PySpark
 # ----------------------------------------------------------------------------
-# Rôle d'Apache Spark dans la stack : couche TRAITEMENT (ETL/ELT) - lecture
-# des sources (PostgreSQL S1 via JDBC, CSV du data lake MinIO), nettoyage,
-# transformation, écriture des tables Gold/Silver dans le data lake (MinIO)
-# au format Parquet partitionné. Le catalogue (Hive Metastore) est
-# alimenté SÉPARÉMENT par le DAG Airflow (MSCK REPAIR TABLE via beeline) :
-# Spark 3.5.1 embarque un client Hive 2.3 incompatible du Hive Metastore 4.x.
-#
-# Toute la stack tourne dans Docker (voir scripts/docker-compose.yml) :
-# aucune installation sur le poste hôte.
-#
-# Variables d'environnement (surchargées par le DAG Airflow) :
-#   LAKE_ROOT          racine du data lake          (défaut s3a://lake)
-#   MINIO_ENDPOINT     endpoint MinIO                (défaut http://minio:9000)
-#   MINIO_ACCESS_KEY / MINIO_SECRET_KEY             (défaut minioadmin)
-#   HIVE_METASTORE_URI thrift Hive Metastore         (défaut thrift://hive-metastore:9083)
-#   PG_HOST / PG_PORT / PG_DB / PG_USER / PG_PASSWORD  source S1 (défaut s1-postgres:5432/chu_s1/chu/chu)
-#   WAREHOUSE_DIR      répertoire entrepôt Spark   (défaut s3a://lake/warehouse)
 # ============================================================================
 import os
 
@@ -37,26 +20,14 @@ PG_USER = os.environ.get("PG_USER", "chu")
 PG_PASSWORD = os.environ.get("PG_PASSWORD", "chu")
 PG_JDBC_URL = f"jdbc:postgresql://{PG_HOST}:{PG_PORT}/{PG_DB}"
 
-# Racine des données brutes (zone RAW du lake) : sources S2/S3/S4 déposées
-# telles quelles dans MinIO par le script d'ingestion (hors périmètre de ce
-# livrable, cf. rapport §Stack - couche ingestion).
+
 RAW = f"{LAKE_ROOT}/raw"
 GOLD = f"{LAKE_ROOT}/gold"
 SILVER = f"{LAKE_ROOT}/silver"
 
 
 def get_spark(app_name: str) -> SparkSession:
-    """Session Spark configurée pour MinIO (S3A).
 
-    Le catalogue est IN-MEMORY (pas de Hive Metastore côté Spark) : Spark 3.5.1
-    embarque un client Hive 2.3 dont le protocole Thrift est incompatible du
-    Hive Metastore 4.x du cluster (« Invalid method name: get_table »).
-    Architecture retenue : Spark écrit les fichiers Parquet partitionnés
-    directement sur le lake (save_gold -> saveAsTable avec option
-    path, sans metastore) ; le Hive Metastore est rafraîchi SÉPARÉMENT par le
-    DAG (MSCK REPAIR TABLE via beeline, tâche msck_repair_metastore), puis
-    Trino/Superset lisent via le catalogue.
-    """
     return (
         SparkSession.builder
         .appName(app_name)
@@ -155,8 +126,7 @@ def dept_of(code_commune_col):
     c = F.trim(code_commune_col)
     return (
         F.when(c.isNull() | (c == ""), F.lit(None).cast("string"))
-        # F.substring (pos/len en int) et pas F.left : depuis pyspark 3.5,
-        # F.left exige une Column pour len (NOT_COLUMN_OR_STR sinon)
+
         .when(F.substring(c, 1, 2) == "97", F.substring(c, 1, 3))
         .when(F.substring(c, 1, 2) == "20", F.lit("2A"))
         .otherwise(F.substring(c, 1, 2))
@@ -187,20 +157,15 @@ def save_gold(df, table: str, path: str, partition_cols=None):
     the declared bucket count"). Le tri intra-fichier est conservé via
     sortWithinPartitions sur les clés de jointure (quand elles existent).
     """
-    # Pas de DROP TABLE : le catalogue est in-memory (pas de metastore Hive,
-    # incompatible Hive 4.x) ; le mode overwrite vide le répertoire cible
-    # (pas de partitions obsolètes). Le catalogue in-memory ne crée pas les
-    # schémas tout seul : CREATE DATABASE IF NOT EXISTS avant saveAsTable.
     spark = df.sparkSession
     if "." in table:
         spark.sql(f"CREATE DATABASE IF NOT EXISTS {table.split('.')[0]}")
-    # Tri intra-partition sur les clés de jointure -> statistiques min/max par
-    # fichier Parquet -> pruning intra-fichier côté Trino (sans bucketing)
+
+
     if {"id_etablissement", "id_patient"} <= set(df.columns):
         df = df.sortWithinPartitions("id_etablissement", "id_patient")
     writer = df.write.mode("overwrite").format("parquet")
     if partition_cols:
         writer = writer.partitionBy(*partition_cols)
-    # option("path") + saveAsTable => table EXTERNE (les données restent dans
-    # le lake même après DROP TABLE ; conforme au DDL 01_schema_gold_hive.sql)
+
     writer.option("path", path).saveAsTable(table)

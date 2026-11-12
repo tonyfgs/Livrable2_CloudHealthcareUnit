@@ -59,6 +59,10 @@ FEATURE_FLAGS = {
     "DYNAMIC_PLUGINS": False,
     "DASHBOARD_NATIVE_FILTERS": True,
     "DASHBOARD_CROSS_FILTERS": True,
+    # barre de filtres natifs affichée EN HAUT du dashboard (horizontal) au lieu
+    # de la barre latérale verticale : filter_bar_orientation="HORIZONTAL" dans
+    # les json_metadata des dashboards concernés.
+    "HORIZONTAL_FILTER_BAR": True,
     "DASHBOARD_VIRTUALIZATION": False,   # rend tous les graphiques (captures d'ecran fiables)
 }
 
@@ -70,3 +74,10 @@ BABEL_DEFAULT_LOCALE = "fr"
 D3_FORMAT = {"decimal": ",", "thousands": "\u202f", "grouping": [3], "currency": ["", " \u20ac"]}
 # Les dashboards sont affiches dans des iframes/captures : pas de restriction de contenu pour le Markdown de l'histoire
 TALISMAN_ENABLED = False
+
+# Le schema GitHub de hast-util-sanitize (HTML_SANITIZATION=True) strip les
+# attributs style/class du HTML des composants MARKDOWN -> header/bulles KPI
+# non styles. On les re-autorise (dashboard interne, pas d'input utilisateur).
+HTML_SANITIZATION_SCHEMA_EXTENSIONS = {
+    "attributes": {"*": ["style", "class"]},
+}

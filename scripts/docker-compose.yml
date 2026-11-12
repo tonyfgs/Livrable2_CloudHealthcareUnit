@@ -279,6 +279,12 @@ services:
     # Le conteneur reste disponible pour le benchmark (harness) et les
     # contrôles qualité exécutés par Airflow (docker exec chu-bench-duckdb)
     command: ["sleep", "infinity"]
+    # Plafond dur : la VM Docker fait 8 Go partagés avec toute la stack. Si
+    # DuckDB dérape malgré son memory_limit interne (2 Go, voir
+    # 05_qualite/dq_checks.sql), c'est CE conteneur qui est OOM-killé dans son
+    # propre cgroup - jamais un service critique (Trino, Postgres, Hive...).
+    mem_limit: 3g
+    mem_reservation: 1g
     networks: [chu-net]
 
   # --------------------------------------------------------------------------
@@ -354,7 +360,7 @@ services:
       - .:/opt/scripts:ro
     # Limite cgroup relevee a 3 Go (Livrable 3) : les jointures de l'etoile servies a Superset
     # (COUNT DISTINCT sur 1 M de consultations) depassaient 1,5 Go hors tas et tuaient le conteneur
-    mem_limit: 3072m
+    mem_limit: 4608m  # 4,5g : les filtres natifs chargent les valeurs distinctes en parallele, 3g suffisait plus
     ports:
       - "8080:8080"
     networks: [chu-net]
@@ -405,6 +411,9 @@ services:
       ADMIN_LASTNAME: CHU
     volumes:
       - ./config/superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+      # Assets statiques du projet (bandeau/logo SVG) servis sous /static/custom/
+      # et references dans les composants MARKDOWN des dashboards (<img src="/static/custom/...">)
+      - ./06_superset/assets:/app/superset/static/custom:ro
     command:
       - /bin/bash
       - -c
@@ -440,6 +449,12 @@ services:
   # Pattern officiel Airflow : le scheduler et le webserver en dépendent
   # (service_completed_successfully) -> plus de course au premier démarrage.
   airflow-init:
+    # Image du projet (même build que airflow-scheduler) : le tag chu-airflow
+    # n'existe pas sur Docker Hub ("pull access denied"), on construit localement
+    build:
+      context: ./03_airflow
+      dockerfile: Dockerfile
+    pull_policy: build
     image: chu-airflow:2.9.3
     container_name: chu-airflow-init
     depends_on:
@@ -506,6 +521,12 @@ services:
     networks: [chu-net]
 
   airflow-webserver:
+    # Image du projet (même build que airflow-scheduler) : le tag chu-airflow
+    # n'existe pas sur Docker Hub ("pull access denied"), on construit localement
+    build:
+      context: ./03_airflow
+      dockerfile: Dockerfile
+    pull_policy: build
     image: chu-airflow:2.9.3
     container_name: chu-airflow-webserver
     restart: unless-stopped
